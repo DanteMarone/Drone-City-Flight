@@ -10,11 +10,7 @@ export class DistrictGenerator {
         this.colliderSystem = colliderSystem;
 
         this.materials = this._initMaterials();
-        this.geometries = {
-            box: new THREE.BoxGeometry(1, 1, 1),
-            roofPyramid: new THREE.ConeGeometry(0.75, 0.5, 4), // Pyramid
-            roofGable: new THREE.CylinderGeometry(0, 0.75, 1, 3) // Prism (Triangle)
-        };
+        this.geometries = this._initGeometries();
     }
 
     _initMaterials() {
@@ -26,6 +22,31 @@ export class DistrictGenerator {
         });
         mat.grass = new THREE.MeshStandardMaterial({ color: 0x44aa44, roughness: 1.0 });
         return mat;
+    }
+
+    _initGeometries() {
+        // Pyramid Roof (Hip)
+        // Cone(radius, height, segments). Default: Base in XZ, Point +Y.
+        // Segments=4 -> Diamond. Rotate Y 45deg to make it Square aligned with axes.
+        const roofPyramid = new THREE.ConeGeometry(1, 1, 4);
+        roofPyramid.rotateY(Math.PI / 4);
+
+        // Gable Roof (Prism)
+        // Cylinder(radiusTop, radiusBottom, height, segments).
+        // Use 0.5 radius to give ~1 unit width.
+        const roofGable = new THREE.CylinderGeometry(0.5, 0.5, 1, 3);
+        // Default: Spine along Y. Vertex at +Z (theta=0).
+        // 1. Lay spine horizontal along X axis.
+        roofGable.rotateZ(Math.PI / 2);
+        // 2. Rotate around Spine (X) to point vertex +Z up to +Y.
+        // Original +Z needs to go to +Y. Rotate X -90deg.
+        roofGable.rotateX(-Math.PI / 2);
+
+        return {
+            box: new THREE.BoxGeometry(1, 1, 1),
+            roofPyramid,
+            roofGable
+        };
     }
 
     generateCityLayout() {
@@ -174,95 +195,98 @@ export class DistrictGenerator {
         // Roof
         const roofType = Math.random() > 0.5 ? 'pyramid' : 'gable';
         let roof;
+        const rHeight = hHeight * 0.4; // Height of the roof peak
 
         if (roofType === 'pyramid') {
             roof = new THREE.Mesh(this.geometries.roofPyramid, new THREE.MeshStandardMaterial({ color: roofColor }));
-            // Scale: width, height, depth.
-            // Cone height is 0.5.
-            const rHeight = hHeight * 0.5; // Desired visual height
-            const scaleY = rHeight / 0.5; // Scale factor
 
-            roof.scale.set(hWidth * 1.2, scaleY, hDepth * 1.2);
+            // Pyramid Geometry is Base 1.414 (Diagonal) -> Side ~1?
+            // Actually, we baked RotateY(45).
+            // Cone base radius is 1. Diameter 2.
+            // Rotated 45deg, the bounding box width is sqrt(2)*Radius*2 = 2.8?
+            // Let's think: Cone(r=1, h=1).
+            // Base is circle. Segments 4 makes a square inscribed in circle?
+            // Radius 1. Vertices at (1,0), (0,1), (-1,0), (0,-1).
+            // Distance between vertices (Side Length) = sqrt(1^2+1^2) = 1.414.
+            // But we want Side Length to match hWidth.
+            // Current Side Length is 1.414.
+            // Scale Factor = hWidth / 1.414.
+            // Wait, if we rotated it 45 deg...
+            // Vertices are now at (0.707, 0.707).
+            // The Bounds are X[-0.707, 0.707], Z[-0.707, 0.707].
+            // Width is 1.414.
+            // So to match hWidth, we scale by hWidth / 1.414.
 
-            // Pos Y: Top of wall + Half Roof Height (since Cone origin is center)
-            roof.position.y = hHeight + (rHeight / 2);
+            const baseScale = hWidth / 1.414;
+            roof.scale.set(baseScale, rHeight, baseScale);
 
-            // Align square base (Diamond -> Square)
-            roof.rotation.y = Math.PI / 4;
+            // Pivot is at center of base (Y= -0.5) or center (Y=0)?
+            // ConeGeometry origin is at (0, -height/2, 0) usually?
+            // Docs: "centered at the origin".
+            // So Y goes from -height/2 to +height/2.
+            // We want base to be at hHeight.
+            // Base is at local Y = -0.5 (since created with height 1).
+            // After scaling Y by rHeight, base is at -rHeight/2.
+            // We want that point to be at hHeight.
+            // So pos.y = hHeight + rHeight/2.
+
+            roof.position.y = hHeight + rHeight / 2;
+
         } else {
             // Gable (Prism)
             roof = new THREE.Mesh(this.geometries.roofGable, new THREE.MeshStandardMaterial({ color: roofColor }));
 
-            // Prism is Cylinder(3). Height 1. Radius 0.75.
-            // Upright. Triangle base on XZ plane? No, Cylinder base is XZ.
-            // Cylinder is along Y.
-            // We want the "Length" of the prism to be along X or Z.
-            // And the "Triangle" face to be vertical.
+            // We baked it: Spine X. Point Up (+Y). Base Flat (-Y).
+            // Dimensions:
+            // X (Spine/Length) -> Should match hDepth (or hWidth).
+            // Y (Height) -> Should match rHeight.
+            // Z (Width) -> Should match hWidth.
 
-            // Rotate Prism to lie down: Rotate Z 90.
-            // Now Length is along World X. Triangle face is in YZ plane.
-            // We want Triangle face to be Front/Back? Or Side/Side?
-            // Usually Gable runs along the long axis or short axis.
-            // Here house is square (hWidth == hDepth).
+            // Original Geometry:
+            // Cylinder(0.5, 0.5, 1, 3).
+            // Rotated.
+            // Bounds:
+            // Spine (X) length is 1.
+            // Width (Z) is approx 0.866 (height of triangle with side 1)?
+            // Let's calculate:
+            // Inscribed in radius 0.5.
+            // Triangle side length s = r * sqrt(3) = 0.5 * 1.732 = 0.866.
+            // Triangle Height h_tri = s * sqrt(3)/2 = 0.866 * 0.866 = 0.75.
+            // (Or r + r/2 = 0.75).
+            // So Height (Y) is 0.75. Width (Z) is 0.866. Length (X) is 1.
 
-            // Length should match house Width (or Depth).
-            // Triangle Height should match desired roof height.
-            // Triangle Base Width should match house Depth.
+            // We want:
+            // Length (X) = hDepth * 1.2 (Overhang).
+            // Height (Y) = rHeight.
+            // Width (Z) = hWidth * 1.2 (Overhang).
 
-            const rHeight = hHeight * 0.5;
+            const scaleX = (hDepth * 1.2) / 1.0;
+            const scaleY = rHeight / 0.75;
+            const scaleZ = (hWidth * 1.0) / 0.866; // Match width exactly or slightly over?
 
-            // Geometry: Radius 0.75. Height 1.
-            // Radius 0.75 -> Triangle Height?
-            // Equilateral triangle inscribed in circle.
-            // This is tricky to scale exactly.
-            // Simplification: Scale blindly.
+            roof.scale.set(scaleX, scaleY, scaleZ);
 
-            // If we rotate X=90. Length along Z.
-            // Triangle face in XY plane.
-            // Point up?
-            // Cylinder(3) vertices: Top one at (0, r, ?).
-            // Default rotation usually has a flat side or a point up.
+            // Orientation:
+            // Spine is X. This aligns with House Depth?
+            // If House is square, doesn't matter.
+            // Let's randomize alignment? 50% rotate Y 90.
+            if (Math.random() > 0.5) {
+                roof.rotation.y = Math.PI / 2;
+            }
 
-            roof.rotation.z = Math.PI / 2; // Lie along X axis.
-            roof.rotation.y = Math.PI / 2; // Rotate so flat bottom is down?
+            // Position:
+            // Origin is Center.
+            // Base is at -Y (local).
+            // Visual Bottom is at -Height/2 * scaleY?
+            // Local Bottom is -0.375? (Since total height is 0.75 centered).
+            // Local Y range: [-0.375, +0.375] (approx).
+            // Scaled: [-0.375 * scaleY, +0.375 * scaleY].
+            // We want Bottom to be at hHeight.
+            // So pos.y = hHeight + (0.375 * scaleY).
+            // Since scaleY = rHeight / 0.75 -> 0.375 * (rHeight/0.75) = 0.375/0.75 * rHeight = 0.5 * rHeight.
+            // So pos.y = hHeight + rHeight/2.
 
-            // Actually, Cylinder(3) is weird.
-            // Better to rotate manually to find "Flat Down".
-            // Or just use Cone(4) as Pyramid for all for stability if Prism is hard?
-            // No, user specifically noted skew.
-
-            // Let's rely on Cone(4) as "Pyramid" working.
-            // For Gable, let's use a Box and taper it? Or just use a Wedge?
-            // Let's use `CylinderGeometry` but we need to align rotation.
-            // Cylinder(3) creates a prism.
-            // If we rotate on X 90deg, it lies on Z.
-            // Vertices need checking.
-
-            // Trial: Rotate X -90.
-            // Triangle points Y?
-            // Let's assume standard Cylinder.
-
-            // Just use a simpler shape: Scaled Box? No.
-            // Let's stick to Pyramid but elongated for "Hip Roof" if Gable is hard?
-            // User wants variety.
-
-            // Let's try the Prism again.
-            // Rotate Z = 90.
-            // We need to rotate X to make the flat side down.
-            // Cylinder(3) with rot Y = PI (180)?
-            // It creates a triangle pointing specific way.
-            // Let's just fix the rotation: `rotation.z = Math.PI / 2`.
-            // And `rotation.x = -Math.PI / 2`?
-            // Let's set it to 0,0,0 and scale.
-
-            roof.rotation.set(Math.PI / 2, Math.PI, 0); // Experimentally standard for prism on side?
-
-            // Dimensions
-            // Length (now Y local -> Z world?) = hDepth * 1.2
-            // Width/Height (Circle radius) -> hWidth / 2 and rHeight
-
-            roof.scale.set(hWidth * 0.8, hDepth * 1.3, hWidth * 0.8);
-            roof.position.y = hHeight + (rHeight * 0.4);
+            roof.position.y = hHeight + rHeight / 2;
         }
 
         roof.castShadow = true;

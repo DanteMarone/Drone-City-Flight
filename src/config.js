@@ -1,0 +1,59 @@
+// src/config.js
+
+export const CONFIG = {
+    // Input defaults
+    INPUT: {
+        KEYBOARD: {
+            ASCEND: 'KeyW',
+            DESCEND: 'KeyS',
+            YAW_LEFT: 'KeyA',
+            YAW_RIGHT: 'KeyD',
+            FORWARD: 'ArrowUp',
+            BACKWARD: 'ArrowDown',
+            LEFT: 'ArrowLeft',
+            RIGHT: 'ArrowRight',
+            CAMERA_UP: 'KeyQ',
+            CAMERA_DOWN: 'KeyE',
+            TOGGLE_CAMERA: 'KeyC',
+            BOOST: 'ShiftLeft',
+            RESET: 'KeyR',
+            PAUSE: 'Escape'
+        },
+        SENSITIVITY: {
+            YAW: 2.0,
+            YAW_SPEED: 2.0,
+            CHASE_MOUSE: 0.002,
+            FPV_MOUSE: 0.002
+        }
+    },
+
+    // Physics / Drone
+    DRONE: {
+        MAX_SPEED: 18.0,
+        BOOST_SPEED: 26.0,
+        ACCELERATION: 26.0,
+        DRAG: 2.8,
+        VERTICAL_ACCEL: 18.0,
+        VERTICAL_DRAG: 3.4,
+        YAW_SPEED: 2.5,
+        RADIUS: 0.5, // Collider radius
+        TILT_MAX: 0.3 // Visual tilt only, physics is level
+    },
+
+    // Camera
+    CAMERA: {
+        FOV: 75,
+        NEAR: 0.1,
+        FAR: 1000,
+        CHASE_OFFSET: { x: 0, y: 2, z: 4 }, // Behind and up
+        CHASE_SNAP_SPEED: 5.0
+    },
+
+    // World
+    WORLD: {
+        GRAVITY: -9.81, // Not strictly used if using custom kinematic vertical movement, but good reference
+        CHUNK_SIZE: 100,
+        FOG_COLOR: 0xaaccff,
+        FOG_DENSITY: 0.008
+    }
+};

@@ -1,34 +1,42 @@
 // src/world/generation.js
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { TextureGenerator } from '../utils/textures.js';
+import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
 export class DistrictGenerator {
     constructor(scene, colliderSystem) {
         this.scene = scene;
         this.colliderSystem = colliderSystem;
-        this.materials = {
-            downtown: new THREE.MeshStandardMaterial({ color: 0x888899, roughness: 0.2 }),
-            commercial: new THREE.MeshStandardMaterial({ color: 0x998877, roughness: 0.5 }),
-            suburbWall: new THREE.MeshStandardMaterial({ color: 0xffffee }),
-            suburbRoof: new THREE.MeshStandardMaterial({ color: 0xaa5544 }),
-            road: new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.9 }),
-            grass: new THREE.MeshStandardMaterial({ color: 0x44aa44, roughness: 1.0 })
-        };
 
+        this.materials = this._initMaterials();
         this.geometries = {
             box: new THREE.BoxGeometry(1, 1, 1),
-            roof: new THREE.ConeGeometry(0.75, 0.5, 4) // simple pyramid roof
+            roof: new THREE.ConeGeometry(0.75, 0.5, 4)
         };
+    }
+
+    _initMaterials() {
+        // Base materials
+        const mat = {};
+
+        // Road
+        const roadTex = TextureGenerator.createAsphalt();
+        mat.road = new THREE.MeshStandardMaterial({
+            map: roadTex,
+            roughness: 0.9,
+            color: 0x555555
+        });
+
+        // Grass
+        mat.grass = new THREE.MeshStandardMaterial({ color: 0x44aa44, roughness: 1.0 });
+
+        // Building Textures are generated on demand to allow variety
+        return mat;
     }
 
     generateCityLayout() {
         const colliders = [];
-        const chunkSize = 200; // Size of a district zone
-
-        // Layout:
-        // Center (0,0): Downtown
-        // East (+X): Commercial
-        // West (-X): Suburbs
 
         // 1. Downtown (Grid of skyscrapers)
         colliders.push(...this._generateDistrict(0, 0, 'downtown'));
@@ -39,7 +47,7 @@ export class DistrictGenerator {
         // 3. Suburbs (Houses)
         colliders.push(...this._generateDistrict(-1, 0, 'suburbs'));
 
-        // 4. Roads (Simple grid connecting them)
+        // 4. Roads
         this._generateRoads();
 
         return colliders;
@@ -47,7 +55,7 @@ export class DistrictGenerator {
 
     _generateDistrict(gridX, gridZ, type) {
         const generated = [];
-        const zoneSize = 200; // meter
+        const zoneSize = 200;
         const startX = gridX * zoneSize;
         const startZ = gridZ * zoneSize;
 
@@ -60,11 +68,9 @@ export class DistrictGenerator {
 
         for (let ix = 0; ix < count; ix++) {
             for (let iz = 0; iz < count; iz++) {
-                // World Coords
                 const wx = startX + offset + ix * spacing;
                 const wz = startZ + offset + iz * spacing;
 
-                // Safe zone at 0,0 for takeoff
                 if (Math.abs(wx) < 20 && Math.abs(wz) < 20) continue;
 
                 if (type === 'downtown') {
@@ -80,91 +86,179 @@ export class DistrictGenerator {
     }
 
     _createSkyscraper(x, z, width) {
-        const height = 20 + Math.random() * 60;
-        const mesh = new THREE.Mesh(this.geometries.box, this.materials.downtown);
+        const height = 30 + Math.random() * 70;
+
+        // Style: Glass vs Concrete
+        const isGlass = Math.random() > 0.5;
+        const baseColor = isGlass ? '#445566' : (Math.random() > 0.5 ? '#999999' : '#bbbbbb');
+        const winColor = isGlass ? '#88aacc' : '#112233';
+        const cols = Math.floor(width / 3);
+        const floors = Math.floor(height / 3);
+
+        const tex = TextureGenerator.createBuildingFacade({
+            color: baseColor,
+            windowColor: winColor,
+            floors: floors,
+            cols: cols,
+            width: 256,
+            height: 512
+        });
+
+        const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            roughness: isGlass ? 0.2 : 0.7,
+            metalness: isGlass ? 0.8 : 0.1
+        });
+
+        const mesh = new THREE.Mesh(this.geometries.box, mat);
         mesh.position.set(x, height / 2, z);
         mesh.scale.set(width, height, width);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        this.scene.add(mesh);
 
+        // Roof detail (AC units, rim)
+        const roofRim = new THREE.Mesh(
+            new THREE.BoxGeometry(width + 0.5, 1, width + 0.5),
+            new THREE.MeshStandardMaterial({ color: 0x333333 })
+        );
+        roofRim.position.set(x, height + 0.5, z);
+        this.scene.add(roofRim);
+
+        this.scene.add(mesh);
         return this._makeCollider(mesh);
     }
 
     _createShop(x, z, width) {
-        const height = 6 + Math.random() * 8;
-        const mesh = new THREE.Mesh(this.geometries.box, this.materials.commercial);
-        // Wider than tall
-        const w = width * (0.8 + Math.random() * 0.4);
-        const d = width * (0.8 + Math.random() * 0.4);
+        const height = 8 + Math.random() * 6;
+        const w = width * (0.8 + Math.random() * 0.2);
+        const d = width * (0.8 + Math.random() * 0.2);
 
+        // Storefront texture (fewer floors, big windows at bottom)
+        const tex = TextureGenerator.createBuildingFacade({
+            color: '#aa8866',
+            windowColor: '#443322',
+            floors: 3,
+            cols: Math.floor(w / 4),
+            width: 256,
+            height: 256
+        });
+
+        const mat = new THREE.MeshStandardMaterial({ map: tex, roughness: 0.6 });
+
+        const mesh = new THREE.Mesh(this.geometries.box, mat);
         mesh.position.set(x, height / 2, z);
         mesh.scale.set(w, height, d);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
-        this.scene.add(mesh);
 
+        // Awning?
+        const awning = new THREE.Mesh(
+            new THREE.BoxGeometry(w + 1, 0.2, 2),
+            new THREE.MeshStandardMaterial({ color: 0xcc4444 })
+        );
+        awning.position.set(x, 3, z + d/2 + 1);
+        awning.rotation.x = Math.PI / 6;
+        this.scene.add(awning);
+
+        this.scene.add(mesh);
         return this._makeCollider(mesh);
     }
 
     _createHouse(x, z, width) {
-        // Group for house
         const group = new THREE.Group();
         group.position.set(x, 0, z);
 
+        // Colors
+        const wallColors = [0xffffee, 0xeeddaa, 0xddccaa, 0xffeecc];
+        const roofColors = [0xaa5544, 0x555555, 0x444466];
+        const wallColor = wallColors[Math.floor(Math.random() * wallColors.length)];
+        const roofColor = roofColors[Math.floor(Math.random() * roofColors.length)];
+
         // Lawn
-        const lawnSize = width;
         const lawn = new THREE.Mesh(this.geometries.box, this.materials.grass);
-        lawn.scale.set(lawnSize, 0.2, lawnSize);
+        lawn.scale.set(width, 0.2, width);
         lawn.position.y = 0.1;
         lawn.receiveShadow = true;
-        this.scene.add(lawn); // Add lawn directly to scene or group?
-        // Note: Colliders usually expect simple meshes.
-        // For the collider, we'll just collide with the house structure.
+        this.scene.add(lawn);
 
         // House Body
         const hWidth = width * 0.5;
-        const hHeight = 4 + Math.random() * 2;
-        const body = new THREE.Mesh(this.geometries.box, this.materials.suburbWall);
-        body.scale.set(hWidth, hHeight, hWidth);
-        body.position.y = hHeight / 2;
+        const hDepth = width * 0.5;
+        const hHeight = 3.5 + Math.random() * 1.5;
+
+        const bodyGeo = new THREE.BoxGeometry(hWidth, hHeight, hDepth);
+        bodyGeo.translate(0, hHeight/2, 0);
+        const bodyMat = new THREE.MeshStandardMaterial({ color: wallColor });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
         body.castShadow = true;
         body.receiveShadow = true;
         group.add(body);
 
-        // Roof
-        const roof = new THREE.Mesh(this.geometries.roof, this.materials.suburbRoof);
-        roof.scale.set(hWidth * 1.2, hHeight * 0.5, hWidth * 1.2);
-        roof.position.y = hHeight + (hHeight * 0.25);
-        roof.rotation.y = Math.PI / 4;
+        // Roof Type: Pyramid vs Gable
+        const roofType = Math.random() > 0.5 ? 'pyramid' : 'gable';
+        let roof;
+
+        if (roofType === 'pyramid') {
+            roof = new THREE.Mesh(this.geometries.roof, new THREE.MeshStandardMaterial({ color: roofColor }));
+            roof.scale.set(hWidth * 1.2, hHeight * 0.6, hDepth * 1.2);
+            roof.position.y = hHeight + (hHeight * 0.3); // Center of cone is mid-height
+            roof.rotation.y = Math.PI / 4;
+        } else {
+            // Gable (Prism)
+            const rGeo = new THREE.ConeGeometry(0.75, 0.5, 4); // Re-use cone but scale/rotate differently? No, Prism is cylinder 3 sides.
+            // Or simple rotated box.
+            // Let's use a Cylinder 3 sides (Prism)
+            const prism = new THREE.CylinderGeometry(0, hWidth * 0.8, hDepth * 0.8, 3);
+            // Need to rotate to align flat side down.
+            // Default Cylinder is upright.
+            // Not perfect. Let's just use Cone (Pyramid) for MVP or craft a prism.
+            // Keeping it simple: Pyramid is fine, maybe scaled.
+            // Or use BufferGeometryUtils to make a prism.
+
+            // Just vary the pyramid scale to be flatter/wider
+            roof = new THREE.Mesh(this.geometries.roof, new THREE.MeshStandardMaterial({ color: roofColor }));
+            roof.scale.set(hWidth * 1.3, hHeight * 0.5, hDepth * 1.3);
+            roof.position.y = hHeight + (hHeight * 0.25);
+            roof.rotation.y = 0; // Aligned
+        }
+
         roof.castShadow = true;
         group.add(roof);
 
+        // Door
+        const door = new THREE.Mesh(
+            new THREE.BoxGeometry(1.2, 2.2, 0.1),
+            new THREE.MeshStandardMaterial({ color: 0x442211 })
+        );
+        door.position.set(0, 1.1, hDepth/2 + 0.05);
+        group.add(door);
+
+        // Window
+        const win = new THREE.Mesh(
+            new THREE.BoxGeometry(1.5, 1.2, 0.1),
+            new THREE.MeshStandardMaterial({ color: 0x223355, roughness: 0.1 })
+        );
+        win.position.set(0, 1.8, -hDepth/2 - 0.05);
+        group.add(win);
+
         this.scene.add(group);
 
-        // Approximation for collision: Just the body box, maybe slightly taller to cover roof
-        // We use the 'body' mesh for collider, as 'group' includes lawn.
-        // We need to ensure 'body' world matrix is up to date since it's inside group but group is added to scene?
-        // Actually group is added to scene, but body is child.
-        // setFromObject(body) will use world coords if world matrix updated.
+        // Collider: Just the main body box
         group.updateMatrixWorld(true);
         const box = new THREE.Box3().setFromObject(body);
-
-        // Expand box upwards slightly to cover roof
-        box.max.y += hHeight * 0.5;
+        // Expand for roof
+        box.max.y += 2;
 
         return { mesh: group, box };
     }
 
     _generateRoads() {
-        // Just big planes for now to cover the "street" areas beneath the grid
-        // 3 Zones * 200 = 600 width.
         const roadPlane = new THREE.Mesh(
             new THREE.PlaneGeometry(600, 200),
             this.materials.road
         );
         roadPlane.rotation.x = -Math.PI / 2;
-        roadPlane.position.y = 0.05; // Just above ground
+        roadPlane.position.y = 0.05;
         roadPlane.receiveShadow = true;
         this.scene.add(roadPlane);
     }

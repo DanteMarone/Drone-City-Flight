@@ -62,33 +62,71 @@ export class RingCompass {
             // Let's use 3D projection to screen to place it on the edge of screen?
             // "Compass" usually means top of screen strip, or an arrow around the player.
 
-            // Let's do a simple Arrow that rotates.
-            // Angle = Atan2(target.z - drone.z, target.x - drone.x) - DroneYaw
-
+            // Calculate angle relative to Drone Forward
+            // In ThreeJS: Forward is -Z. Right is +X.
+            // Math.atan2(x, z) assumes 0 is +Z.
+            // Target vector relative to drone
             const dx = nearest.x - dPos.x;
             const dz = nearest.z - dPos.z;
 
-            // World Angle
-            const worldAngle = Math.atan2(dx, dz); // Atan2(x, z) gives angle from Z axis?
-            // Standard: atan2(y,x). Here Z is 'up' in 2D map.
-            // Let's say Z is forward (0). X is Right (PI/2).
-            // Atan2(x, z).
+            // Angle of target in world space (0 at +Z, PI/2 at +X)
+            // atan2(x, z)
+            const targetAngle = Math.atan2(dx, dz);
 
-            // Drone Yaw is rotation around Y.
-            // We need Camera Yaw since we look through camera.
-            // But we don't have easy access to camera yaw in this class?
-            // We can pass camera.
+            // Drone Yaw: 0 means facing -Z?
+            // Check drone.js: "this.mesh.rotation.y = this.yaw;"
+            // Standard ThreeJS: 0 rotation faces initial state.
+            // Initial state: Drone usually modeled facing -Z or +Z?
+            // Drone body is box. Nose is at -0.4 Z. So Forward is -Z.
+            // If yaw = 0, drone faces -Z.
 
-            // Let's stick to "Relative to Drone Forward" which is what `drone.yaw` tracks.
-            // If in Chase mode, camera is usually behind drone, so they align.
-            // If camera orbits, the arrow might be misleading if it's "Drone Relative".
-            // Ideally it should be "Screen Relative".
+            // We want angle relative to drone nose.
+            // Vector to target: (dx, dz).
+            // Rotate this vector by -Yaw to align with drone local space?
 
-            // For MVP: Relative to Drone Yaw.
+            // Or simpler:
+            // Drone Forward Angle in World (relative to +Z):
+            // If yaw=0, forward is -Z (Angle PI).
+            // If yaw=PI/2 (Left turn), forward is -X (Angle -PI/2).
+            // Actually, let's verify standard ThreeJS rotation.
+            // Rot Y positive is CCW around Y.
+            // +Z -> +X is -90 deg?
+            // Let's stick to `angleDiff = targetAngle - droneAngle`.
 
-            let angleDiff = worldAngle - this.drone.yaw;
-            // Convert to degrees for CSS rotation
-            const deg = angleDiff * (180 / Math.PI);
+            // If yaw = 0, drone looks at -Z. targetAngle should be relative to -Z.
+            // targetAngle = atan2(x, z). 0 is +Z. PI is -Z.
+            // So if target is at -Z, targetAngle is PI.
+            // We want arrow to point UP (0 deg) when target is in front.
+            // So we want (targetAngle - PI) = 0.
+
+            // If yaw rotates, say Yaw = PI/2 (turned Left, facing +X).
+            // Target at +X. targetAngle = PI/2.
+            // We want arrow UP (0 deg).
+            // Formula: arrowAngle = targetAngle - (Yaw + PI).
+            // Check: PI/2 - (PI/2 + PI) = -PI.
+            // -PI corresponds to pointing UP? No, usually 0 is Up in CSS rotation?
+            // CSS rotate(0deg) is usually UP if the icon is drawn UP.
+            // Let's assume Arrow icon ➤ points Right by default?
+            // HTML: ➤ is right pointing.
+            // So 0 deg points Right. -90 deg points Up.
+
+            // Desired visual: Point towards target relative to drone forward.
+            // Bearing = targetAngle - (DroneYaw + PI).
+            // If Bearing is 0 (Front), we want Arrow to point Up.
+            // Since Arrow ➤ points Right, we need rotate(-90deg).
+
+            // Formula:
+            // rot = (targetAngle - (this.drone.yaw + Math.PI)) * 180/PI - 90;
+
+            let bearing = targetAngle - (this.drone.yaw + Math.PI);
+            // Negate bearing because CSS rotation is CW but Math angle is CCW-ish relative to screen?
+            // See Plan Step 1 analysis:
+            // Bearing 0 -> Up (-90). (0 -> -90)
+            // Bearing -90 (Right) -> Right (0). (-90 -> 0)
+            // Bearing 90 (Left) -> Left (180). (90 -> -180)
+            // Function: f(b) = -b - 90.
+
+            let deg = (-bearing * 180 / Math.PI) - 90;
 
             this.arrowEl.style.transform = `rotate(${deg}deg)`;
         }

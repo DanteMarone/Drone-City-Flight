@@ -31,7 +31,47 @@ export class ColliderSystem {
         const droneSphere = new THREE.Sphere(dronePos, radius);
 
         for (const other of nearby) {
-            if (other.box.intersectsSphere(droneSphere)) {
+            if (other.type === 'ring') {
+                 // Sphere vs Torus (approximated)
+                 // Transform sphere center to torus local space
+                 const invMat = other.mesh.matrixWorld.clone().invert();
+                 const localPos = dronePos.clone().applyMatrix4(invMat);
+
+                 // Torus (XY plane): R = 1.5 (major), r = 0.2 (tube)
+                 // Closest point on central circle
+                 const R = 1.5;
+                 const r = 0.2;
+
+                 // Vector on XY plane
+                 const vXY = new THREE.Vector2(localPos.x, localPos.y);
+                 const len = vXY.length();
+
+                 if (len > 0.0001) {
+                     vXY.normalize().multiplyScalar(R);
+                 } else {
+                     vXY.set(R, 0); // Arbitrary if at center
+                 }
+
+                 const closestOnCircle = new THREE.Vector3(vXY.x, vXY.y, 0);
+
+                 // Distance from sphere center to closest circle point
+                 const dist = localPos.distanceTo(closestOnCircle);
+
+                 // Collision if dist < r + radius
+                 if (dist < r + radius) {
+                     // Hit!
+                     const localNormal = new THREE.Vector3().subVectors(localPos, closestOnCircle).normalize();
+                     const normal = localNormal.transformDirection(other.mesh.matrixWorld).normalize();
+                     const penetration = (r + radius) - dist;
+
+                     hits.push({
+                         object: other,
+                         normal: normal,
+                         penetration: penetration
+                     });
+                 }
+
+            } else if (other.box && other.box.intersectsSphere(droneSphere)) {
                 // Detailed hit info
                 // Clamp center to box to find closest point
                 const closestPoint = new THREE.Vector3().copy(dronePos).clamp(other.box.min, other.box.max);

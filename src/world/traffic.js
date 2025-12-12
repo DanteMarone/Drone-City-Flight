@@ -41,11 +41,49 @@ export class TrafficSystem {
             const axis = Math.random() > 0.5 ? 'x' : 'z';
 
             // Snap to approximate lane
-            // Grid spacing approx 34m (24 block + 10 street)
-            // We blindly pick a lane coordinate
-            const laneStep = 34;
-            const laneIndex = Math.floor((Math.random() - 0.5) * (range / laneStep) * 2);
-            const lanePos = laneIndex * laneStep + (Math.random() > 0.5 ? 5 : -5); // Offset for two-way traffic?
+            // Grid spacing from DistrictGenerator:
+            // Downtown: 24 block + 12 street = 36
+            // Commercial: 30 block + 15 street = 45
+            // Suburb: 18 block + 10 street = 28
+
+            // To ensure cars are on roads, we need to pick a valid road coordinate.
+            // Simplified: We assume a uniform grid for now or pick from a set of known valid road spacings.
+            // But districts have different spacings.
+            // Let's pick a random district zone for each car and align to that district's grid.
+
+            // Randomly pick a "Zone Type" logic
+            const zoneType = Math.random();
+            let spacing, offset;
+
+            // Rough mapping to DistrictGenerator logic
+            if (zoneType < 0.33) { // Downtown (Center)
+                spacing = 36;
+            } else if (zoneType < 0.66) { // Commercial
+                spacing = 45;
+            } else { // Suburb
+                spacing = 28;
+            }
+
+            // Road center is between blocks.
+            // Blocks are centered at: start + offset + i * spacing
+            // Streets are between blocks.
+            // i * spacing + spacing/2 ?
+
+            // Actually, in Generation:
+            // wx = startX + offset + ix * spacing
+            // These are block centers.
+            // Streets are the gaps.
+            // So road lines should be at: wx + spacing/2 ?
+
+            // Let's try: BlockCenter + Spacing/2
+
+            const laneIndex = Math.floor((Math.random() - 0.5) * 20); // +/- 10 blocks
+            const blockCenter = laneIndex * spacing;
+            const roadCenter = blockCenter + spacing / 2;
+
+            // Two lanes per road: +/- 3m
+            const laneOffset = (Math.random() > 0.5 ? 3 : -3);
+            const lanePos = roadCenter + laneOffset;
 
             const pos = new THREE.Vector3();
             const dir = Math.random() > 0.5 ? 1 : -1;

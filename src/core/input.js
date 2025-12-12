@@ -58,10 +58,10 @@ export class InputManager {
         this.actions.descend = !!k[b.DESCEND];
         this.actions.yawLeft = !!k[b.YAW_LEFT];
         this.actions.yawRight = !!k[b.YAW_RIGHT];
-        this.actions.forward = !!k[b.FORWARD];
-        this.actions.backward = !!k[b.BACKWARD];
-        this.actions.left = !!k[b.LEFT];
-        this.actions.right = !!k[b.RIGHT];
+        this.actions.forward = !!k[b.FORWARD] || !!k[b.FORWARD_ALT];
+        this.actions.backward = !!k[b.BACKWARD] || !!k[b.BACKWARD_ALT];
+        this.actions.left = !!k[b.LEFT] || !!k[b.LEFT_ALT];
+        this.actions.right = !!k[b.RIGHT] || !!k[b.RIGHT_ALT];
         this.actions.cameraUp = !!k[b.CAMERA_UP];
         this.actions.cameraDown = !!k[b.CAMERA_DOWN];
         this.actions.boost = !!k[b.BOOST] || !!k['ShiftRight'];

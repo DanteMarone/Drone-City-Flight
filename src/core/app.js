@@ -119,8 +119,19 @@ export class App {
 
             this.drone.update(dt, move);
 
+            // Collisions: Static (via SpatialHash) + Cars + Rings
             const cars = this.traffic.getNearbyCarColliders(this.drone.position, 10);
-            const collided = this.physics.resolveCollisions(this.drone, cars);
+
+            // Rings as colliders
+            const ringColliders = this.rings.rings.map(r => ({
+                type: 'ring',
+                mesh: r.mesh,
+                box: null // Special handling
+            }));
+
+            const dynamicColliders = [...cars, ...ringColliders];
+
+            const collided = this.physics.resolveCollisions(this.drone, dynamicColliders);
 
             if (collided) {
                 if (this.drone.velocity.length() > 1.0) {
@@ -140,7 +151,14 @@ export class App {
             this.audio.update(speed);
 
             const alt = this.drone.position.y;
-            let statusMsg = this.battery.depleted ? "BATTERY EMPTY - LANDING" : "";
+            let statusMsg = "";
+            if (this.battery.depleted) {
+                if (speed < 0.1 && alt < 1.0) {
+                    statusMsg = "BATTERY EMPTY. PRESS R TO RESET.";
+                } else {
+                    statusMsg = "BATTERY EMPTY - LANDING";
+                }
+            }
 
             this.hud.update({
                 speed: speed,

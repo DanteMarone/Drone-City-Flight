@@ -67,6 +67,15 @@ export class TutorialManager {
         this.box.innerText = currentStep.text;
         this.box.classList.remove('hidden');
 
+        // Special handling for last step (Done)
+        if (this.step === this.steps.length - 1) {
+            this.timer += dt;
+            if (this.timer > 4.0) {
+                this.complete();
+            }
+            return;
+        }
+
         // Check condition
         if (currentStep.check(input, this.app.drone)) {
             this.timer += dt;
@@ -75,14 +84,6 @@ export class TutorialManager {
             }
         } else {
             this.timer = 0;
-        }
-
-        // Auto-hide if done
-        if (this.step === this.steps.length - 1) {
-            this.timer += dt;
-            if (this.timer > 4.0) {
-                this.complete();
-            }
         }
     }
 

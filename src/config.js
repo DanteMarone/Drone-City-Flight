@@ -12,6 +12,10 @@ export const CONFIG = {
             BACKWARD: 'ArrowDown',
             LEFT: 'ArrowLeft',
             RIGHT: 'ArrowRight',
+            FORWARD_ALT: 'KeyI',
+            BACKWARD_ALT: 'KeyK',
+            LEFT_ALT: 'KeyJ',
+            RIGHT_ALT: 'KeyL',
             CAMERA_UP: 'KeyQ',
             CAMERA_DOWN: 'KeyE',
             TOGGLE_CAMERA: 'KeyC',
@@ -42,9 +46,9 @@ export const CONFIG = {
 
     BATTERY: {
         MAX: 100,
-        DRAIN_MOVE: 2.0, // Per second at max speed approx
-        DRAIN_ASCEND: 5.0,
-        DRAIN_DESCEND: 2.0,
+        DRAIN_MOVE: 0.5, // Reduced to 1/4
+        DRAIN_ASCEND: 1.25,
+        DRAIN_DESCEND: 0.5,
         DRAIN_IDLE: 0,
         REWARD: 15
     },

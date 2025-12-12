@@ -33,14 +33,27 @@ export class RingManager {
         const toRemove = [];
 
         this.rings.forEach(ring => {
-            // Spin
-            ring.mesh.rotation.y += 2.0 * dt;
+            // Spin: Removed as per request (Rings should not rotate)
+            // ring.mesh.rotation.y += 2.0 * dt;
 
-            // Check Collection
-            const dist = ring.mesh.position.distanceTo(this.drone.position);
-            // Ring radius 1.5 + Drone radius 0.5 = 2.0 thresh
-            if (dist < 2.5) {
-                toRemove.push(ring);
+            // Check Collection: Must pass through center
+            // Simple check: Distance to center is small, AND aligned with plane?
+            // Better: Physics check handles collision with rim.
+            // We just need to check if we are inside the 'hole'.
+            // Hole radius ~ 1.5 - 0.2 = 1.3. Drone radius 0.5.
+            // So if distance < 1.3, we are inside?
+            // BUT we must be "inside" the torus plane thickness too.
+            // We can check if distance to center < 1.0 (safe margin) AND distance to plane < 0.5.
+
+            // Transform drone pos to Ring Local Space
+            const localPos = this.drone.position.clone().applyMatrix4(ring.mesh.matrixWorld.clone().invert());
+
+            // Torus is in XY plane. Z is normal.
+            const distToCenter = Math.sqrt(localPos.x*localPos.x + localPos.y*localPos.y);
+            const distToPlane = Math.abs(localPos.z);
+
+            if (distToCenter < 1.0 && distToPlane < 0.5) {
+                 toRemove.push(ring);
             }
         });
 

@@ -143,8 +143,16 @@ export class DistrictGenerator {
         this.scene.add(group);
 
         // Approximation for collision: Just the body box, maybe slightly taller to cover roof
-        // Or we can compute box for the whole group.
-        const box = new THREE.Box3().setFromObject(group);
+        // We use the 'body' mesh for collider, as 'group' includes lawn.
+        // We need to ensure 'body' world matrix is up to date since it's inside group but group is added to scene?
+        // Actually group is added to scene, but body is child.
+        // setFromObject(body) will use world coords if world matrix updated.
+        group.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(body);
+
+        // Expand box upwards slightly to cover roof
+        box.max.y += hHeight * 0.5;
+
         return { mesh: group, box };
     }
 

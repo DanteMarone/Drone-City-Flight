@@ -68,10 +68,12 @@ export class CameraController {
         if (input.toggleCamera) this.toggleMode();
 
         // Handle Q/E tilt (Orbit Phi)
+        // Q (cameraUp) should increase phi (Upwards to Top-Down)
+        // E (cameraDown) should decrease phi (Downwards to Horizontal)
         if (this.mode === 'CHASE') {
-            if (input.cameraUp) this.orbitAngles.phi -= 2.0 * dt;
-            if (input.cameraDown) this.orbitAngles.phi += 2.0 * dt;
-            this.orbitAngles.phi = Math.max(0.1, Math.min(Math.PI / 2, this.orbitAngles.phi));
+            if (input.cameraUp) this.orbitAngles.phi += 2.0 * dt;
+            if (input.cameraDown) this.orbitAngles.phi -= 2.0 * dt;
+            this.orbitAngles.phi = Math.max(0.01, Math.min(Math.PI / 2, this.orbitAngles.phi));
         }
 
         // Snap Behind Logic (Spec 3.2.4)

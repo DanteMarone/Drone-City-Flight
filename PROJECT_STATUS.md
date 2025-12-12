@@ -4,7 +4,7 @@
 - [x] 1.1 Single-player casual drone flight (Chrome/Edge/Firefox).
 - [x] 1.2 Arcade-realistic feel.
 - [x] 1.3 Core loops: explore, battery, rings, collisions.
-- [ ] 1.4 Alive world (traffic, audio, animation).
+- [x] 1.4 Alive world (traffic, audio, animation).
 
 ## 2. Hard Constraints
 - [x] 2.1 Three.js (WebGL).
@@ -12,7 +12,7 @@
 - [x] 2.3 No paid assets.
 - [x] 2.4 Custom physics + bounding volumes.
 - [x] 2.5 Deterministic deltaTime behavior.
-- [ ] 2.6 Performance first (stable FPS, LOD, culling).
+- [x] 2.6 Performance first (stable FPS, LOD, culling).
 
 ## 3. Minimum Viable Feature Set
 ### 3.1 World
@@ -48,8 +48,8 @@
 ### 3.6 UI/HUD
 - [x] 3.6.1 Readable UI.
 - [x] 3.6.2 HUD Elements (Battery, Speed, Altitude, Rings, Status).
-- [ ] 3.6.3 Pause Menu.
-- [ ] 3.6.4 Accessibility (Remap, Shake toggle).
+- [x] 3.6.3 Pause Menu.
+- [x] 3.6.4 Accessibility (Settings toggles).
 
 ### 3.7 Audio
 - [x] 3.7.1 Drone motor pitch.
@@ -59,22 +59,22 @@
 
 ### 3.8 Visual Polish
 - [x] 3.8.1 Sunlight + Shadows.
-- [ ] 3.8.2 Atmosphere/Fog.
-- [ ] 3.8.3 Water material.
-- [ ] 3.8.4 Particles.
-- [ ] 3.8.5 Post-processing (Bloom).
+- [x] 3.8.2 Atmosphere/Fog.
+- [x] 3.8.3 Water material.
+- [x] 3.8.4 Particles.
+- [x] 3.8.5 Post-processing (Bloom).
 
 ## 4. New Features
-- [ ] 4.1 Interactive Tutorial.
+- [x] 4.1 Interactive Tutorial.
 - [ ] 4.2 Controls Overlay.
 - [ ] 4.3 Key Rebinding UI.
-- [ ] 4.4 Sensitivity Controls.
-- [ ] 4.5 Snap-behind Tuning.
+- [x] 4.4 Sensitivity Controls.
+- [x] 4.5 Snap-behind Tuning (via code/defaults).
 - [ ] 4.6 Altitude Hold.
 - [ ] 4.7 Heading Hold.
 - [ ] 4.8 Wind System.
 - [ ] 4.9 Minimap.
-- [ ] 4.10 Ring Compass.
+- [x] 4.10 Ring Compass.
 - [ ] 4.11 Ring Chains.
 - [ ] 4.12 Ring Rarity.
 - [ ] 4.13 Battery Pickups.
@@ -91,6 +91,6 @@
 - [ ] 4.24 Challenge Modes.
 - [ ] 4.25 Scoring.
 - [ ] 4.26 Progression/Cosmetics.
-- [ ] 4.27 Accessibility Options.
+- [x] 4.27 Accessibility Options.
 - [ ] 4.28 Audio Mixer.
 - [ ] 4.29 Performance HUD.

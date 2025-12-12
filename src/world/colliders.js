@@ -17,9 +17,14 @@ export class ColliderSystem {
         });
     }
 
-    checkCollisions(dronePos, radius) {
-        // Broadphase
-        const nearby = this.spatialHash.query(dronePos.x, dronePos.z);
+    checkCollisions(dronePos, radius, dynamicColliders = []) {
+        // Broadphase Static
+        let nearby = this.spatialHash.query(dronePos.x, dronePos.z);
+
+        // Add Dynamic (Cars)
+        if (dynamicColliders.length > 0) {
+            nearby = nearby.concat(dynamicColliders);
+        }
 
         // Narrowphase: Sphere vs AABB
         const hits = [];

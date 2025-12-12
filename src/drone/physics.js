@@ -7,9 +7,9 @@ export class PhysicsEngine {
         this.colliderSystem = colliderSystem;
     }
 
-    resolveCollisions(drone) {
+    resolveCollisions(drone, dynamicColliders) {
         const radius = CONFIG.DRONE.RADIUS;
-        const hits = this.colliderSystem.checkCollisions(drone.position, radius);
+        const hits = this.colliderSystem.checkCollisions(drone.position, radius, dynamicColliders);
 
         hits.forEach(hit => {
             // 1. Positional Correction (Push out)

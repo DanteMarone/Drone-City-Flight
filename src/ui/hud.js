@@ -1,0 +1,73 @@
+// src/ui/hud.js
+export class HUD {
+    constructor() {
+        this.elements = {};
+        this._createDOM();
+    }
+
+    _createDOM() {
+        const layer = document.getElementById('ui-layer');
+
+        // Container
+        const container = document.createElement('div');
+        container.className = 'hud-container';
+        container.innerHTML = `
+            <div class="hud-top-left">
+                <div class="hud-row">
+                    <span class="hud-label">ALTITUDE</span>
+                    <span class="hud-value" id="hud-alt">0m</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">SPEED</span>
+                    <span class="hud-value" id="hud-spd">0m/s</span>
+                </div>
+                <div class="hud-row">
+                    <span class="hud-label">RINGS</span>
+                    <span class="hud-value" id="hud-rings">0</span>
+                </div>
+            </div>
+
+            <div class="hud-bottom-center">
+                 <div class="battery-label">BATTERY</div>
+                 <div class="battery-bar-bg">
+                     <div class="battery-bar-fill" id="hud-batt-fill"></div>
+                 </div>
+                 <div class="battery-text" id="hud-batt-text">100%</div>
+            </div>
+
+            <div class="hud-center-message" id="hud-msg"></div>
+        `;
+
+        layer.appendChild(container);
+
+        // Cache elements
+        this.elements.alt = container.querySelector('#hud-alt');
+        this.elements.spd = container.querySelector('#hud-spd');
+        this.elements.rings = container.querySelector('#hud-rings');
+        this.elements.battFill = container.querySelector('#hud-batt-fill');
+        this.elements.battText = container.querySelector('#hud-batt-text');
+        this.elements.msg = container.querySelector('#hud-msg');
+    }
+
+    update(data) {
+        if (data.altitude !== undefined) this.elements.alt.innerText = `${data.altitude.toFixed(1)}m`;
+        if (data.speed !== undefined) this.elements.spd.innerText = `${data.speed.toFixed(1)}m/s`;
+        if (data.rings !== undefined) this.elements.rings.innerText = `${data.rings}`;
+
+        if (data.battery !== undefined) {
+            const pct = Math.max(0, Math.min(100, data.battery));
+            this.elements.battFill.style.width = `${pct}%`;
+            this.elements.battText.innerText = `${pct.toFixed(0)}%`;
+
+            // Color feedback
+            if (pct < 20) this.elements.battFill.style.backgroundColor = '#ff2222';
+            else if (pct < 50) this.elements.battFill.style.backgroundColor = '#ffaa22';
+            else this.elements.battFill.style.backgroundColor = '#22ffaa';
+        }
+
+        if (data.message !== undefined) {
+            this.elements.msg.innerText = data.message;
+            this.elements.msg.style.opacity = data.message ? 1 : 0;
+        }
+    }
+}

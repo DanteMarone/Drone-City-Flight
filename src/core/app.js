@@ -7,41 +7,61 @@ import { CameraController } from '../drone/camera.js';
 import { World } from '../world/world.js';
 import { ColliderSystem } from '../world/colliders.js';
 import { PhysicsEngine } from '../drone/physics.js';
+import { HUD } from '../ui/hud.js';
+import { MenuSystem } from '../ui/menu.js';
+import { RingCompass } from '../ui/compass.js';
+import { BatteryManager } from '../drone/battery.js';
+import { RingManager } from '../gameplay/rings.js';
+import { TutorialManager } from '../gameplay/tutorial.js';
+import { AudioManager } from '../audio/audio.js';
+import { TrafficSystem } from '../world/traffic.js';
+import { WaterSystem } from '../world/water.js';
+import { ParticleSystem } from '../fx/particles.js';
+import { PostProcessing } from '../fx/post.js';
+import { CONFIG } from '../config.js';
 
 export class App {
     constructor() {
         this.container = document.getElementById('game-container');
         this.lastTime = 0;
         this.running = false;
+        this.paused = false;
     }
 
     init() {
         console.log('App: Initializing...');
 
-        // 1. Setup Renderer
         this.renderer = new Renderer(this.container);
-
-        // 2. Setup Input
         this.input = new InputManager();
+        this.hud = new HUD();
+        this.menu = new MenuSystem(this);
+        this.audio = new AudioManager();
 
-        // 3. Setup World
         this._setupLights();
         this.world = new World(this.renderer.scene);
+        this.water = new WaterSystem(this.renderer.scene);
+        this.particles = new ParticleSystem(this.renderer.scene);
 
-        // 4. Setup Collision System
         this.colliderSystem = new ColliderSystem();
-        // Register static world objects
         this.colliderSystem.addStatic(this.world.getStaticColliders());
-
         this.physics = new PhysicsEngine(this.colliderSystem);
 
-        // 5. Setup Drone
-        this.drone = new Drone(this.renderer.scene);
+        this.traffic = new TrafficSystem(this.renderer.scene, this.colliderSystem);
 
-        // 6. Setup Camera Controller
+        this.drone = new Drone(this.renderer.scene);
+        this.battery = new BatteryManager();
+        this.rings = new RingManager(this.renderer.scene, this.drone);
+
+        this.tutorial = new TutorialManager(this);
+        this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
+
         this.cameraController = new CameraController(this.renderer.camera, this.drone);
 
-        // 7. Start Loop
+        this.post = new PostProcessing(this.renderer.threeRenderer, this.renderer.scene, this.renderer.camera);
+        window.addEventListener('renderer-resize', (e) => {
+            this.post.setSize(e.detail.width, e.detail.height);
+        });
+
         this.running = true;
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
@@ -50,12 +70,9 @@ export class App {
     _setupLights() {
         const ambient = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
         this.renderer.add(ambient);
-
         const sun = new THREE.DirectionalLight(0xffffff, 1.0);
         sun.position.set(50, 80, 50);
         sun.castShadow = true;
-
-        // Optimize shadow map
         sun.shadow.mapSize.width = 2048;
         sun.shadow.mapSize.height = 2048;
         sun.shadow.camera.near = 0.5;
@@ -65,31 +82,77 @@ export class App {
         sun.shadow.camera.right = d;
         sun.shadow.camera.top = d;
         sun.shadow.camera.bottom = -d;
-
         this.renderer.add(sun);
     }
 
     update(dt) {
-        // Input
-        const move = this.input.getMovementInput();
         const events = this.input.getEvents();
+        if (events.pause) {
+            this.menu.toggle();
+        }
+
+        if (this.paused) {
+            this.input.resetFrame();
+            return;
+        }
+
+        const move = this.input.getMovementInput();
         move.toggleCamera = events.toggleCamera;
         move.cameraUp = this.input.actions.cameraUp;
         move.cameraDown = this.input.actions.cameraDown;
 
-        // Update Drone Physics Movement
-        if (this.drone) {
-            this.drone.update(dt, move);
-
-            // Resolve Collisions (modifies drone position/velocity)
-            const collided = this.physics.resolveCollisions(this.drone);
-            if (collided) {
-                // TODO: Play crash sound / particles
-                // console.log('Bump!');
-            }
+        if (events.reset) {
+            this._resetGame();
         }
 
-        // Update Camera
+        if (this.drone) {
+            this.tutorial.update(dt, move);
+
+            this.battery.update(dt, this.drone.velocity, move);
+            if (this.battery.depleted) {
+                move.y = -1; move.x = 0; move.z = 0;
+            }
+
+            this.traffic.update(dt);
+            this.water.update(dt);
+            this.particles.update(dt);
+
+            this.drone.update(dt, move);
+
+            const cars = this.traffic.getNearbyCarColliders(this.drone.position, 10);
+            const collided = this.physics.resolveCollisions(this.drone, cars);
+
+            if (collided) {
+                if (this.drone.velocity.length() > 1.0) {
+                     this.audio.playImpact();
+                     this.particles.emit(this.drone.position, 10, 0xff0000);
+                }
+            }
+
+            const collected = this.rings.update(dt);
+            if (collected) {
+                this.battery.add(CONFIG.BATTERY.REWARD);
+                this.audio.playCollect();
+                this.particles.emit(this.drone.position, 20, 0xffff00);
+            }
+
+            const speed = this.drone.velocity.length();
+            this.audio.update(speed);
+
+            const alt = this.drone.position.y;
+            let statusMsg = this.battery.depleted ? "BATTERY EMPTY - LANDING" : "";
+
+            this.hud.update({
+                speed: speed,
+                altitude: alt,
+                battery: this.battery.current,
+                rings: this.rings.collectedCount,
+                message: statusMsg
+            });
+
+            this.compass.update(dt); // New
+        }
+
         if (this.cameraController) {
             this.cameraController.update(dt, move);
         }
@@ -97,14 +160,22 @@ export class App {
         this.input.resetFrame();
     }
 
+    _resetGame() {
+        this.drone.position.set(0, 5, 0);
+        this.drone.velocity.set(0, 0, 0);
+        this.drone.yaw = 0;
+        this.battery.reset();
+        this.rings.reset();
+        this.tutorial.reset();
+    }
+
     animate(timestamp) {
         if (!this.running) return;
-
         const dt = Math.min((timestamp - this.lastTime) / 1000, 0.1);
         this.lastTime = timestamp;
 
         this.update(dt);
-        this.renderer.render();
+        this.post.render(dt);
 
         requestAnimationFrame(this.animate);
     }

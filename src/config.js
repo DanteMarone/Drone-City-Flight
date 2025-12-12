@@ -40,6 +40,15 @@ export const CONFIG = {
         TILT_MAX: 0.3 // Visual tilt only, physics is level
     },
 
+    BATTERY: {
+        MAX: 100,
+        DRAIN_MOVE: 2.0, // Per second at max speed approx
+        DRAIN_ASCEND: 5.0,
+        DRAIN_DESCEND: 2.0,
+        DRAIN_IDLE: 0,
+        REWARD: 15
+    },
+
     // Camera
     CAMERA: {
         FOV: 75,

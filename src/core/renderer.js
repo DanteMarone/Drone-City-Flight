@@ -17,9 +17,14 @@ export class Renderer {
             CONFIG.CAMERA.FAR
         );
 
-        this.threeRenderer = new THREE.WebGLRenderer({ antialias: true });
+        this.threeRenderer = new THREE.WebGLRenderer({
+            antialias: false, // PP handles AA or we disable for perf
+            powerPreference: "high-performance",
+            stencil: false,
+            depth: true
+        });
         this.threeRenderer.setSize(window.innerWidth, window.innerHeight);
-        this.threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2)); // Performance cap
+        this.threeRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         this.threeRenderer.shadowMap.enabled = true;
         this.threeRenderer.shadowMap.type = THREE.PCFSoftShadowMap;
         this.threeRenderer.toneMapping = THREE.ACESFilmicToneMapping;
@@ -31,8 +36,15 @@ export class Renderer {
         window.addEventListener('resize', this._onResize);
     }
 
-    render() {
-        this.threeRenderer.render(this.scene, this.camera);
+    // Accessor for post-processing wrapper
+    get domElement() {
+        return this.threeRenderer.domElement;
+    }
+
+    // If using PostProcessing, we don't call this directly from App
+    // But we keep it for fallback
+    render(scene = this.scene, camera = this.camera) {
+        this.threeRenderer.render(scene, camera);
     }
 
     _onResize() {
@@ -43,9 +55,10 @@ export class Renderer {
         this.camera.updateProjectionMatrix();
 
         this.threeRenderer.setSize(width, height);
+        // Dispatch event for App to update Composer
+        window.dispatchEvent(new CustomEvent('renderer-resize', { detail: { width, height } }));
     }
 
-    // Helper to add stuff
     add(object) {
         this.scene.add(object);
     }

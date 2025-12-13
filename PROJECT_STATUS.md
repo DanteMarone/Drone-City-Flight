@@ -94,3 +94,4 @@
 - [x] 4.27 Accessibility Options.
 - [ ] 4.28 Audio Mixer.
 - [ ] 4.29 Performance HUD.
+- [x] 4.30 Graphics Overhaul (Improved Drone, Buildings, Traffic).

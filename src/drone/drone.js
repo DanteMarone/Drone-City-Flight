@@ -1,36 +1,136 @@
 // src/drone/drone.js
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { damp, clamp } from '../utils/math.js';
+import { damp } from '../utils/math.js';
 
 export class Drone {
     constructor(scene) {
         this.scene = scene;
 
         // Physics State
-        this.position = new THREE.Vector3(0, 5, 0); // Start higher
+        this.position = new THREE.Vector3(0, 5, 0);
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.yaw = 0;
         this.tilt = { pitch: 0, roll: 0 };
+        this.propellerAngle = 0;
 
-        // Drone Mesh
+        // Drone Mesh Components
         this.mesh = new THREE.Group();
+        this.tiltGroup = new THREE.Group(); // Inner group for Pitch/Roll
+        this.mesh.add(this.tiltGroup);
 
-        // Body
-        const bodyGeo = new THREE.BoxGeometry(0.8, 0.2, 0.8);
-        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff0000 });
-        this.bodyMesh = new THREE.Mesh(bodyGeo, bodyMat);
-        this.bodyMesh.castShadow = true;
-        this.mesh.add(this.bodyMesh);
+        this.propellers = []; // Array of meshes to rotate
 
-        // Front indicator
-        const noseGeo = new THREE.BoxGeometry(0.2, 0.2, 0.2);
-        const noseMat = new THREE.MeshStandardMaterial({ color: 0xffffff });
-        const nose = new THREE.Mesh(noseGeo, noseMat);
-        nose.position.set(0, 0, -0.4);
-        this.mesh.add(nose);
+        this._buildDroneMesh();
 
         this.scene.add(this.mesh);
+    }
+
+    _buildDroneMesh() {
+        const whiteMat = new THREE.MeshStandardMaterial({ color: 0xeeeeee, roughness: 0.3, metalness: 0.1 });
+        const darkMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.6 });
+        const camMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.1, metalness: 0.8 });
+
+        // Add everything to this.tiltGroup instead of this.mesh
+
+        // 1. Central Body (Streamlined)
+        const fuselageGeo = new THREE.CapsuleGeometry(0.25, 0.6, 4, 8);
+        fuselageGeo.rotateX(Math.PI / 2); // Align Z
+        const fuselage = new THREE.Mesh(fuselageGeo, whiteMat);
+        fuselage.scale.set(1, 0.6, 1);
+        fuselage.castShadow = true;
+        this.tiltGroup.add(fuselage);
+
+        // 2. Arms (X shape)
+        // Arms need to reach 0.55 * sqrt(2) ~= 0.78
+        // Cylinder length 1.6 to be safe (0.8 each side)
+        const armLen = 1.6;
+        const armGeo = new THREE.CylinderGeometry(0.04, 0.04, armLen, 8);
+        armGeo.rotateZ(Math.PI / 2); // Align X
+
+        const arm1 = new THREE.Mesh(armGeo, whiteMat);
+        arm1.rotation.y = Math.PI / 4;
+        arm1.castShadow = true;
+        this.tiltGroup.add(arm1);
+
+        const arm2 = new THREE.Mesh(armGeo, whiteMat);
+        arm2.rotation.y = -Math.PI / 4;
+        arm2.castShadow = true;
+        this.tiltGroup.add(arm2);
+
+        // 3. Motors & Propellers
+        const motorGeo = new THREE.CylinderGeometry(0.08, 0.06, 0.15, 16);
+        const propGeo = new THREE.BoxGeometry(0.6, 0.01, 0.06);
+
+        const armOffsets = [
+            { x: 1, z: 1, dir: 1 },  // FL
+            { x: -1, z: 1, dir: -1 }, // FR
+            { x: -1, z: -1, dir: 1 }, // BR
+            { x: 1, z: -1, dir: -1 }  // BL
+        ];
+
+        // Scale factor for offsets (Spread)
+        const offsetScale = 0.55;
+
+        armOffsets.forEach((off, i) => {
+            const group = new THREE.Group();
+            group.position.set(off.x * offsetScale, 0.05, off.z * offsetScale);
+
+            // Motor
+            const motor = new THREE.Mesh(motorGeo, darkMat);
+            motor.position.y = 0;
+            group.add(motor);
+
+            // Propeller
+            const prop = new THREE.Mesh(propGeo, darkMat);
+            prop.position.y = 0.1;
+
+            // Visual hub (Cap)
+            // Prop is at 0.1 (center). Top surface at 0.105.
+            // Hub height 0.02 -> 0.01 half.
+            // Hub Center = 0.105 + 0.01 = 0.115.
+            const hub = new THREE.Mesh(new THREE.CylinderGeometry(0.02, 0.02, 0.02), whiteMat);
+            hub.position.y = 0.115; // Just sitting on top
+            // Add hub to scene group or prop?
+            // If added to prop, it rotates with prop.
+            // Position relative to prop center (0,0,0).
+            // Prop center is at Y=0.1 relative to group.
+            // If I add to prop, y should be relative to prop center.
+            // Prop Height 0.01. Top is 0.005.
+            // Hub bottom needs to be at 0.005.
+            // Hub center = 0.005 + 0.01 = 0.015.
+            hub.position.set(0, 0.015, 0);
+
+            // Re-creating prop to hold hub
+            prop.add(hub);
+
+            group.add(prop);
+            this.tiltGroup.add(group);
+
+            this.propellers.push({ mesh: prop, dir: off.dir });
+
+            // Landing Leg
+            const leg = new THREE.Mesh(
+                new THREE.CylinderGeometry(0.02, 0.01, 0.2),
+                whiteMat
+            );
+            leg.position.set(off.x * offsetScale, -0.15, off.z * offsetScale);
+            this.tiltGroup.add(leg);
+        });
+
+        // 4. Camera (Front Gimbal)
+        // Forward is -Z. Move to front.
+        const gimbalGroup = new THREE.Group();
+        gimbalGroup.position.set(0, -0.1, -0.4);
+
+        const camBox = new THREE.Mesh(new THREE.BoxGeometry(0.15, 0.15, 0.2), darkMat);
+        const lens = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.05, 0.05, 16), camMat);
+        lens.rotation.x = Math.PI / 2;
+        lens.position.z = -0.1; // Pointing Forward (-Z local)
+        camBox.add(lens);
+
+        gimbalGroup.add(camBox);
+        this.tiltGroup.add(gimbalGroup);
     }
 
     update(dt, input) {
@@ -41,10 +141,10 @@ export class Drone {
     _updatePhysics(dt, input) {
         const conf = CONFIG.DRONE;
 
-        // 1. Yaw
+        // Yaw (Applied to mesh Y, which is World Vertical)
         this.yaw += input.yaw * conf.YAW_SPEED * dt;
 
-        // 2. Acceleration
+        // Acceleration
         const accel = new THREE.Vector3(input.x, 0, input.z);
         accel.applyAxisAngle(new THREE.Vector3(0, 1, 0), this.yaw);
         accel.multiplyScalar(conf.ACCELERATION);
@@ -53,7 +153,7 @@ export class Drone {
         // Apply to velocity
         this.velocity.add(accel.clone().multiplyScalar(dt));
 
-        // 3. Drag
+        // Drag
         const hVel = new THREE.Vector3(this.velocity.x, 0, this.velocity.z);
         const vVel = new THREE.Vector3(0, this.velocity.y, 0);
 
@@ -64,24 +164,10 @@ export class Drone {
         this.velocity.z = hVel.z;
         this.velocity.y = vVel.y;
 
-        // Add Gravity (optional, but requested behavior implies "Hovering drains 0" so maybe anti-gravity auto-hover?)
-        // Spec 3.4.2: "Hovering drains 0 battery when there is no translation and no altitude change"
-        // This implies the drone holds altitude automatically if no input.
-        // So we do NOT add gravity by default unless we want realistic mode.
-        // But Spec 7.1 says "Vertical motion uses acceleration + vertical drag".
-        // If we add gravity, we need constant upward force to hover.
-        // Let's stick to kinematic vertical control (no gravity) for arcade feel.
-
-        // 4. Update Position
+        // Move
         this.position.add(this.velocity.clone().multiplyScalar(dt));
 
-        // Note: Collision resolution happens in App external loop or we inject PhysicsEngine here.
-        // For clean separation, we let App handle collision resolution step after this update.
-        // But that means position might penetrate for one frame.
-        // Ideally: Predict position, check collision, move.
-        // Current Plan: Move here, then Resolve (push back) in App.
-
-        // Apply to mesh
+        // Apply Position and Yaw to Main Mesh
         this.mesh.position.copy(this.position);
         this.mesh.rotation.y = this.yaw;
     }
@@ -89,13 +175,22 @@ export class Drone {
     _updateVisuals(dt, input) {
         const conf = CONFIG.DRONE;
 
-        // Target tilt
+        // Tilt logic
         const targetPitch = input.z * conf.TILT_MAX;
-
         this.tilt.pitch = damp(this.tilt.pitch, targetPitch, 10, dt);
         this.tilt.roll = damp(this.tilt.roll, -input.x * conf.TILT_MAX, 10, dt);
 
-        this.bodyMesh.rotation.x = this.tilt.pitch;
-        this.bodyMesh.rotation.z = this.tilt.roll;
+        // Apply Pitch/Roll to Inner Group
+        // This ensures Pitch doesn't affect the Yaw axis of rotation
+        this.tiltGroup.rotation.x = this.tilt.pitch;
+        this.tiltGroup.rotation.z = this.tilt.roll;
+
+        // Propellers
+        const speed = 20.0 + this.velocity.length() * 2.0;
+        this.propellerAngle += speed * dt;
+
+        this.propellers.forEach(p => {
+            p.mesh.rotation.y = this.propellerAngle * p.dir;
+        });
     }
 }

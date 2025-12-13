@@ -24,6 +24,13 @@ export class DevMode {
         import('./interaction.js').then(({ setupDragDrop }) => {
             setupDragDrop(this.interaction, this.app.container);
         });
+
+        // Listen for toggle key
+        window.addEventListener('keydown', (e) => {
+            if (e.code === 'Backquote') {
+                this.toggle();
+            }
+        });
     }
 
     toggle() {

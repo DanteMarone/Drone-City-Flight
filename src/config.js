@@ -50,7 +50,16 @@ export const CONFIG = {
         DRAIN_ASCEND: 1.25,
         DRAIN_DESCEND: 0.5,
         DRAIN_IDLE: 0,
-        REWARD: 15
+        REWARD: 15,
+        DRAIN_COLLISION: 20.0 // Drain per second when hit by bird
+    },
+
+    // Birds
+    BIRD: {
+        SPEED: 16.0, // Slightly slower than Drone Max (18)
+        CHASE_RADIUS: 50.0,
+        RETURN_RADIUS: 50.0,
+        COLLISION_RADIUS: 1.0
     },
 
     // Camera

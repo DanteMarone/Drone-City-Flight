@@ -2,10 +2,12 @@
 import * as THREE from 'three';
 import { DistrictGenerator } from './generation.js';
 import { ObjectFactory } from './factory.js';
+import { BirdSystem } from './birdSystem.js';
 
 export class World {
     constructor(scene) {
         this.scene = scene;
+        this.birdSystem = new BirdSystem(scene);
         this.colliders = [];
         this.ground = null;
 
@@ -30,6 +32,10 @@ export class World {
         // Use the new generator
         const generator = new DistrictGenerator(this.scene);
         this.colliders = generator.generateCityLayout();
+    }
+
+    update(dt) {
+        if (this.birdSystem) this.birdSystem.update(dt);
     }
 
     // API for collisions

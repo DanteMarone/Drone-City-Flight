@@ -52,6 +52,12 @@ export class App {
 
         this.drone = new Drone(this.renderer.scene);
         this.battery = new BatteryManager();
+
+        // Pass drone to world for BirdSystem
+        this.world.birdSystem.setDrone(this.drone);
+        // Also attach battery for drain
+        this.drone.battery = this.battery;
+
         this.rings = new RingManager(this.renderer.scene, this.drone);
 
         this.tutorial = new TutorialManager(this);
@@ -133,6 +139,7 @@ export class App {
             }
 
             this.traffic.update(dt);
+            this.world.update(dt); // Birds
             this.water.update(dt);
             this.particles.update(dt);
 

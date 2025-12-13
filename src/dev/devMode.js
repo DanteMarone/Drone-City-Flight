@@ -298,6 +298,7 @@ export class DevMode {
 
     // Commands
     clearMap() {
+        this.selectObject(null);
         // Reset to blank map state (Ground + Sky + Clouds only)
         // loadMap handles resetting game state, clearing world/physics, and reloading (empty) data
         this.app.loadMap({ objects: [], rings: [] });

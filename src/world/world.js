@@ -71,6 +71,10 @@ export class World {
         this.colliders.forEach(c => {
             if (c.mesh) {
                 this.scene.remove(c.mesh);
+                // Remove associated waypoint visuals if they exist
+                if (c.mesh.userData && c.mesh.userData.waypointGroup) {
+                    this.scene.remove(c.mesh.userData.waypointGroup);
+                }
             }
         });
         this.colliders = [];

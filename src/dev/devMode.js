@@ -25,10 +25,11 @@ export class DevMode {
         this.enabled = true;
 
         // 1. Hide Drone
-        if (this.app.drone) this.app.drone.group.visible = false;
+        if (this.app.drone) this.app.drone.mesh.visible = false;
 
         // 2. Hide HUD
-        if (this.app.hud) document.getElementById('hud-layer').style.display = 'none';
+        const hudEl = document.querySelector('.hud-container');
+        if (hudEl) hudEl.style.display = 'none';
 
         // 3. Switch Camera Controller
         // Store original position?
@@ -66,8 +67,9 @@ export class DevMode {
         console.log("DevMode: Disabled");
         this.enabled = false;
 
-        if (this.app.drone) this.app.drone.group.visible = true;
-        if (this.app.hud) document.getElementById('hud-layer').style.display = 'block';
+        if (this.app.drone) this.app.drone.mesh.visible = true;
+        const hudEl = document.querySelector('.hud-container');
+        if (hudEl) hudEl.style.display = 'block';
 
         this.cameraController.enabled = false;
         this.app.cameraController.enabled = true; // This might snap camera back to drone

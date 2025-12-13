@@ -37,7 +37,7 @@ export class MenuSystem {
                         <input type="checkbox" id="opt-bloom" checked>
                     </label>
                     <label for="opt-sens">
-                        Camera Sensitivity <span id="opt-sens-val" style="font-weight:bold; margin-left:8px;"></span>
+                        Camera Sensitivity <span id="opt-sens-val" class="hud-value"></span>
                     </label>
                     <input type="range" id="opt-sens" min="0.001" max="0.005" step="0.0001" aria-label="Camera Sensitivity">
                 </div>

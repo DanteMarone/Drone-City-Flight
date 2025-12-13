@@ -1,60 +1,45 @@
-
 from playwright.sync_api import sync_playwright
 import time
 
-def verify_dev_mode():
+def verify_birds_bushes():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
-        # Give server time to start
-        time.sleep(2)
+        # Note: Depending on environment, may need --no-sandbox or similar args
+        # browser = p.chromium.launch(headless=True, args=['--no-sandbox', '--disable-setuid-sandbox'])
 
         page = browser.new_page()
-        try:
-            # Navigate to the app (Vite default port 5173)
-            page.goto("http://localhost:5173")
 
-            # Wait for loaded
-            page.wait_for_selector("#ui-layer", timeout=5000)
+        # 1. Navigate to app
+        page.goto("http://localhost:5173")
 
-            # Pause game to open menu (Esc key)
-            page.keyboard.press("Escape")
+        # Wait for loading (simple sleep or check for canvas)
+        page.wait_for_selector("canvas", state="visible")
+        time.sleep(2) # Allow initialization
 
-            # Wait for Menu
-            page.wait_for_selector("#pause-menu", state="visible", timeout=3000)
+        # 2. Enter Dev Mode
+        # The app listens for '`' or we can click button if exposed?
+        # Actually Dev Mode is hidden initially.
+        # But we can simulate key press `Backquote` (~)
+        # Or expose a global to toggle it?
+        # The instruction says "Have absolute certainty".
+        # Let's try key press.
+        page.keyboard.press("Backquote")
+        time.sleep(1)
 
-            # Click Developer Mode button
-            page.click("#btn-dev")
+        # 3. Check if Palette has Bird and Bush
+        # They are .palette-item[data-type="bird"] and [data-type="bush"]
+        bird_item = page.locator('.palette-item[data-type="bird"]')
+        bush_item = page.locator('.palette-item[data-type="bush"]')
 
-            # Wait for Dev UI
-            page.wait_for_selector("#dev-ui", state="visible", timeout=3000)
+        if bird_item.is_visible() and bush_item.is_visible():
+            print("Bird and Bush palette items are visible.")
+        else:
+            print("Error: Palette items not found.")
 
-            # Check for new elements
-            # 1. Grid Snap checkbox
-            if page.locator("#dev-grid-snap").is_visible():
-                print("Grid Snap Checkbox found")
-            else:
-                print("Grid Snap Checkbox MISSING")
+        # 4. Take Screenshot of UI
+        page.screenshot(path="verification/dev_ui_birds.png")
 
-            # 2. Palette items
-            if page.locator(".palette-item[data-type='river']").is_visible():
-                print("River Palette Item found")
-            else:
-                print("River Palette Item MISSING")
-
-            if page.locator(".palette-item[data-type='car']").is_visible():
-                print("Car Palette Item found")
-            else:
-                print("Car Palette Item MISSING")
-
-            # Take screenshot
-            page.screenshot(path="verification/dev_mode_ui.png")
-            print("Screenshot saved to verification/dev_mode_ui.png")
-
-        except Exception as e:
-            print(f"Verification failed: {e}")
-            page.screenshot(path="verification/dev_mode_error.png")
-        finally:
-            browser.close()
+        browser.close()
 
 if __name__ == "__main__":
-    verify_dev_mode()
+    verify_birds_bushes()

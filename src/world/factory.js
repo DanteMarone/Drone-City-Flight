@@ -44,8 +44,73 @@ export class ObjectFactory {
             case 'house': return this.createHouse(params);
             case 'road': return this.createRoad(params);
             case 'orangeTree': return this.createOrangeTree(params);
+            case 'bird': return this.createBird(params);
+            case 'bush': return this.createBush(params);
             default: console.warn('Unknown object type:', type); return null;
         }
+    }
+
+    createBird({ x, z }) {
+        const group = new THREE.Group();
+        group.position.set(x, 5, z); // Start slightly elevated
+        group.userData.type = 'bird';
+        group.userData.startPos = new THREE.Vector3(x, 5, z);
+
+        // Body: Cone
+        const bodyGeo = new THREE.ConeGeometry(0.2, 0.8, 8);
+        bodyGeo.rotateX(Math.PI / 2); // Point forward (Z)
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x3366cc, roughness: 0.6 });
+        const body = new THREE.Mesh(bodyGeo, bodyMat);
+        body.castShadow = true;
+        group.add(body);
+
+        // Wings: Two thin boxes
+        const wingGeo = new THREE.BoxGeometry(1.2, 0.05, 0.4);
+        const wingMat = new THREE.MeshStandardMaterial({ color: 0x2255bb, roughness: 0.7 });
+        const wings = new THREE.Mesh(wingGeo, wingMat);
+        wings.position.y = 0.1;
+        wings.castShadow = true;
+        group.add(wings);
+
+        // Store reference to wings for animation if we want to grab them later
+        group.userData.wings = wings;
+
+        this.scene.add(group);
+
+        // Simple collider (sphere approximation)
+        const box = new THREE.Box3().setFromObject(group);
+        return { mesh: group, box };
+    }
+
+    createBush({ x, z }) {
+        const group = new THREE.Group();
+        group.position.set(x, 0, z);
+        group.userData.type = 'bush';
+
+        // Cluster of spheres
+        const count = 5 + Math.floor(Math.random() * 5);
+        const mat = new THREE.MeshStandardMaterial({ color: 0x228822, roughness: 1.0 });
+
+        for (let i = 0; i < count; i++) {
+            const r = 0.3 + Math.random() * 0.4;
+            const geo = new THREE.SphereGeometry(r, 8, 8);
+            const mesh = new THREE.Mesh(geo, mat);
+
+            // Random offset
+            const ox = (Math.random() - 0.5) * 1.5;
+            const oz = (Math.random() - 0.5) * 1.5;
+            const oy = r * 0.8 + Math.random() * 0.5;
+
+            mesh.position.set(ox, oy, oz);
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            group.add(mesh);
+        }
+
+        this.scene.add(group);
+
+        // Bushes have no collision for drone
+        return { mesh: group, box: null };
     }
 
     createOrangeTree({ x, z }) {

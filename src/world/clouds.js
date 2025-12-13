@@ -35,6 +35,15 @@ export class CloudSystem {
             cloud.life -= dt;
             const dist = cloud.mesh.position.distanceTo(playerPosition);
 
+            // Opacity Logic
+            // Fade in over 5s, fade out over last 5s
+            const age = cloud.maxLife - cloud.life;
+            const fadeIn = Math.min(age / 5.0, 1.0);
+            const fadeOut = Math.min(cloud.life / 5.0, 1.0);
+            const opacityFactor = Math.min(fadeIn, fadeOut);
+
+            cloud.mesh.material.opacity = cloud.targetOpacity * opacityFactor;
+
             if (cloud.life <= 0 || dist > 1500) {
                 this._removeCloud(i);
             }
@@ -52,10 +61,12 @@ export class CloudSystem {
         const y = height; // Absolute height, assuming flat world mostly
 
         const geometry = new THREE.PlaneGeometry(100, 50); // Large clouds
+
+        const targetOpacity = 0.5 + Math.random() * 0.5;
         const material = new THREE.MeshBasicMaterial({
             map: this.texture,
             transparent: true,
-            opacity: 0.5 + Math.random() * 0.5,
+            opacity: 0, // Start invisible
             depthWrite: false
         });
 
@@ -77,10 +88,14 @@ export class CloudSystem {
 
         this.scene.add(mesh);
 
+        const life = 60 + Math.random() * 60; // Long life
+
         this.clouds.push({
             mesh: mesh,
             velocity: velocity,
-            life: 60 + Math.random() * 60 // Long life
+            life: life,
+            maxLife: life,
+            targetOpacity: targetOpacity
         });
     }
 

@@ -209,7 +209,14 @@ export function setupDragDrop(interaction, container) {
                 if (res && res.mesh) interaction.devMode.selectObject(res.mesh);
             } else if (type === 'car') {
                 const res = interaction.factory.createCar({ x: point.x, z: point.z });
-                if (res && res.mesh) interaction.devMode.selectObject(res.mesh);
+                if (res && res.mesh) {
+                    interaction.devMode.selectObject(res.mesh);
+                    // Ensure visuals are visible if DevMode is on
+                    if (interaction.devMode.enabled) {
+                        const visuals = res.mesh.getObjectByName('waypointVisuals');
+                        if (visuals) visuals.visible = true;
+                    }
+                }
             } else if (type === 'bird') {
                 const res = interaction.factory.createBird({ x: point.x, z: point.z });
                 if (res && res.mesh) {

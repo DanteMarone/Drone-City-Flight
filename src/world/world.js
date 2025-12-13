@@ -36,6 +36,81 @@ export class World {
 
     update(dt) {
         if (this.birdSystem) this.birdSystem.update(dt);
+        this._updateManualCars(dt);
+    }
+
+    _updateManualCars(dt) {
+        // Iterate through all manually placed objects in colliders
+        // Note: this.colliders contains objects created in DevMode that were registered.
+        this.colliders.forEach(c => {
+            if (c.mesh && c.mesh.userData.type === 'car' && c.mesh.userData.waypoints && c.mesh.userData.waypoints.length > 0) {
+                const anchor = c.mesh;
+                const waypoints = anchor.userData.waypoints;
+                const path = [new THREE.Vector3(0, 0, 0), ...waypoints];
+
+                if (path.length < 2) return;
+
+                // Identify Model Children (Exclude Visuals)
+                const visualGroup = anchor.getObjectByName('waypointVisuals');
+                const modelChildren = anchor.children.filter(child => child !== visualGroup);
+                if (modelChildren.length === 0) return;
+
+                // Initialize State
+                if (anchor.userData.targetIndex === undefined) {
+                    anchor.userData.targetIndex = 1; // Start by moving to first waypoint (Index 1)
+                    anchor.userData.movingForward = true;
+                }
+
+                let targetIdx = anchor.userData.targetIndex;
+
+                // Safety clamp
+                if (targetIdx < 0) targetIdx = 0;
+                if (targetIdx >= path.length) targetIdx = path.length - 1;
+
+                const targetPos = path[targetIdx];
+                const currentPos = modelChildren[0].position.clone();
+
+                const speed = 15; // Speed adjustment
+                const dist = currentPos.distanceTo(targetPos);
+                const moveAmount = speed * dt;
+
+                if (dist > moveAmount) {
+                    // Move
+                    const dir = targetPos.clone().sub(currentPos).normalize();
+                    const moveVec = dir.multiplyScalar(moveAmount);
+
+                    modelChildren.forEach(child => child.position.add(moveVec));
+
+                    // Rotate
+                    // Calculate LookAt point in World Space because Object3D.lookAt expects World Coords
+                    const worldTarget = anchor.localToWorld(targetPos.clone());
+                    modelChildren.forEach(child => child.lookAt(worldTarget));
+
+                } else {
+                    // Snap
+                    modelChildren.forEach(child => child.position.copy(targetPos));
+
+                    // Update Logic (Ping Pong)
+                    if (anchor.userData.movingForward) {
+                        if (targetIdx < path.length - 1) {
+                            anchor.userData.targetIndex++;
+                        } else {
+                            // Reached End -> Switch Direction
+                            anchor.userData.movingForward = false;
+                            anchor.userData.targetIndex--;
+                        }
+                    } else {
+                        if (targetIdx > 0) {
+                            anchor.userData.targetIndex--;
+                        } else {
+                            // Reached Start -> Switch Direction
+                            anchor.userData.movingForward = true;
+                            anchor.userData.targetIndex++;
+                        }
+                    }
+                }
+            }
+        });
     }
 
     // API for collisions
@@ -96,9 +171,15 @@ export class World {
         const objects = [];
         this.colliders.forEach(c => {
             if (c.mesh && c.mesh.userData.type) {
+                // Ensure waypoints are saved for cars
+                let params = c.mesh.userData.params || {};
+                if (c.mesh.userData.type === 'car' && c.mesh.userData.waypoints) {
+                    params = { ...params, waypoints: c.mesh.userData.waypoints };
+                }
+
                 objects.push({
                     type: c.mesh.userData.type,
-                    params: c.mesh.userData.params,
+                    params: params,
                     position: { x: c.mesh.position.x, y: c.mesh.position.y, z: c.mesh.position.z },
                     rotation: { x: c.mesh.rotation.x, y: c.mesh.rotation.y, z: c.mesh.rotation.z }
                 });

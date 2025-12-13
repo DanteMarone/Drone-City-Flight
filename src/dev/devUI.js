@@ -68,6 +68,12 @@ export class DevUI {
                     <label style="width:20px">RZ</label> <input id="prop-rz" type="number" step="1" style="flex:1">
                 </div>
 
+                <div id="car-controls" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
+                     <button id="btn-add-waypoint">Add Waypoint</button>
+                     <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
+                     <button id="btn-remove-waypoint">Remove Last Waypoint</button>
+                </div>
+
                 <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
             </div>
 
@@ -185,6 +191,14 @@ export class DevUI {
             this.devMode.deleteSelected();
         };
 
+        this.dom.querySelector('#btn-add-waypoint').onclick = () => {
+            if (this.devMode.addWaypointToSelected) this.devMode.addWaypointToSelected();
+        };
+
+        this.dom.querySelector('#btn-remove-waypoint').onclick = () => {
+            if (this.devMode.removeWaypointFromSelected) this.devMode.removeWaypointFromSelected();
+        };
+
         // Drag Start
         const items = this.dom.querySelectorAll('.palette-item');
         items.forEach(item => {
@@ -236,6 +250,58 @@ export class DevUI {
         setVal('rx', toDeg(object.rotation.x));
         setVal('ry', toDeg(object.rotation.y));
         setVal('rz', toDeg(object.rotation.z));
+
+        // Car Controls
+        const carControls = this.dom.querySelector('#car-controls');
+        if (object.userData.type === 'car') {
+            carControls.style.display = 'flex';
+            this._updateWaypointList(object);
+        } else {
+            carControls.style.display = 'none';
+        }
+    }
+
+    _updateWaypointList(car) {
+        const container = this.dom.querySelector('#waypoint-list');
+        container.innerHTML = ''; // Clear
+
+        if (!car.userData.waypoints) return;
+
+        car.userData.waypoints.forEach((wp, index) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex; gap:2px; align-items:center; font-size:0.8em;';
+            row.innerHTML = `<label style="width:15px">${index+1}</label>`;
+
+            ['x', 'y', 'z'].forEach(axis => {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.step = '0.5';
+                input.style.cssText = 'flex:1; width: 30px; background:#111; color:#fff; border:1px solid #444;';
+                input.value = wp[axis].toFixed(2);
+
+                input.onchange = (e) => {
+                    const val = parseFloat(e.target.value);
+                    if (isNaN(val)) return;
+                    wp[axis] = val;
+
+                    // Update Visual Sphere
+                    const visuals = car.getObjectByName('waypointVisuals');
+                    if (visuals) {
+                        const spheres = visuals.children.filter(c => c.userData.type === 'waypoint');
+                        if (spheres[index]) {
+                            spheres[index].position[axis] = val;
+                        }
+                    }
+
+                    // Update Line
+                    if (this.devMode._updateCarLine) {
+                        this.devMode._updateCarLine(car);
+                    }
+                };
+                row.appendChild(input);
+            });
+            container.appendChild(row);
+        });
     }
 
     hideProperties() {

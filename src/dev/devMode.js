@@ -184,6 +184,7 @@ export class DevMode {
         } else {
             this._updateCarLine(car);
         }
+        if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
         this.ui.updateProperties(car);
     }
 
@@ -216,6 +217,7 @@ export class DevMode {
                 this._updateCarLine(car);
             }
         }
+        if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
         this.ui.updateProperties(car);
     }
 

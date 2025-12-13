@@ -215,6 +215,10 @@ export function setupDragDrop(interaction, container) {
             } else if (type === 'car') {
                 const res = interaction.factory.createCar({ x: point.x, z: point.z });
                 if (res && res.mesh) {
+                    interaction.app.world.colliders.push(res);
+                    if (interaction.app.colliderSystem) {
+                        interaction.app.colliderSystem.addStatic([res]);
+                    }
                     interaction.devMode.selectObject(res.mesh);
                     // Ensure visuals are visible if DevMode is on
                     if (interaction.devMode.enabled) {

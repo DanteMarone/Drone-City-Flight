@@ -6,6 +6,7 @@ import { createSedanGeometry } from './carGeometries.js';
 export class ObjectFactory {
     constructor(scene) {
         this.scene = scene;
+        this.textureLoader = new THREE.TextureLoader();
         this.materials = this._initMaterials();
         this.geometries = this._initGeometries();
     }
@@ -42,8 +43,53 @@ export class ObjectFactory {
             case 'shop': return this.createShop(params);
             case 'house': return this.createHouse(params);
             case 'road': return this.createRoad(params);
+            case 'orangeTree': return this.createOrangeTree(params);
             default: console.warn('Unknown object type:', type); return null;
         }
+    }
+
+    createOrangeTree({ x, z }) {
+        const group = new THREE.Group();
+        group.position.set(x, 0, z);
+        group.userData.type = 'orangeTree';
+
+        // Trunk
+        const trunkGeo = new THREE.CylinderGeometry(0.3, 0.4, 2, 8);
+        const trunkMat = new THREE.MeshStandardMaterial({ color: 0x8B4513, roughness: 0.9 });
+        const trunk = new THREE.Mesh(trunkGeo, trunkMat);
+        trunk.position.y = 1; // Center at y=1 (height 2)
+        trunk.castShadow = true;
+        trunk.receiveShadow = true;
+        group.add(trunk);
+
+        // Leaves (Sphere Top)
+        const sphereGeo = new THREE.SphereGeometry(1.5, 16, 16);
+
+        // Load Texture
+        const tex = this.textureLoader.load('/textures/orange_tree.png');
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.repeat.set(4, 2);
+
+        const leavesMat = new THREE.MeshStandardMaterial({
+            map: tex,
+            roughness: 0.8,
+            color: 0xffffff
+        });
+
+        const leaves = new THREE.Mesh(sphereGeo, leavesMat);
+        leaves.position.y = 2.5; // Top of trunk (2) + radius/intersection
+        leaves.castShadow = true;
+        leaves.receiveShadow = true;
+        group.add(leaves);
+
+        this.scene.add(group);
+
+        // Collider
+        group.updateMatrixWorld(true);
+        const box = new THREE.Box3().setFromObject(group);
+        return { mesh: group, box };
     }
 
     createSkyscraper({ x, z, width, height, seed, isGlass: _isGlass, baseColor: _baseColor, winColor: _winColor }) {

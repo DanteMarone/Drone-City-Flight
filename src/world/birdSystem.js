@@ -39,6 +39,10 @@ export class BirdSystem {
         }
     }
 
+    clear() {
+        this.birds = [];
+    }
+
     update(dt) {
         if (!this.drone) return;
 

@@ -221,12 +221,15 @@ export function setupDragDrop(interaction, container) {
                 const res = interaction.factory.createBird({ x: point.x, z: point.z });
                 if (res && res.mesh) {
                     interaction.app.world.birdSystem.add(res.mesh);
+                    interaction.app.world.colliders.push(res);
                     interaction.devMode.selectObject(res.mesh);
                 }
             } else if (type === 'bush') {
                 const res = interaction.factory.createBush({ x: point.x, z: point.z });
-                if (res && res.mesh) interaction.devMode.selectObject(res.mesh);
-                // Bushes are visual only, no collider registration needed
+                if (res && res.mesh) {
+                    interaction.app.world.colliders.push(res);
+                    interaction.devMode.selectObject(res.mesh);
+                }
             } else {
                 // Buildings/Roads
                 const collider = interaction.factory.createObject(type, { x: point.x, z: point.z });

@@ -1,6 +1,7 @@
 // src/world/factory.js
 import * as THREE from 'three';
 import { TextureGenerator } from '../utils/textures.js';
+import { createSedanGeometry } from './carGeometries.js';
 
 export class ObjectFactory {
     constructor(scene) {
@@ -255,12 +256,53 @@ export class ObjectFactory {
         mesh.userData.params = { width: w, length: l };
 
         this.scene.add(mesh);
-        return { mesh, box: null }; // Roads don't have vertical collision usually? Or do they?
-        // Original code: _generateRoads just added one giant plane.
-        // Here we might want individual segments.
-        // For collisions, we rely on the ground plane?
-        // Or if we want cars to drive on them, we need waypoints, not just meshes.
-        // For MVP visuals: Mesh is enough.
+        return { mesh, box: null };
+    }
+
+    createRiver({ x, z, width, length }) {
+        const w = width || 50;
+        const l = length || 50;
+
+        const geo = new THREE.PlaneGeometry(w, l);
+        const mat = new THREE.MeshStandardMaterial({
+            color: 0x2244aa,
+            roughness: 0.1,
+            metalness: 0.8
+        });
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.rotation.x = -Math.PI / 2;
+        mesh.position.set(x, 0.06, z); // Above road/ground
+        mesh.userData = { type: 'river' };
+        mesh.userData.params = { width: w, length: l };
+        this.scene.add(mesh);
+        return { mesh, box: null };
+    }
+
+    createCar({ x, z }) {
+        const geoData = createSedanGeometry();
+
+        const group = new THREE.Group();
+
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.2, metalness: 0.6 });
+        const detailMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8, metalness: 0.2 });
+
+        const body = new THREE.Mesh(geoData.body, bodyMat);
+        const details = new THREE.Mesh(geoData.details, detailMat);
+
+        body.castShadow = true;
+        details.castShadow = true;
+
+        group.add(body);
+        group.add(details);
+
+        group.position.set(x, 0, z);
+        group.userData = { type: 'car' };
+
+        this.scene.add(group);
+
+        // Add Collider
+        const box = new THREE.Box3().setFromObject(group);
+        return { mesh: group, box };
     }
 
     _makeCollider(mesh) {

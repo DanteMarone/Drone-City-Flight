@@ -89,24 +89,23 @@ export class App {
     }
 
     update(dt) {
+        // Dev Mode Handling
         if (this.devMode && this.devMode.enabled) {
             this.devMode.update(dt);
-            // Dev Mode Loop
-            const events = this.input.getEvents();
-             if (events.pause) {
-                // If in dev mode, maybe toggle a dev menu or exit?
-                // The DevUI handles its own interactions.
-                // But we might want 'Esc' to exit or pause?
-                // For now, let UI handle it.
-            }
+            // Allow basic input processing if needed, but skip game logic
             this.input.resetFrame();
-            return; // Skip normal game loop
+            return;
         }
 
         const events = this.input.getEvents();
         if (events.pause) {
             this.menu.toggle();
         }
+
+        // Menu Pause Handling
+        // If menu is open, we stop updates, but we might still want to render?
+        // Current logic returns early, effectively pausing everything.
+        // But for Dev Mode, we handled it above.
 
         if (this.paused) {
             this.input.resetFrame();

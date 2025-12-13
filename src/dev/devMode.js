@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { DevCameraController } from './devCamera.js';
 import { DevUI } from './devUI.js';
 import { InteractionManager } from './interaction.js';
+import { GridSystem } from './grid.js';
+import { GizmoManager } from './gizmo.js';
 
 export class DevMode {
     constructor(app) {
@@ -13,6 +15,15 @@ export class DevMode {
         this.cameraController = new DevCameraController(app.renderer.camera, app.container);
         this.ui = new DevUI(this);
         this.interaction = new InteractionManager(this.app, this);
+
+        // New Systems
+        this.grid = new GridSystem(app.renderer.scene);
+        this.gizmo = new GizmoManager(app.renderer.scene, app.renderer.camera, app.renderer, this.interaction);
+
+        // One-time setup for drag-drop
+        import('./interaction.js').then(({ setupDragDrop }) => {
+            setupDragDrop(this.interaction, this.app.container);
+        });
     }
 
     toggle() {
@@ -32,10 +43,9 @@ export class DevMode {
         if (hudEl) hudEl.style.display = 'none';
 
         // 3. Switch Camera Controller
-        // Store original position?
         this.app.cameraController.enabled = false;
         this.cameraController.enabled = true;
-        this.cameraController.euler.setFromQuaternion(this.app.renderer.camera.quaternion); // Sync rotation
+        this.cameraController.euler.setFromQuaternion(this.app.renderer.camera.quaternion);
 
         // 4. Show Dev UI
         this.ui.show();
@@ -43,24 +53,11 @@ export class DevMode {
         // 5. Enable Interaction
         this.interaction.enable();
 
-        // Setup Drag Drop on Container
-        import('./interaction.js').then(({ setupDragDrop }) => {
-            setupDragDrop(this.interaction, this.app.container);
-        });
+        // 6. Enable Gizmo & Grid (if previously on)
+        if (this.grid.enabled) this.grid.helper.visible = true;
 
-        // 6. Pause Physics?
-        // User didn't strictly say pause physics, but usually Dev Mode is "Edit Mode".
-        // "When in dev mode... switch to God Mode... Remove drone."
-        // We probably shouldn't update physics/traffic simulation while editing?
-        // Or maybe traffic keeps going?
-        // Let's pause simulation to avoid chaos while editing.
-        this.app.paused = true; // Wait, app.paused stops the loop?
-        // App.paused stops everything including rendering if checking loop?
-        // In App.js: "if (this.paused) { return; }" -> Yes, it stops update.
-        // We need RENDER to continue, but GAMEPLAY to stop.
-        // App.js handles Pause Menu by just returning.
-        // We need a separate "Simulation Paused" vs "App Paused".
-        // For now, let's just NOT call update() on drone/physics in App.js if devMode is on.
+        // Pause Gameplay
+        this.app.paused = true;
     }
 
     disable() {
@@ -72,18 +69,47 @@ export class DevMode {
         if (hudEl) hudEl.style.display = 'block';
 
         this.cameraController.enabled = false;
-        this.app.cameraController.enabled = true; // This might snap camera back to drone
+        this.app.cameraController.enabled = true;
 
         this.ui.hide();
         this.interaction.disable();
 
-        // Resume simulation logic handled in App.update
+        this.grid.helper.visible = false;
+        this.gizmo.detach();
+        this.selectObject(null);
     }
 
     update(dt) {
         if (!this.enabled) return;
         this.cameraController.update(dt);
-        // We do NOT update physics/drone/traffic here.
+        this.grid.update(this.cameraController.camera);
+        this.gizmo.update();
+    }
+
+    selectObject(object) {
+        // Called by InteractionManager or Gizmo
+        if (!object) {
+            this.gizmo.detach();
+            this.ui.hideProperties();
+            return;
+        }
+
+        // Verify object is valid for selection (already checked by raycast usually)
+        this.gizmo.attach(object);
+        this.ui.showProperties(object);
+    }
+
+    deleteSelected() {
+        if (this.gizmo.selectedObject) {
+            const obj = this.gizmo.selectedObject;
+            this.selectObject(null);
+
+            // Remove from scene and collider system
+            this.app.renderer.scene.remove(obj);
+            if (this.app.colliderSystem) {
+                this.app.colliderSystem.remove(obj);
+            }
+        }
     }
 
     // Commands

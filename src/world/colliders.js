@@ -19,6 +19,20 @@ export class ColliderSystem {
         });
     }
 
+    remove(mesh) {
+        // Find collider wrapper for this mesh
+        const initialLength = this.staticColliders.length;
+        this.staticColliders = this.staticColliders.filter(c => c.mesh !== mesh);
+
+        if (this.staticColliders.length !== initialLength) {
+            // Rebuild Spatial Hash
+            this.spatialHash.clear();
+            this.staticColliders.forEach(c => {
+                this.spatialHash.insert(c, c.box);
+            });
+        }
+    }
+
     clear() {
         this.staticColliders = [];
         this.spatialHash.clear();

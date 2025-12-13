@@ -33,6 +33,21 @@ export class ColliderSystem {
         }
     }
 
+    updateBody(mesh) {
+        // Find collider wrapper for this mesh
+        const collider = this.staticColliders.find(c => c.mesh === mesh);
+
+        if (collider) {
+            // Update box to match new mesh transform
+            collider.box.setFromObject(mesh);
+
+            // Rebuild Spatial Hash (easiest way to move it)
+            this.remove(mesh);
+            this.staticColliders.push(collider);
+            this.spatialHash.insert(collider, collider.box);
+        }
+    }
+
     clear() {
         this.staticColliders = [];
         this.spatialHash.clear();

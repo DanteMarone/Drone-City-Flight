@@ -13,8 +13,19 @@ export class DevCameraController {
 
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
         this.keys = { w: false, a: false, s: false, d: false, q: false, e: false };
+        this.rotationLocked = false;
 
         this._bindEvents();
+    }
+
+    setRotationLock(locked) {
+        this.rotationLocked = locked;
+        if (locked && this.isRotating) {
+             this.isRotating = false;
+             if (document.pointerLockElement === this.domElement) {
+                 document.exitPointerLock();
+             }
+        }
     }
 
     _bindEvents() {
@@ -39,7 +50,7 @@ export class DevCameraController {
     }
 
     _onMouseDown(e) {
-        if (!this.enabled) return;
+        if (!this.enabled || this.rotationLocked) return;
         if (e.button === 2) { // Right click
             this.isRotating = true;
             this.domElement.requestPointerLock();

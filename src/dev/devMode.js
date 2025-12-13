@@ -63,6 +63,9 @@ export class DevMode {
         // 6. Enable Gizmo & Grid (if previously on)
         if (this.grid.enabled) this.grid.helper.visible = true;
 
+        // 7. Show Waypoint Visuals
+        this._setWaypointVisibility(true);
+
         // Pause Gameplay
         this.app.paused = true;
     }
@@ -84,6 +87,18 @@ export class DevMode {
         this.grid.helper.visible = false;
         this.gizmo.detach();
         this.selectObject(null);
+
+        // Hide Waypoint Visuals
+        this._setWaypointVisibility(false);
+    }
+
+    _setWaypointVisibility(visible) {
+        this.app.world.colliders.forEach(c => {
+            if (c.mesh && c.mesh.userData.type === 'car') {
+                const visuals = c.mesh.getObjectByName('waypointVisuals');
+                if (visuals) visuals.visible = visible;
+            }
+        });
     }
 
     update(dt) {
@@ -91,6 +106,108 @@ export class DevMode {
         this.cameraController.update(dt);
         this.grid.update(this.cameraController.camera);
         this.gizmo.update();
+
+        // Update Line Visuals if a waypoint is being moved
+        const sel = this.gizmo.selectedObject;
+        if (sel && sel.userData.type === 'waypoint') {
+            const visualGroup = sel.parent;
+            if (visualGroup && visualGroup.parent && visualGroup.parent.userData.type === 'car') {
+                const car = visualGroup.parent;
+                // Sync underlying data
+                // Find index of this waypoint in visuals
+                const wpMeshes = visualGroup.children.filter(c => c.userData.type === 'waypoint');
+                const idx = wpMeshes.indexOf(sel);
+                if (idx !== -1) {
+                    car.userData.waypoints[idx].copy(sel.position);
+                    this._updateCarLine(car);
+                }
+            }
+        }
+    }
+
+    _updateCarLine(carGroup) {
+        const visualGroup = carGroup.getObjectByName('waypointVisuals');
+        if (!visualGroup) return;
+
+        const line = visualGroup.getObjectByName('pathLine');
+        if (line) {
+             const points = [new THREE.Vector3(0,0,0), ...carGroup.userData.waypoints];
+             line.geometry.setFromPoints(points);
+        }
+    }
+
+    addWaypointToSelected() {
+        const car = this.gizmo.selectedObject;
+        if (!car || car.userData.type !== 'car') return;
+
+        if (car.userData.waypoints.length >= 5) {
+            alert("Maximum 5 waypoints allowed.");
+            return;
+        }
+
+        const visualGroup = car.getObjectByName('waypointVisuals');
+        if (!visualGroup) return; // Should exist
+
+        // Determine position: Last waypoint or default offset
+        const lastPos = car.userData.waypoints.length > 0
+            ? car.userData.waypoints[car.userData.waypoints.length - 1]
+            : new THREE.Vector3(0,0,0);
+
+        const newPos = lastPos.clone().add(new THREE.Vector3(10, 0, 0)); // Offset 10m
+
+        // Add to data
+        car.userData.waypoints.push(newPos);
+
+        // Add visual
+        const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const orb = new THREE.Mesh(orbGeo, orbMat);
+        orb.position.copy(newPos);
+        orb.userData = { type: 'waypoint', isHelper: true };
+        visualGroup.add(orb);
+
+        // Create line if first waypoint
+        if (car.userData.waypoints.length === 1 && !visualGroup.getObjectByName('pathLine')) {
+             const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+             const points = [new THREE.Vector3(0,0,0), newPos];
+             const geometry = new THREE.BufferGeometry().setFromPoints(points);
+             const line = new THREE.Line(geometry, material);
+             line.name = 'pathLine';
+             visualGroup.add(line);
+        } else {
+            this._updateCarLine(car);
+        }
+    }
+
+    removeWaypointFromSelected() {
+        const car = this.gizmo.selectedObject;
+        if (!car || car.userData.type !== 'car') return;
+
+        if (car.userData.waypoints.length === 0) return;
+
+        // Remove from data
+        car.userData.waypoints.pop();
+
+        // Remove visual
+        const visualGroup = car.getObjectByName('waypointVisuals');
+        if (visualGroup) {
+            // Find last waypoint sphere
+            // VisualGroup children include line and spheres.
+            // Filter spheres
+            const spheres = visualGroup.children.filter(c => c.userData.type === 'waypoint');
+            if (spheres.length > 0) {
+                const lastSphere = spheres[spheres.length - 1];
+                visualGroup.remove(lastSphere);
+            }
+
+            // Update or remove line
+            if (car.userData.waypoints.length === 0) {
+                const line = visualGroup.getObjectByName('pathLine');
+                if (line) visualGroup.remove(line);
+            } else {
+                this._updateCarLine(car);
+            }
+        }
     }
 
     selectObject(object) {

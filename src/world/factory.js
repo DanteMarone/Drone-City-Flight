@@ -404,7 +404,7 @@ export class ObjectFactory {
         return { mesh, box: null };
     }
 
-    createCar({ x, z }) {
+    createCar({ x, z, waypoints = [] }) {
         const geoData = createSedanGeometry();
 
         const group = new THREE.Group();
@@ -422,13 +422,73 @@ export class ObjectFactory {
         group.add(details);
 
         group.position.set(x, 0, z);
-        group.userData = { type: 'car' };
+        // Ensure waypoints are vectors
+        const validWaypoints = waypoints.map(w => new THREE.Vector3(w.x, w.y, w.z));
+        group.userData = {
+            type: 'car',
+            waypoints: validWaypoints,
+            currentWaypointIndex: 0,
+            movingForward: true
+        };
+
+        // Create Waypoint Visuals (Hidden by default)
+        this._createWaypointVisuals(group, validWaypoints);
 
         this.scene.add(group);
 
         // Add Collider
         const box = new THREE.Box3().setFromObject(group);
         return { mesh: group, box };
+    }
+
+    _createWaypointVisuals(group, waypoints) {
+        // Create container for visuals if not exists
+        let visualGroup = group.getObjectByName('waypointVisuals');
+        if (!visualGroup) {
+            visualGroup = new THREE.Group();
+            visualGroup.name = 'waypointVisuals';
+            visualGroup.visible = false; // Hidden by default (shown in DevMode)
+            group.add(visualGroup);
+        }
+
+        // Clear existing visuals
+        while(visualGroup.children.length > 0) {
+            visualGroup.remove(visualGroup.children[0]);
+        }
+
+        // Create Orbs
+        const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+        waypoints.forEach(pos => {
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            // Positions are relative to Car Group origin
+            // But stored waypoints are usually World Coordinates?
+            // "If you add a waypoint, a white orb will spawn... Clicking it... interact like any object"
+            // If they are children of the car, they move with the car.
+            // Let's assume waypoints data is LOCAL relative to the car to make "Path attached to car" work easily.
+            // BUT, if the car moves, the path should move? Yes.
+            // So LOCAL positions are best.
+            // HOWEVER, if the user placed them in world space, we need to convert.
+            // Let's assume `waypoints` passed to `createCar` are already LOCAL offset vectors.
+            // Wait, standard serialization usually saves world positions?
+            // "When in normal mode, cars will travel down the pathing".
+            // If I move the car in DevMode, does the path stay relative? Yes.
+
+            orb.position.copy(pos);
+            orb.userData = { type: 'waypoint', isHelper: true };
+            visualGroup.add(orb);
+        });
+
+        // Create Line
+        if (waypoints.length > 0) {
+            const points = [new THREE.Vector3(0, 0, 0), ...waypoints];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+            const line = new THREE.Line(geometry, material);
+            line.name = 'pathLine';
+            visualGroup.add(line);
+        }
     }
 
     _makeCollider(mesh) {

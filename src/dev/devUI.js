@@ -68,6 +68,11 @@ export class DevUI {
                     <label style="width:20px">RZ</label> <input id="prop-rz" type="number" step="1" style="flex:1">
                 </div>
 
+                <div id="car-controls" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
+                     <button id="btn-add-waypoint">Add Waypoint</button>
+                     <button id="btn-remove-waypoint">Remove Last Waypoint</button>
+                </div>
+
                 <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
             </div>
 
@@ -185,6 +190,14 @@ export class DevUI {
             this.devMode.deleteSelected();
         };
 
+        this.dom.querySelector('#btn-add-waypoint').onclick = () => {
+            if (this.devMode.addWaypointToSelected) this.devMode.addWaypointToSelected();
+        };
+
+        this.dom.querySelector('#btn-remove-waypoint').onclick = () => {
+            if (this.devMode.removeWaypointFromSelected) this.devMode.removeWaypointFromSelected();
+        };
+
         // Drag Start
         const items = this.dom.querySelectorAll('.palette-item');
         items.forEach(item => {
@@ -236,6 +249,14 @@ export class DevUI {
         setVal('rx', toDeg(object.rotation.x));
         setVal('ry', toDeg(object.rotation.y));
         setVal('rz', toDeg(object.rotation.z));
+
+        // Car Controls
+        const carControls = this.dom.querySelector('#car-controls');
+        if (object.userData.type === 'car') {
+            carControls.style.display = 'flex';
+        } else {
+            carControls.style.display = 'none';
+        }
     }
 
     hideProperties() {

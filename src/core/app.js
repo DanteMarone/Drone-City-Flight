@@ -21,6 +21,7 @@ import { PostProcessing } from '../fx/post.js';
 import { CONFIG } from '../config.js';
 import { DevMode } from '../dev/devMode.js';
 import { Skybox } from '../world/skybox.js';
+import { CloudSystem } from '../world/clouds.js';
 
 export class App {
     constructor() {
@@ -64,6 +65,7 @@ export class App {
         this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
 
         this.skybox = new Skybox(this.renderer.scene);
+        this.cloudSystem = new CloudSystem(this.renderer.scene);
 
         this.cameraController = new CameraController(this.renderer.camera, this.drone);
 
@@ -203,6 +205,10 @@ export class App {
 
         if (this.skybox) {
             this.skybox.update(this.renderer.camera.position);
+        }
+
+        if (this.cloudSystem) {
+            this.cloudSystem.update(dt, this.drone.position, this.renderer.camera);
         }
 
         this.input.resetFrame();

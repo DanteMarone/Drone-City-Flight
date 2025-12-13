@@ -19,6 +19,7 @@
 - [x] 3.1.1 Cohesive open world (Downtown, Suburbs, Commercial).
 - [x] 3.1.2 Smooth transitions (no loading screens).
 - [x] 3.1.3 Spawn area.
+- [x] 3.1.4 Vegetation (Bushes, Orange Trees).
 
 ### 3.2 Drone & Controls
 - [x] 3.2.1 Movement (Takeoff, Yaw, Translate, Vertical).
@@ -63,6 +64,8 @@
 - [x] 3.8.3 Water material.
 - [x] 3.8.4 Particles.
 - [x] 3.8.5 Post-processing (Bloom).
+- [x] 3.8.6 Skybox.
+- [ ] 3.8.7 Improved Grass Texture.
 
 ## 4. New Features
 - [x] 4.1 Interactive Tutorial.
@@ -96,3 +99,14 @@
 - [ ] 4.29 Performance HUD.
 - [x] 4.30 Graphics Overhaul (Improved Drone, Buildings, Traffic).
 - [x] 4.31 Particle Cloud System.
+- [x] 4.32 Ambient Animals (Birds).
+- [ ] 4.33 New Vehicles (Pickup Truck).
+- [ ] 4.34 New Vehicles (Bicycle).
+- [x] 4.35 Traffic Optimization.
+
+## 5. Developer Tools
+- [x] 5.1 Dev Mode: Scaling.
+- [x] 5.2 Gizmo Handles.
+- [x] 5.3 Save/Load System.
+- [x] 5.4 Object Placement/Drag.
+- [x] 5.5 Dev Mode UI Updates.

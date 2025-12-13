@@ -30,7 +30,6 @@ export class InteractionManager {
         window.addEventListener('mousedown', this._onMouseDown);
         window.addEventListener('mousemove', this._onMouseMove);
         window.addEventListener('mouseup', this._onMouseUp);
-        // Mouse move/up needed for drag-drop ghosting, handled by setupDragDrop mainly
     }
 
     disable() {
@@ -52,28 +51,19 @@ export class InteractionManager {
 
         this.raycaster.setFromCamera(this.mouse, this.devMode.cameraController.camera);
 
-        // Grid Snap Logic applied to point?
-        // intersectPlane fallback is good.
         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         const target = new THREE.Vector3();
         this.raycaster.ray.intersectPlane(plane, target);
-
-        // Apply Snapping here if we are "Placing"
-        // But for generic intersection, we return raw point.
         return target;
     }
 
     _onMouseDown(e) {
         if (!this.active) return;
-        if (e.button !== 0) return; // Left click only
+        if (e.button !== 0) return;
 
-        // Ignore if clicking on UI (only allow canvas clicks)
         if (e.target !== this.app.renderer.domElement) return;
-
-        // Check if we are hovering gizmo axes
         if (this.devMode.gizmo && this.devMode.gizmo.control.axis !== null) return;
 
-        // Raycast
         const rect = this.app.container.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -83,11 +73,6 @@ export class InteractionManager {
 
         let hit = null;
         for (const i of intersects) {
-            // Check if it's a gizmo part that "axis" didn't catch?
-            // Usually TransformControls handles its own events if attached.
-            // But we ignore gizmo visual parts in selection search.
-
-            // Traverse to find "selectable" root
             let obj = i.object;
             while (obj) {
                 if (obj.userData && obj.userData.type) {
@@ -102,27 +87,21 @@ export class InteractionManager {
 
         if (hit) {
             this.devMode.selectObject(hit);
-
-            // Initiate Drag
             this.isDragging = true;
             this.dragObject = hit;
 
-            // Disable Camera Rotation
             if (this.devMode.cameraController && this.devMode.cameraController.setRotationLock) {
                 this.devMode.cameraController.setRotationLock(true);
             }
 
-            // Plane at object height
             this.dragPlane.setComponents(0, 1, 0, -hit.position.y);
 
-            // Calculate offset
             const intersect = new THREE.Vector3();
             this.raycaster.ray.intersectPlane(this.dragPlane, intersect);
             if (intersect) {
                 this.dragOffset.subVectors(hit.position, intersect);
             }
         } else {
-            // Clicked void?
             this.devMode.selectObject(null);
         }
     }
@@ -141,21 +120,17 @@ export class InteractionManager {
             if (this.raycaster.ray.intersectPlane(this.dragPlane, intersect)) {
                 const newPos = intersect.add(this.dragOffset);
 
-                // Snap
                 if (this.devMode.grid && this.devMode.grid.enabled) {
                     newPos.x = Math.round(newPos.x);
                     newPos.z = Math.round(newPos.z);
                 }
 
-                // Apply
                 this.dragObject.position.set(newPos.x, this.dragObject.position.y, newPos.z);
 
-                // Sync Gizmo Proxy if active
                 if (this.devMode.gizmo) {
                     this.devMode.gizmo.syncProxyToObject();
                 }
 
-                // Update Properties Panel
                 if (this.devMode.ui) {
                     this.devMode.ui.updateProperties(this.dragObject);
                 }
@@ -166,14 +141,10 @@ export class InteractionManager {
     _onMouseUp(e) {
         if (this.isDragging) {
             this.isDragging = false;
-
-            // Enable Camera Rotation
             if (this.devMode.cameraController && this.devMode.cameraController.setRotationLock) {
                 this.devMode.cameraController.setRotationLock(false);
             }
-
             if (this.dragObject && this.app.colliderSystem) {
-                // Update Physics
                 if (this.app.colliderSystem.updateBody) {
                     this.app.colliderSystem.updateBody(this.dragObject);
                 }
@@ -183,9 +154,7 @@ export class InteractionManager {
     }
 }
 
-// Extension to handle HTML5 Drag/Drop from UI
 export function setupDragDrop(interaction, container) {
-    // Attach to document.body to ensure we catch drops even if UI layers overlay the canvas
     document.body.addEventListener('dragover', (e) => {
         e.preventDefault();
     });
@@ -193,61 +162,43 @@ export function setupDragDrop(interaction, container) {
     document.body.addEventListener('drop', (e) => {
         e.preventDefault();
         const type = e.dataTransfer.getData('type');
-        // We still calculate intersect relative to the app container
         let point = interaction._getIntersect(e);
 
         if (type && point) {
-            // Apply Grid Snap
             if (interaction.devMode.grid && interaction.devMode.grid.enabled) {
                 point = interaction.devMode.grid.snap(point);
             }
 
             console.log(`Dropping ${type} at`, point);
 
-            // Create Object
             if (type === 'ring') {
                 interaction.app.rings.spawnRingAt(point);
-                // Select it?
-                // Rings spawnRingAt returns nothing currently, but adds to array.
-                // We should probably allow selecting it.
-                // Ring mesh has userData.type='ring'.
-            } else if (type === 'river') {
-                const res = interaction.factory.createRiver({ x: point.x, z: point.z });
-                if (res && res.mesh) interaction.devMode.selectObject(res.mesh);
-            } else if (type === 'car' || type === 'bicycle') {
-                const res = interaction.factory.createObject(type, { x: point.x, z: point.z });
-                if (res && res.mesh) {
-                    interaction.app.world.colliders.push(res);
+                // Rings handle their own registration internally in RingManager
+            } else {
+                // Use ObjectFactory (which delegates to EntityRegistry)
+                // We assume createObject handles all mapped types (river, car, bird, building, etc.)
+                // Note: ObjectFactory wraps 'river' now too.
+                const entity = interaction.factory.createObject(type, { x: point.x, z: point.z });
+
+                if (entity && entity.mesh) {
+                    // Centralized Registration
+                    interaction.app.world.addEntity(entity); // Adds to colliders, handles BirdSystem
+
+                    // Add to Physics (Static/SpatialHash)
+                    // Note: Entities are added as "Static" by default here.
+                    // Even cars are "static" in terms of collision type (not dynamic rigidbodies), just moving static objects.
                     if (interaction.app.colliderSystem) {
-                        interaction.app.colliderSystem.addStatic([res]);
+                        interaction.app.colliderSystem.addStatic([entity]);
                     }
-                    interaction.devMode.selectObject(res.mesh);
-                    // Ensure visuals are visible if DevMode is on
-                    if (interaction.devMode.enabled) {
-                        const visuals = res.mesh.getObjectByName('waypointVisuals');
+
+                    // Select it
+                    interaction.devMode.selectObject(entity.mesh);
+
+                    // Special Visuals Check
+                    if (['car', 'bicycle'].includes(type) && interaction.devMode.enabled) {
+                        const visuals = entity.mesh.getObjectByName('waypointVisuals');
                         if (visuals) visuals.visible = true;
                     }
-                }
-            } else if (type === 'bird') {
-                const res = interaction.factory.createBird({ x: point.x, z: point.z });
-                if (res && res.mesh) {
-                    interaction.app.world.birdSystem.add(res.mesh);
-                    interaction.app.world.colliders.push(res);
-                    interaction.devMode.selectObject(res.mesh);
-                }
-            } else if (type === 'bush') {
-                const res = interaction.factory.createBush({ x: point.x, z: point.z });
-                if (res && res.mesh) {
-                    interaction.app.world.colliders.push(res);
-                    interaction.devMode.selectObject(res.mesh);
-                }
-            } else {
-                // Buildings/Roads
-                const collider = interaction.factory.createObject(type, { x: point.x, z: point.z });
-                if (collider) {
-                    interaction.app.world.colliders.push(collider);
-                    interaction.app.colliderSystem.addStatic([collider]);
-                    interaction.devMode.selectObject(collider.mesh);
                 }
             }
         }

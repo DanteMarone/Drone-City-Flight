@@ -90,15 +90,20 @@ export class DevMode {
 
         // Hide Waypoint Visuals
         this._setWaypointVisibility(false);
+        this.app.paused = false;
     }
 
     _setWaypointVisibility(visible) {
-        this.app.world.colliders.forEach(c => {
-            if (c.mesh && c.mesh.userData.type === 'car') {
-                const visuals = c.mesh.getObjectByName('waypointVisuals');
-                if (visuals) visuals.visible = visible;
-            }
-        });
+        // Iterate through all colliders (which track the cars)
+        if (this.app.world && this.app.world.colliders) {
+            this.app.world.colliders.forEach(c => {
+                const obj = c.mesh;
+                if (obj && obj.userData.type === 'car') {
+                    const visuals = obj.getObjectByName('waypointVisuals');
+                    if (visuals) visuals.visible = visible;
+                }
+            });
+        }
     }
 
     update(dt) {
@@ -235,6 +240,11 @@ export class DevMode {
             this.app.renderer.scene.remove(obj);
             if (this.app.colliderSystem) {
                 this.app.colliderSystem.remove(obj);
+            }
+            // Also remove from world.colliders
+            if (this.app.world && this.app.world.colliders) {
+                 const idx = this.app.world.colliders.findIndex(c => c.mesh === obj);
+                 if (idx !== -1) this.app.world.colliders.splice(idx, 1);
             }
         }
     }

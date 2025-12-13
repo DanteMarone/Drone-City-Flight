@@ -44,8 +44,48 @@ export class ObjectFactory {
             case 'house': return this.createHouse(params);
             case 'road': return this.createRoad(params);
             case 'orangeTree': return this.createOrangeTree(params);
+            case 'bush': return this.createBush(params);
             default: console.warn('Unknown object type:', type); return null;
         }
+    }
+
+    createBush({ x, z }) {
+        const group = new THREE.Group();
+        group.position.set(x, 0, z);
+        group.userData.type = 'bush';
+
+        const tex = this.textureLoader.load('/textures/bush.png');
+        tex.colorSpace = THREE.SRGBColorSpace;
+
+        const mat = new THREE.MeshStandardMaterial({
+            map: tex,
+            color: 0xffffff,
+            roughness: 1.0,
+            side: THREE.DoubleSide
+        });
+
+        const geo = new THREE.SphereGeometry(0.5, 7, 7);
+        const count = 3 + Math.floor(Math.random() * 3); // 3 to 5 spheres
+
+        for (let i = 0; i < count; i++) {
+            const mesh = new THREE.Mesh(geo, mat);
+            // Random scatter relative to center
+            const ox = (Math.random() - 0.5) * 1.2;
+            const oz = (Math.random() - 0.5) * 1.2;
+            const oy = 0.3 + Math.random() * 0.4;
+            mesh.position.set(ox, oy, oz);
+
+            const s = 0.7 + Math.random() * 0.6;
+            mesh.scale.set(s, s, s);
+
+            mesh.castShadow = true;
+            mesh.receiveShadow = true;
+            group.add(mesh);
+        }
+
+        this.scene.add(group);
+        // No collision box
+        return { mesh: group, box: null };
     }
 
     createOrangeTree({ x, z }) {

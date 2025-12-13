@@ -212,8 +212,8 @@ export function setupDragDrop(interaction, container) {
             } else if (type === 'river') {
                 const res = interaction.factory.createRiver({ x: point.x, z: point.z });
                 if (res && res.mesh) interaction.devMode.selectObject(res.mesh);
-            } else if (type === 'car') {
-                const res = interaction.factory.createCar({ x: point.x, z: point.z });
+            } else if (type === 'car' || type === 'bicycle') {
+                const res = interaction.factory.createObject(type, { x: point.x, z: point.z });
                 if (res && res.mesh) {
                     interaction.app.world.colliders.push(res);
                     if (interaction.app.colliderSystem) {

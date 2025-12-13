@@ -96,6 +96,7 @@ export class DevUI {
                 <div class="palette-item" draggable="true" data-type="ring">Ring</div>
                 <div class="palette-item" draggable="true" data-type="river">River</div>
                 <div class="palette-item" draggable="true" data-type="car">Car</div>
+                <div class="palette-item" draggable="true" data-type="bicycle">Bicycle</div>
                 <div class="palette-item" draggable="true" data-type="orangeTree">Orange Tree</div>
                 <div class="palette-item" draggable="true" data-type="bird">Bird</div>
                 <div class="palette-item" draggable="true" data-type="bush">Bush</div>
@@ -290,7 +291,7 @@ export class DevUI {
 
         // Car Controls
         const carControls = this.dom.querySelector('#car-controls');
-        if (object.userData.type === 'car') {
+        if (['car', 'bicycle'].includes(object.userData.type)) {
             carControls.style.display = 'flex';
             this._updateWaypointList(object);
         } else {

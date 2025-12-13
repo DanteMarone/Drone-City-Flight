@@ -44,7 +44,7 @@ export class World {
         // Iterate through all manually placed objects in colliders
         // Note: this.colliders contains objects created in DevMode that were registered.
         this.colliders.forEach(c => {
-            if (c.mesh && c.mesh.userData.type === 'car' && c.mesh.userData.waypoints && c.mesh.userData.waypoints.length > 0) {
+            if (c.mesh && ['car', 'bicycle'].includes(c.mesh.userData.type) && c.mesh.userData.waypoints && c.mesh.userData.waypoints.length > 0) {
                 const anchor = c.mesh;
                 const waypoints = anchor.userData.waypoints;
                 const path = [new THREE.Vector3(0, 0, 0), ...waypoints];
@@ -70,7 +70,14 @@ export class World {
                 const targetPos = path[targetIdx];
                 const currentPos = modelChildren[0].position.clone();
 
-                const speed = Math.max(0, (CONFIG.DRONE.MAX_SPEED || 18.0) - 0.5);
+                let baseSpeed = (CONFIG.DRONE.MAX_SPEED || 18.0);
+                if (anchor.userData.type === 'bicycle') {
+                    baseSpeed = baseSpeed / 2;
+                } else {
+                    baseSpeed = baseSpeed - 0.5; // Slightly slower than drone max for cars
+                }
+
+                const speed = Math.max(0, baseSpeed);
                 const dist = currentPos.distanceTo(targetPos);
                 const moveAmount = speed * dt;
 
@@ -286,9 +293,9 @@ export class World {
         const objects = [];
         this.colliders.forEach(c => {
             if (c.mesh && c.mesh.userData.type) {
-                // Ensure waypoints are saved for cars
+                // Ensure waypoints are saved for cars/bicycles
                 let params = c.mesh.userData.params || {};
-                if (c.mesh.userData.type === 'car' && c.mesh.userData.waypoints) {
+                if (['car', 'bicycle'].includes(c.mesh.userData.type) && c.mesh.userData.waypoints) {
                     params = { ...params, waypoints: c.mesh.userData.waypoints };
                 }
 

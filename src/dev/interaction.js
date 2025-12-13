@@ -15,12 +15,21 @@ export class InteractionManager {
         this.active = false;
 
         this._onMouseDown = this._onMouseDown.bind(this);
+        this._onMouseMove = this._onMouseMove.bind(this);
+        this._onMouseUp = this._onMouseUp.bind(this);
+
+        this.isDragging = false;
+        this.dragObject = null;
+        this.dragPlane = new THREE.Plane();
+        this.dragOffset = new THREE.Vector3();
     }
 
     enable() {
         if (this.active) return;
         this.active = true;
         window.addEventListener('mousedown', this._onMouseDown);
+        window.addEventListener('mousemove', this._onMouseMove);
+        window.addEventListener('mouseup', this._onMouseUp);
         // Mouse move/up needed for drag-drop ghosting, handled by setupDragDrop mainly
     }
 
@@ -28,6 +37,8 @@ export class InteractionManager {
         if (!this.active) return;
         this.active = false;
         window.removeEventListener('mousedown', this._onMouseDown);
+        window.removeEventListener('mousemove', this._onMouseMove);
+        window.removeEventListener('mouseup', this._onMouseUp);
     }
 
     onDragStart(type) {
@@ -60,7 +71,7 @@ export class InteractionManager {
         if (e.target !== this.app.renderer.domElement) return;
 
         // Check if we are hovering gizmo axes
-        if (this.devMode.gizmo.control.axis !== null) return;
+        if (this.devMode.gizmo && this.devMode.gizmo.control.axis !== null) return;
 
         // Raycast
         const rect = this.app.container.getBoundingClientRect();
@@ -91,9 +102,78 @@ export class InteractionManager {
 
         if (hit) {
             this.devMode.selectObject(hit);
+
+            // Initiate Drag
+            this.isDragging = true;
+            this.dragObject = hit;
+
+            // Disable Camera Rotation
+            if (this.devMode.cameraController && this.devMode.cameraController.setRotationLock) {
+                this.devMode.cameraController.setRotationLock(true);
+            }
+
+            // Plane at object height
+            this.dragPlane.setComponents(0, 1, 0, -hit.position.y);
+
+            // Calculate offset
+            const intersect = new THREE.Vector3();
+            this.raycaster.ray.intersectPlane(this.dragPlane, intersect);
+            if (intersect) {
+                this.dragOffset.subVectors(hit.position, intersect);
+            }
         } else {
             // Clicked void?
             this.devMode.selectObject(null);
+        }
+    }
+
+    _onMouseMove(e) {
+        if (!this.active) return;
+
+        if (this.isDragging && this.dragObject) {
+            const rect = this.app.container.getBoundingClientRect();
+            const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+            const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+
+            this.raycaster.setFromCamera({ x, y }, this.devMode.cameraController.camera);
+
+            const intersect = new THREE.Vector3();
+            if (this.raycaster.ray.intersectPlane(this.dragPlane, intersect)) {
+                const newPos = intersect.add(this.dragOffset);
+
+                // Snap
+                if (this.devMode.grid && this.devMode.grid.enabled) {
+                    newPos.x = Math.round(newPos.x);
+                    newPos.z = Math.round(newPos.z);
+                }
+
+                // Apply
+                this.dragObject.position.set(newPos.x, this.dragObject.position.y, newPos.z);
+
+                // Update Properties Panel
+                if (this.devMode.ui) {
+                    this.devMode.ui.updateProperties(this.dragObject);
+                }
+            }
+        }
+    }
+
+    _onMouseUp(e) {
+        if (this.isDragging) {
+            this.isDragging = false;
+
+            // Enable Camera Rotation
+            if (this.devMode.cameraController && this.devMode.cameraController.setRotationLock) {
+                this.devMode.cameraController.setRotationLock(false);
+            }
+
+            if (this.dragObject && this.app.colliderSystem) {
+                // Update Physics
+                if (this.app.colliderSystem.updateBody) {
+                    this.app.colliderSystem.updateBody(this.dragObject);
+                }
+            }
+            this.dragObject = null;
         }
     }
 }

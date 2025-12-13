@@ -178,6 +178,7 @@ export class DevMode {
         } else {
             this._updateCarLine(car);
         }
+        this.ui.updateProperties(car);
     }
 
     removeWaypointFromSelected() {
@@ -209,6 +210,7 @@ export class DevMode {
                 this._updateCarLine(car);
             }
         }
+        this.ui.updateProperties(car);
     }
 
     selectObject(object) {

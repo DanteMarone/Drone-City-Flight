@@ -70,6 +70,7 @@ export class DevUI {
 
                 <div id="car-controls" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
                      <button id="btn-add-waypoint">Add Waypoint</button>
+                     <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
                      <button id="btn-remove-waypoint">Remove Last Waypoint</button>
                 </div>
 
@@ -254,9 +255,53 @@ export class DevUI {
         const carControls = this.dom.querySelector('#car-controls');
         if (object.userData.type === 'car') {
             carControls.style.display = 'flex';
+            this._updateWaypointList(object);
         } else {
             carControls.style.display = 'none';
         }
+    }
+
+    _updateWaypointList(car) {
+        const container = this.dom.querySelector('#waypoint-list');
+        container.innerHTML = ''; // Clear
+
+        if (!car.userData.waypoints) return;
+
+        car.userData.waypoints.forEach((wp, index) => {
+            const row = document.createElement('div');
+            row.style.cssText = 'display:flex; gap:2px; align-items:center; font-size:0.8em;';
+            row.innerHTML = `<label style="width:15px">${index+1}</label>`;
+
+            ['x', 'y', 'z'].forEach(axis => {
+                const input = document.createElement('input');
+                input.type = 'number';
+                input.step = '0.5';
+                input.style.cssText = 'flex:1; width: 30px; background:#111; color:#fff; border:1px solid #444;';
+                input.value = wp[axis].toFixed(2);
+
+                input.onchange = (e) => {
+                    const val = parseFloat(e.target.value);
+                    if (isNaN(val)) return;
+                    wp[axis] = val;
+
+                    // Update Visual Sphere
+                    const visuals = car.getObjectByName('waypointVisuals');
+                    if (visuals) {
+                        const spheres = visuals.children.filter(c => c.userData.type === 'waypoint');
+                        if (spheres[index]) {
+                            spheres[index].position[axis] = val;
+                        }
+                    }
+
+                    // Update Line
+                    if (this.devMode._updateCarLine) {
+                        this.devMode._updateCarLine(car);
+                    }
+                };
+                row.appendChild(input);
+            });
+            container.appendChild(row);
+        });
     }
 
     hideProperties() {

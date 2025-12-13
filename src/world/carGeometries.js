@@ -76,3 +76,97 @@ export function createSUVGeometry() {
         details: mergeGeometries(detailParts)
     };
 }
+
+export function createBicycleMesh() {
+    const group = new THREE.Group();
+
+    // Materials
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0xaa0000, roughness: 0.5, metalness: 0.8 });
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.9 });
+    const riderMat = new THREE.MeshStandardMaterial({ color: 0x224488, roughness: 0.8 });
+    const skinMat = new THREE.MeshStandardMaterial({ color: 0xffccaa, roughness: 0.8 });
+
+    // --- Bicycle ---
+    // Wheels (Thin cylinders)
+    const wheelGeo = new THREE.CylinderGeometry(0.35, 0.35, 0.05, 16);
+    wheelGeo.rotateZ(Math.PI / 2);
+
+    const wheelFront = new THREE.Mesh(wheelGeo, wheelMat);
+    wheelFront.position.set(0, 0.35, 0.7);
+    group.add(wheelFront);
+
+    const wheelBack = new THREE.Mesh(wheelGeo, wheelMat);
+    wheelBack.position.set(0, 0.35, -0.7);
+    group.add(wheelBack);
+
+    // Frame (Simple lines/boxes)
+    const frameGeo = new THREE.BoxGeometry(0.05, 0.05, 1.4); // Main bar
+    const frame = new THREE.Mesh(frameGeo, frameMat);
+    frame.position.set(0, 0.6, 0);
+    group.add(frame);
+
+    const seatPostGeo = new THREE.BoxGeometry(0.05, 0.6, 0.05);
+    const seatPost = new THREE.Mesh(seatPostGeo, frameMat);
+    seatPost.position.set(0, 0.6, -0.3);
+    seatPost.rotation.x = -0.2;
+    group.add(seatPost);
+
+    const forkGeo = new THREE.BoxGeometry(0.05, 0.6, 0.05);
+    const fork = new THREE.Mesh(forkGeo, frameMat);
+    fork.position.set(0, 0.5, 0.7);
+    fork.rotation.x = 0.2;
+    group.add(fork);
+
+    // Handlebars
+    const handleGeo = new THREE.BoxGeometry(0.6, 0.05, 0.05);
+    const handle = new THREE.Mesh(handleGeo, frameMat);
+    handle.position.set(0, 0.9, 0.65);
+    group.add(handle);
+
+    // --- Rider ---
+    const riderGroup = new THREE.Group();
+    riderGroup.position.set(0, 0.8, -0.3); // Seat position
+
+    // Torso
+    const torsoGeo = new THREE.BoxGeometry(0.4, 0.5, 0.2);
+    const torso = new THREE.Mesh(torsoGeo, riderMat);
+    torso.position.y = 0.25;
+    torso.rotation.x = 0.2; // Leaning forward slightly
+    riderGroup.add(torso);
+
+    // Head
+    const headGeo = new THREE.BoxGeometry(0.2, 0.25, 0.2);
+    const head = new THREE.Mesh(headGeo, skinMat);
+    head.position.set(0, 0.6, 0.1);
+    riderGroup.add(head);
+
+    // Arms (Simple boxes reaching to handlebars)
+    const armGeo = new THREE.BoxGeometry(0.1, 0.4, 0.1);
+    const leftArm = new THREE.Mesh(armGeo, skinMat);
+    leftArm.position.set(0.25, 0.4, 0.3);
+    leftArm.rotation.x = -0.8; // Reach forward
+    leftArm.rotation.z = -0.2;
+    riderGroup.add(leftArm);
+
+    const rightArm = new THREE.Mesh(armGeo, skinMat);
+    rightArm.position.set(-0.25, 0.4, 0.3);
+    rightArm.rotation.x = -0.8;
+    rightArm.rotation.z = 0.2;
+    riderGroup.add(rightArm);
+
+    // Legs
+    const legGeo = new THREE.BoxGeometry(0.12, 0.5, 0.12);
+    const leftLeg = new THREE.Mesh(legGeo, riderMat);
+    leftLeg.position.set(0.15, -0.1, 0.1);
+    leftLeg.rotation.x = -0.2;
+    riderGroup.add(leftLeg);
+
+    const rightLeg = new THREE.Mesh(legGeo, riderMat);
+    rightLeg.position.set(-0.15, -0.1, 0.1);
+    rightLeg.rotation.x = -0.2;
+    riderGroup.add(rightLeg);
+
+    group.add(riderGroup);
+
+    return group;
+}

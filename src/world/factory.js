@@ -1,7 +1,7 @@
 // src/world/factory.js
 import * as THREE from 'three';
 import { TextureGenerator } from '../utils/textures.js';
-import { createSedanGeometry } from './carGeometries.js';
+import { createSedanGeometry, createBicycleMesh } from './carGeometries.js';
 
 export class ObjectFactory {
     constructor(scene) {
@@ -43,11 +43,34 @@ export class ObjectFactory {
             case 'shop': return this.createShop(params);
             case 'house': return this.createHouse(params);
             case 'road': return this.createRoad(params);
+            case 'bicycle': return this.createBicycle(params);
             case 'orangeTree': return this.createOrangeTree(params);
             case 'bird': return this.createBird(params);
             case 'bush': return this.createBush(params);
             default: console.warn('Unknown object type:', type); return null;
         }
+    }
+
+    createBicycle({ x, z, waypoints = [] }) {
+        const group = createBicycleMesh();
+        group.position.set(x, 0, z);
+
+        // Ensure waypoints are vectors
+        const validWaypoints = waypoints.map(w => new THREE.Vector3(w.x, w.y, w.z));
+        group.userData = {
+            type: 'bicycle',
+            waypoints: validWaypoints,
+            currentWaypointIndex: 0,
+            movingForward: true
+        };
+
+        // Create Waypoint Visuals (Hidden by default)
+        this._createWaypointVisuals(group, validWaypoints);
+
+        this.scene.add(group);
+
+        const box = new THREE.Box3().setFromObject(group);
+        return { mesh: group, box };
     }
 
     createBird({ x, z }) {

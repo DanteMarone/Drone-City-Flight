@@ -12,9 +12,11 @@ export class GizmoManager {
         this.control = new TransformControls(camera, renderer.domElement);
 
         // --- COMPATIBILITY FIXES ---
-        // Patch missing Object3D features due to potential module resolution issues
+        // Patch missing Object3D features due to environment/module resolution issues.
+        // These patches ensure the TransformControls instance behaves like a valid Object3D
+        // in the current scene graph, preventing crashes during raycasting or updates.
+
         if (!this.control.isObject3D) {
-            console.warn("GizmoManager: Patching TransformControls.isObject3D");
             this.control.isObject3D = true;
         }
 
@@ -27,18 +29,21 @@ export class GizmoManager {
         if (!this.control.scale) this.control.scale = new THREE.Vector3(1, 1, 1);
         if (!this.control.layers) this.control.layers = new THREE.Layers();
 
-        if (typeof this.control.removeFromParent !== 'function') {
-             console.warn("GizmoManager: Patching TransformControls.removeFromParent");
-             this.control.removeFromParent = function() {
-                 if (this.parent) this.parent.remove(this);
-             };
-        }
+        // Patch methods required by Scene and Raycaster
+        const patchMethod = (name, impl) => {
+            if (typeof this.control[name] !== 'function') {
+                this.control[name] = impl;
+            }
+        };
 
-        if (typeof this.control.updateMatrixWorld !== 'function') {
-            console.warn("GizmoManager: Patching TransformControls.updateMatrixWorld");
-            // Bind the standard Object3D implementation
-            this.control.updateMatrixWorld = THREE.Object3D.prototype.updateMatrixWorld;
-        }
+        patchMethod('removeFromParent', function() {
+            if (this.parent) this.parent.remove(this);
+        });
+
+        patchMethod('updateMatrixWorld', THREE.Object3D.prototype.updateMatrixWorld);
+        patchMethod('raycast', THREE.Object3D.prototype.raycast);
+        patchMethod('traverse', THREE.Object3D.prototype.traverse);
+        patchMethod('dispatchEvent', THREE.EventDispatcher.prototype.dispatchEvent); // Just in case
         // ---------------------------
 
         this.control.addEventListener('dragging-changed', (event) => {

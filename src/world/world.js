@@ -15,7 +15,7 @@ export class World {
         this.ground = null;
 
         this._initGround();
-        this._generateWorld();
+        // this._generateWorld(); // Blank map by default
     }
 
     _initGround() {

@@ -27,6 +27,13 @@ export class GizmoManager {
         this.selectedObject = null;
     }
 
+    attach(object) {
+        this.selectedObject = object;
+        this.control.attach(object);
+        // Ensure visible
+        this.control.visible = true;
+    }
+
     updateSnapping(grid) {
         if (grid && grid.enabled) {
             this.control.setTranslationSnap(grid.cellSize);
@@ -37,10 +44,6 @@ export class GizmoManager {
         }
     }
 
-    attach(object) {
-        this.selectedObject = object;
-        this.control.attach(object);
-    }
 
     detach() {
         this.selectedObject = null;

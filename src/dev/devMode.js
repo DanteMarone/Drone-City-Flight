@@ -19,6 +19,11 @@ export class DevMode {
         // New Systems
         this.grid = new GridSystem(app.renderer.scene);
         this.gizmo = new GizmoManager(app.renderer.scene, app.renderer.camera, app.renderer, this.interaction);
+
+        // One-time setup for drag-drop
+        import('./interaction.js').then(({ setupDragDrop }) => {
+            setupDragDrop(this.interaction, this.app.container);
+        });
     }
 
     toggle() {
@@ -51,10 +56,6 @@ export class DevMode {
         // 6. Enable Gizmo & Grid (if previously on)
         if (this.grid.enabled) this.grid.helper.visible = true;
 
-        import('./interaction.js').then(({ setupDragDrop }) => {
-            setupDragDrop(this.interaction, this.app.container);
-        });
-
         // Pause Gameplay
         this.app.paused = true;
     }
@@ -81,7 +82,7 @@ export class DevMode {
     update(dt) {
         if (!this.enabled) return;
         this.cameraController.update(dt);
-        // Gizmo/Grid doesn't need explicit update usually, but just in case
+        this.grid.update(this.cameraController.camera);
         this.gizmo.update();
     }
 
@@ -105,15 +106,9 @@ export class DevMode {
 
             // Remove from scene and collider system
             this.app.renderer.scene.remove(obj);
-            // Need to remove from collider system too if registered!
-            // Currently collider system doesn't have easy 'remove' by object reference
-            // But we can rebuild spatial hash on map save/load.
-            // For runtime, we might leave ghost collider or need method.
-            // Assumption: Dev Mode edits are for visual placement mainly, collision sync happens on reload?
-            // Or we should try to remove it.
-            // For now, just remove visual.
-            // If it's a "placed" object, it might be in `app.world.objects` array if we track them.
-            // `exportMap` iterates scene children with userData.type. So removing from scene is enough for save/load.
+            if (this.app.colliderSystem) {
+                this.app.colliderSystem.remove(obj);
+            }
         }
     }
 

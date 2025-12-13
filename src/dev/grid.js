@@ -1,19 +1,23 @@
 import * as THREE from 'three';
 
 export class GridSystem {
-    constructor(scene, size = 1000, divisions = 100) {
+    constructor(scene, snapSize = 10) {
         this.scene = scene;
-        this.size = size;
-        this.divisions = divisions;
+        this.cellSize = snapSize;
+        this.divisions = 200; // Keep visible grid density constant
+        this.size = this.divisions * this.cellSize;
         this.enabled = false;
 
-        // Helper
-        this.helper = new THREE.GridHelper(size, divisions, 0x888888, 0x444444);
+        this.helper = this._createHelper();
         this.helper.visible = false;
-        this.helper.position.y = 0.1; // Slightly above ground to avoid Z-fighting with asphalt
         scene.add(this.helper);
+    }
 
-        this.cellSize = size / divisions;
+    _createHelper() {
+        const helper = new THREE.GridHelper(this.size, this.divisions, 0x888888, 0x444444);
+        // Slightly above ground to avoid Z-fighting with asphalt
+        helper.position.y = 0.1;
+        return helper;
     }
 
     setEnabled(enabled) {
@@ -22,20 +26,13 @@ export class GridSystem {
     }
 
     setSnapSize(size) {
-        this.size = size * this.divisions; // Keep helper size logic consistent? No, helper size is scene size
-        // Actually user wants "grid unit snap size".
-        // The helper visualization relies on size/divisions.
-        // If we change snap size, we should probably update helper divisions to match visually.
-        // But simply updating this.cellSize is enough for logic.
         this.cellSize = size;
+        this.size = this.divisions * this.cellSize;
 
-        // Update Helper visual if possible
-        // Helper doesn't support dynamic updates easily, recreate it
+        // Recreate helper
         this.scene.remove(this.helper);
-        const divisions = Math.floor(this.size / this.cellSize);
-        this.helper = new THREE.GridHelper(this.size, divisions, 0x888888, 0x444444);
+        this.helper = this._createHelper();
         this.helper.visible = this.enabled;
-        this.helper.position.y = 0.1;
         this.scene.add(this.helper);
     }
 
@@ -50,7 +47,19 @@ export class GridSystem {
     }
 
     getRotationSnap() {
-        // Return radians, e.g., 15 degrees
         return this.enabled ? Math.PI / 12 : null;
+    }
+
+    update(camera) {
+        if (!this.enabled || !this.helper) return;
+
+        // "Infinite" Grid: Snap helper position to camera position
+        // This makes the grid travel with the camera
+        const x = Math.round(camera.position.x / this.cellSize) * this.cellSize;
+        const z = Math.round(camera.position.z / this.cellSize) * this.cellSize;
+
+        this.helper.position.x = x;
+        this.helper.position.z = z;
+        // y stays at 0.1
     }
 }

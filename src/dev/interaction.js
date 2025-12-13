@@ -56,6 +56,9 @@ export class InteractionManager {
         if (!this.active) return;
         if (e.button !== 0) return; // Left click only
 
+        // Ignore if clicking on UI (only allow canvas clicks)
+        if (e.target !== this.app.renderer.domElement) return;
+
         // Check if we are hovering gizmo axes
         if (this.devMode.gizmo.control.axis !== null) return;
 

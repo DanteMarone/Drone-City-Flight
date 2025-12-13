@@ -132,7 +132,8 @@ export class DevMode {
         const line = visualGroup.getObjectByName('pathLine');
         if (line) {
              const points = [new THREE.Vector3(0,0,0), ...carGroup.userData.waypoints];
-             line.geometry.setFromPoints(points);
+             line.geometry.dispose();
+             line.geometry = new THREE.BufferGeometry().setFromPoints(points);
         }
     }
 

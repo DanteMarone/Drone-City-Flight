@@ -132,6 +132,7 @@ export class World {
             }
         });
         this.colliders = [];
+        if (this.birdSystem) this.birdSystem.clear();
     }
 
     loadMap(mapData) {
@@ -161,6 +162,11 @@ export class World {
                     }
 
                     this.colliders.push(collider);
+
+                    // System Registration
+                    if (obj.type === 'bird' && this.birdSystem) {
+                        this.birdSystem.add(collider.mesh);
+                    }
                 }
             });
         }

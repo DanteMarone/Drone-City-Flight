@@ -59,13 +59,25 @@ export class World {
 
         if (mapData.objects) {
             mapData.objects.forEach(obj => {
-                const collider = factory.createObject(obj.type, obj.params || obj.userData?.params || {});
+                // Pass position to createObject so initial box calculation is correct
+                // Merge params with position
+                const params = { ...(obj.params || obj.userData?.params || {}) };
+                if (obj.position) {
+                    params.x = obj.position.x;
+                    params.z = obj.position.z;
+                }
+
+                const collider = factory.createObject(obj.type, params);
                 if (collider) {
-                    // Restore transform if provided
+                    // Restore transform if provided (Handles Y and Rotation)
                     if (obj.position) collider.mesh.position.set(obj.position.x, obj.position.y, obj.position.z);
                     if (obj.rotation) collider.mesh.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z);
-                    // Scale? Usually baked into params for buildings, but generic support:
-                    // if (obj.scale) collider.mesh.scale.set(obj.scale.x, obj.scale.y, obj.scale.z);
+
+                    // Recompute box because rotation might have changed bounds
+                    // And position might have been tweaked
+                    if (collider.box) {
+                        collider.box.setFromObject(collider.mesh);
+                    }
 
                     this.colliders.push(collider);
                 }

@@ -158,10 +158,11 @@ export class ObjectFactory {
     }
 
     createHouse({ x, z, width }) {
+        const w = width || 15; // Default width
         const group = new THREE.Group();
         group.position.set(x, 0, z);
         group.userData.type = 'house';
-        group.userData.params = { width };
+        group.userData.params = { width: w };
 
         const wallColors = [0xffffee, 0xeeddaa, 0xddccaa, 0xffeecc];
         const roofColors = [0xaa5544, 0x555555, 0x444466];
@@ -170,14 +171,14 @@ export class ObjectFactory {
 
         // Lawn
         const lawn = new THREE.Mesh(this.geometries.box, this.materials.grass);
-        lawn.scale.set(width, 0.2, width);
+        lawn.scale.set(w, 0.2, w);
         lawn.position.y = 0.1;
         lawn.receiveShadow = true;
         group.add(lawn);
 
         // Body
-        const hWidth = width * 0.5;
-        const hDepth = width * 0.5;
+        const hWidth = w * 0.5;
+        const hDepth = w * 0.5;
         const hHeight = 3.5 + Math.random() * 1.5;
 
         const bodyGeo = new THREE.BoxGeometry(hWidth, hHeight, hDepth);

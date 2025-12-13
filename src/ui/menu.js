@@ -36,10 +36,10 @@ export class MenuSystem {
                         Bloom
                         <input type="checkbox" id="opt-bloom" checked>
                     </label>
-                    <label>
-                        Camera Sensitivity
-                        <input type="range" id="opt-sens" min="0.001" max="0.005" step="0.0001">
+                    <label for="opt-sens">
+                        Camera Sensitivity <span id="opt-sens-val" style="font-weight:bold; margin-left:8px;"></span>
                     </label>
+                    <input type="range" id="opt-sens" min="0.001" max="0.005" step="0.0001" aria-label="Camera Sensitivity">
                 </div>
             </div>
         `;
@@ -53,11 +53,13 @@ export class MenuSystem {
             dev: menu.querySelector('#btn-dev'),
             loadMap: menu.querySelector('#btn-load-map'),
             bloom: menu.querySelector('#opt-bloom'),
-            sens: menu.querySelector('#opt-sens')
+            sens: menu.querySelector('#opt-sens'),
+            sensVal: menu.querySelector('#opt-sens-val')
         };
 
         // Init values
         this.dom.sens.value = CONFIG.INPUT.SENSITIVITY.CHASE_MOUSE;
+        this.dom.sensVal.innerText = (CONFIG.INPUT.SENSITIVITY.CHASE_MOUSE * 10000).toFixed(0);
     }
 
     _bindEvents() {
@@ -96,9 +98,11 @@ export class MenuSystem {
         };
 
         this.dom.sens.oninput = (e) => {
-            CONFIG.INPUT.SENSITIVITY.CHASE_MOUSE = parseFloat(e.target.value);
+            const val = parseFloat(e.target.value);
+            CONFIG.INPUT.SENSITIVITY.CHASE_MOUSE = val;
+            this.dom.sensVal.innerText = (val * 10000).toFixed(0);
             if (this.app.cameraController) {
-                this.app.cameraController.sensitivity = parseFloat(e.target.value);
+                this.app.cameraController.sensitivity = val;
             }
         };
     }

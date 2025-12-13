@@ -144,15 +144,6 @@ export class World {
                         if (wrapper) {
                             // Update the wrapper's box (wrapper.box should be same ref as c.box if everything linked correctly, but let's ensure)
                             wrapper.box.copy(c.box);
-
-                            // Re-insert into spatial hash
-                            cs.spatialHash.remove(wrapper); // Remove old entries (using old box? No, remove takes client and searches? No spatialHash.remove(client) isn't standard in the provided file.)
-                            // Let's check spatialHash.js
-                            // It doesn't have remove(client). It has clear().
-                            // ColliderSystem.remove(mesh) rebuilds the whole hash! That's too slow for per-frame.
-
-                            // Wait, ColliderSystem.remove(mesh) filters the array and rebuilds.
-                            // We can't do that every frame.
                         }
                     }
                 }

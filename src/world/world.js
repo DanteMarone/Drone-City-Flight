@@ -159,13 +159,12 @@ export class World {
 
         // Handling the SpatialHash update efficiency issue:
         // If we move cars every frame, we need a Dynamic Collider system.
-        // The current TrafficSystem handles cars separately.
         // These manual cars are hybrid.
 
         // For now, to satisfy "collision detection that follows them",
         // if we can't efficiently update SpatialHash, we might rely on a hack:
         // If the car moves, maybe we don't update SpatialHash every frame?
-        // Or we add them to a "dynamic" list that PhysicsEngine checks explicitly (like TrafficSystem cars).
+        // Or we add them to a "dynamic" list that PhysicsEngine checks explicitly.
 
         // Since I cannot change the architecture easily, I will update the box in 'c.box'.
         // And I will try to update the SpatialHash efficiently if possible.

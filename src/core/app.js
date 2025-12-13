@@ -14,7 +14,6 @@ import { BatteryManager } from '../drone/battery.js';
 import { RingManager } from '../gameplay/rings.js';
 import { TutorialManager } from '../gameplay/tutorial.js';
 import { AudioManager } from '../audio/audio.js';
-import { TrafficSystem } from '../world/traffic.js';
 import { WaterSystem } from '../world/water.js';
 import { ParticleSystem } from '../fx/particles.js';
 import { PostProcessing } from '../fx/post.js';
@@ -48,8 +47,6 @@ export class App {
         this.colliderSystem = new ColliderSystem();
         this.colliderSystem.addStatic(this.world.getStaticColliders());
         this.physics = new PhysicsEngine(this.colliderSystem);
-
-        this.traffic = new TrafficSystem(this.renderer.scene, this.colliderSystem);
 
         this.drone = new Drone(this.renderer.scene);
         this.battery = new BatteryManager();
@@ -140,15 +137,20 @@ export class App {
                 move.y = -1; move.x = 0; move.z = 0;
             }
 
-            this.traffic.update(dt);
             this.world.update(dt); // Birds
             this.water.update(dt);
             this.particles.update(dt);
 
             this.drone.update(dt, move);
 
-            // Collisions: Static (via SpatialHash) + Cars + Rings
-            const cars = this.traffic.getNearbyCarColliders(this.drone.position, 10);
+            // Collisions: Static (via SpatialHash) + Rings
+            // Manual cars are now part of the world (but static colliders by default? No, handled in World update logic?)
+            // Actually, in `World._updateManualCars`, the manual cars update their bounding box.
+            // But they are registered as "static" colliders in `init`.
+            // The `PhysicsEngine.resolveCollisions` handles static collisions via `colliderSystem.checkCollisions` (SpatialHash).
+            // So we don't need to pass manual cars as "dynamicColliders" here unless they are completely separate.
+            // Since they are in `World.colliders`, they are in SpatialHash.
+            // So we only need Rings here.
 
             // Rings as colliders
             const ringColliders = this.rings.rings.map(r => ({
@@ -157,7 +159,7 @@ export class App {
                 box: null // Special handling
             }));
 
-            const dynamicColliders = [...cars, ...ringColliders];
+            const dynamicColliders = [...ringColliders];
 
             const collided = this.physics.resolveCollisions(this.drone, dynamicColliders);
 

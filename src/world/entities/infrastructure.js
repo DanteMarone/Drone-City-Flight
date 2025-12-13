@@ -21,19 +21,18 @@ export class RoadEntity extends BaseEntity {
             color: 0x555555
         });
 
-        const mesh = new THREE.Mesh(
-            new THREE.PlaneGeometry(w, l),
-            mat
-        );
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.y = 0.05;
+        // Use BufferGeometry rotation/translation to persist through BaseEntity.init's transform override
+        const geo = new THREE.PlaneGeometry(w, l);
+        geo.rotateX(-Math.PI / 2);
+        geo.translate(0, 0.05, 0); // Lift up slightly
+
+        const mesh = new THREE.Mesh(geo, mat);
         mesh.receiveShadow = true;
         return mesh;
     }
 
     createCollider() {
-        return null; // Roads are usually just visual on top of ground or handled via logic?
-        // Original code returned box: null.
+        return null;
     }
 }
 
@@ -50,14 +49,15 @@ export class RiverEntity extends BaseEntity {
         this.params.length = l;
 
         const geo = new THREE.PlaneGeometry(w, l);
+        geo.rotateX(-Math.PI / 2);
+        geo.translate(0, 0.06, 0);
+
         const mat = new THREE.MeshStandardMaterial({
             color: 0x2244aa,
             roughness: 0.1,
             metalness: 0.8
         });
         const mesh = new THREE.Mesh(geo, mat);
-        mesh.rotation.x = -Math.PI / 2;
-        mesh.position.y = 0.06;
         return mesh;
     }
 

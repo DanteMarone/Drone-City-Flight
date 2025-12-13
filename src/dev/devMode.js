@@ -62,7 +62,7 @@ export class DevMode {
         if (this.grid.enabled) this.grid.helper.visible = true;
 
         // 7. Show Waypoint Visuals
-        this._setWaypointVisibility(true);
+        this.refreshVisibility();
 
         // Pause Gameplay
         this.app.paused = true;
@@ -89,6 +89,12 @@ export class DevMode {
         // Hide Waypoint Visuals
         this._setWaypointVisibility(false);
         this.app.paused = false;
+    }
+
+    refreshVisibility() {
+        if (this.enabled) {
+            this._setWaypointVisibility(true);
+        }
     }
 
     _setWaypointVisibility(visible) {

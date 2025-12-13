@@ -111,10 +111,6 @@ export class App {
         }
 
         // Menu Pause Handling
-        // If menu is open, we stop updates, but we might still want to render?
-        // Current logic returns early, effectively pausing everything.
-        // But for Dev Mode, we handled it above.
-
         if (this.paused) {
             this.input.resetFrame();
             return;
@@ -137,22 +133,13 @@ export class App {
                 move.y = -1; move.x = 0; move.z = 0;
             }
 
-            this.world.update(dt); // Birds
+            this.world.update(dt); // Birds & Vehicles
             this.water.update(dt);
             this.particles.update(dt);
 
             this.drone.update(dt, move);
 
-            // Collisions: Static (via SpatialHash) + Rings
-            // Manual cars are now part of the world (but static colliders by default? No, handled in World update logic?)
-            // Actually, in `World._updateManualCars`, the manual cars update their bounding box.
-            // But they are registered as "static" colliders in `init`.
-            // The `PhysicsEngine.resolveCollisions` handles static collisions via `colliderSystem.checkCollisions` (SpatialHash).
-            // So we don't need to pass manual cars as "dynamicColliders" here unless they are completely separate.
-            // Since they are in `World.colliders`, they are in SpatialHash.
-            // So we only need Rings here.
-
-            // Rings as colliders
+            // Collisions
             const ringColliders = this.rings.rings.map(r => ({
                 type: 'ring',
                 mesh: r.mesh,
@@ -241,6 +228,11 @@ export class App {
         // Re-inject static colliders into physics system
         this.colliderSystem.clear();
         this.colliderSystem.addStatic(this.world.getStaticColliders());
+
+        // Refresh DevMode if active (to show new visuals)
+        if (this.devMode && this.devMode.enabled) {
+            this.devMode.refreshVisibility();
+        }
     }
 
     animate(timestamp) {

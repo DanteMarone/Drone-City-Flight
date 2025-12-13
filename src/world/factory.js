@@ -110,12 +110,13 @@ export class ObjectFactory {
     }
 
     createShop({ x, z, width, height, widthScale, depthScale }) {
+        const wBase = width || 20; // Default width
         const h = height || (8 + Math.random() * 6);
         const wScale = widthScale || (0.8 + Math.random() * 0.2);
         const dScale = depthScale || (0.8 + Math.random() * 0.2);
 
-        const w = width * wScale;
-        const d = width * dScale;
+        const w = wBase * wScale;
+        const d = wBase * dScale;
 
         const tex = TextureGenerator.createBuildingFacade({
             color: '#aa8866',
@@ -134,7 +135,7 @@ export class ObjectFactory {
         mesh.castShadow = true;
         mesh.receiveShadow = true;
         mesh.userData.type = 'shop';
-        mesh.userData.params = { width, height: h, widthScale: wScale, depthScale: dScale };
+        mesh.userData.params = { width: wBase, height: h, widthScale: wScale, depthScale: dScale };
 
         const awning = new THREE.Mesh(
             new THREE.BoxGeometry(1, 1, 1),

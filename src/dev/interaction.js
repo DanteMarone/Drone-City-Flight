@@ -179,6 +179,7 @@ export function setupDragDrop(interaction, container) {
                 const collider = interaction.factory.createObject(type, { x: point.x, z: point.z });
                 if (collider) {
                     interaction.app.world.colliders.push(collider);
+                    interaction.app.colliderSystem.addStatic([collider]);
                 }
             }
         }

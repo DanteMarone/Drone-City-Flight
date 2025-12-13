@@ -218,7 +218,7 @@ export class App {
         }
 
         // Re-inject static colliders into physics system
-        this.colliderSystem.colliders = []; // Clear old
+        this.colliderSystem.clear();
         this.colliderSystem.addStatic(this.world.getStaticColliders());
     }
 

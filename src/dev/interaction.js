@@ -12,139 +12,85 @@ export class InteractionManager {
         this.factory = new ObjectFactory(app.renderer.scene);
 
         this.draggedType = null;
-        this.ghostMesh = null;
-        this.selectedObject = null;
-
-        // Bindings
-        this._onMouseMove = this._onMouseMove.bind(this);
-        this._onMouseUp = this._onMouseUp.bind(this);
-        this._onMouseDown = this._onMouseDown.bind(this);
-
         this.active = false;
+
+        this._onMouseDown = this._onMouseDown.bind(this);
     }
 
     enable() {
         if (this.active) return;
         this.active = true;
-        window.addEventListener('mousemove', this._onMouseMove);
-        window.addEventListener('mouseup', this._onMouseUp);
         window.addEventListener('mousedown', this._onMouseDown);
+        // Mouse move/up needed for drag-drop ghosting, handled by setupDragDrop mainly
     }
 
     disable() {
         if (!this.active) return;
         this.active = false;
-        window.removeEventListener('mousemove', this._onMouseMove);
-        window.removeEventListener('mouseup', this._onMouseUp);
         window.removeEventListener('mousedown', this._onMouseDown);
-        this._clearGhost();
     }
 
     onDragStart(type) {
         this.draggedType = type;
-        // Create ghost mesh
-        // We use the factory but make it transparent?
-        // Or just a placeholder box?
-        // Factory creates real objects. Let's create a real object and make it transparent.
-
-        const params = { x: 0, z: 0, width: 20 }; // Defaults
-        let result;
-
-        // Hack: Create temporarily to get mesh, but don't want it in scene yet?
-        // Factory adds to scene immediately.
-        // We can let it add, then modify material?
-
-        // Wait, 'dragstart' happens on HTML element.
-        // The mouse is over the sidebar.
-        // We only show ghost when mouse enters canvas?
-        // Actually, HTML5 Drag & Drop is tricky with Canvas.
-        // Better: When clicking palette item, we enter "Placement Mode".
-        // Not native Drag & Drop.
-        // But user asked for "drag and drop interface".
-        // If we use native dragstart, we need 'dragover' on canvas to get coordinates.
     }
-
-    // We need to handle 'dragover' on the canvas container to update ghost position
-    // And 'drop' to place.
 
     _getIntersect(e) {
         const rect = this.app.container.getBoundingClientRect();
         this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
         this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
 
-        this.raycaster.setFromCamera(this.mouse, this.app.renderer.camera);
+        this.raycaster.setFromCamera(this.mouse, this.devMode.cameraController.camera);
 
-        // Raycast against Ground
-        // We need a reference to Ground.
-        // World.ground is available.
-        if (this.app.world.ground) {
-            const intersects = this.raycaster.intersectObject(this.app.world.ground);
-            if (intersects.length > 0) {
-                return intersects[0].point;
-            }
-        }
-        // Fallback: Plane at Y=0
+        // Grid Snap Logic applied to point?
+        // intersectPlane fallback is good.
         const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
         const target = new THREE.Vector3();
         this.raycaster.ray.intersectPlane(plane, target);
+
+        // Apply Snapping here if we are "Placing"
+        // But for generic intersection, we return raw point.
         return target;
     }
 
-    _onMouseMove(e) {
-        // Handle Moving Selected Object
-        if (this.selectedObject && this.isDraggingObject) {
-            const point = this._getIntersect(e);
-            if (point) {
-                this.selectedObject.position.set(point.x, this.selectedObject.position.y, point.z);
-            }
-        }
-    }
-
     _onMouseDown(e) {
-        // Select object to move
+        if (!this.active) return;
         if (e.button !== 0) return; // Left click only
 
-        // Calculate mouse pos
+        // Check if we are hovering gizmo axes
+        if (this.devMode.gizmo.control.axis !== null) return;
+
+        // Raycast
         const rect = this.app.container.getBoundingClientRect();
-        this.mouse.x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
-        this.mouse.y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
-        this.raycaster.setFromCamera(this.mouse, this.app.renderer.camera);
+        const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+        const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+        this.raycaster.setFromCamera({ x, y }, this.devMode.cameraController.camera);
 
-        // Intersect with world objects
-        // We need a list of selectable objects.
-        // World.colliders has { mesh, box }.
-        // Rings.rings has { mesh }.
+        const intersects = this.raycaster.intersectObjects(this.app.renderer.scene.children, true);
 
-        const candidates = [];
-        this.app.world.colliders.forEach(c => { if(c.mesh) candidates.push(c.mesh); });
-        this.app.rings.rings.forEach(r => { if(r.mesh) candidates.push(r.mesh); });
+        let hit = null;
+        for (const i of intersects) {
+            // Check if it's a gizmo part that "axis" didn't catch?
+            // Usually TransformControls handles its own events if attached.
+            // But we ignore gizmo visual parts in selection search.
 
-        const intersects = this.raycaster.intersectObjects(candidates, true); // Recursive for children
-
-        if (intersects.length > 0) {
-            // Find root object (the one with userData.type)
-            let obj = intersects[0].object;
-            while(obj.parent && obj.parent.type !== 'Scene' && !obj.userData.type) {
+            // Traverse to find "selectable" root
+            let obj = i.object;
+            while (obj) {
+                if (obj.userData && obj.userData.type) {
+                    hit = obj;
+                    break;
+                }
+                if (obj.parent === this.app.renderer.scene) break;
                 obj = obj.parent;
             }
-
-            if (obj.userData.type) {
-                this.selectedObject = obj;
-                this.isDraggingObject = true;
-                // Highlight?
-            }
+            if (hit) break;
         }
-    }
 
-    _onMouseUp(e) {
-        this.isDraggingObject = false;
-        this.selectedObject = null;
-    }
-
-    _clearGhost() {
-        if (this.ghostMesh) {
-            this.app.renderer.scene.remove(this.ghostMesh);
-            this.ghostMesh = null;
+        if (hit) {
+            this.devMode.selectObject(hit);
+        } else {
+            // Clicked void?
+            this.devMode.selectObject(null);
         }
     }
 }
@@ -152,34 +98,42 @@ export class InteractionManager {
 // Extension to handle HTML5 Drag/Drop from UI
 export function setupDragDrop(interaction, container) {
     container.addEventListener('dragover', (e) => {
-        e.preventDefault(); // Allow drop
-        const point = interaction._getIntersect(e);
-        if (point && interaction.draggedType) {
-            // Show ghost?
-            // Creating/Destroying mesh every frame is bad.
-            // Ideally we create one ghost and move it.
-            // Simplified: Just show cursor?
-            // Or create ghost once.
-        }
+        e.preventDefault();
     });
 
     container.addEventListener('drop', (e) => {
         e.preventDefault();
         const type = e.dataTransfer.getData('type');
-        const point = interaction._getIntersect(e);
+        let point = interaction._getIntersect(e);
 
         if (type && point) {
+            // Apply Grid Snap
+            if (interaction.devMode.grid && interaction.devMode.grid.enabled) {
+                point = interaction.devMode.grid.snap(point);
+            }
+
             console.log(`Dropping ${type} at`, point);
 
             // Create Object
             if (type === 'ring') {
                 interaction.app.rings.spawnRingAt(point);
+                // Select it?
+                // Rings spawnRingAt returns nothing currently, but adds to array.
+                // We should probably allow selecting it.
+                // Ring mesh has userData.type='ring'.
+            } else if (type === 'river') {
+                const res = interaction.factory.createRiver({ x: point.x, z: point.z });
+                if (res && res.mesh) interaction.devMode.selectObject(res.mesh);
+            } else if (type === 'car') {
+                const res = interaction.factory.createCar({ x: point.x, z: point.z });
+                if (res && res.mesh) interaction.devMode.selectObject(res.mesh);
             } else {
                 // Buildings/Roads
                 const collider = interaction.factory.createObject(type, { x: point.x, z: point.z });
                 if (collider) {
                     interaction.app.world.colliders.push(collider);
                     interaction.app.colliderSystem.addStatic([collider]);
+                    interaction.devMode.selectObject(collider.mesh);
                 }
             }
         }

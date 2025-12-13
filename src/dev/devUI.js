@@ -37,6 +37,39 @@ export class DevUI {
                 Load Map
                 <input type="file" id="dev-load" accept=".json" style="display:none">
             </label>
+
+            <hr style="width:100%">
+            <h3>Tools</h3>
+            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
+                <input type="checkbox" id="dev-grid-snap"> Grid Snap
+            </label>
+            <label style="display:flex; align-items:center; gap:5px;">
+                Size: <input type="number" id="dev-grid-size" value="10" step="1" style="width:50px">
+            </label>
+
+            <div style="display:flex; gap:5px; margin-top:5px;">
+                <button id="dev-mode-trans" style="flex:1; font-size:0.8em;">Move</button>
+                <button id="dev-mode-rot" style="flex:1; font-size:0.8em;">Rotate</button>
+            </div>
+
+            <div id="prop-panel" style="display:none; flex-direction:column; gap:5px; background:#222; padding:5px; border:1px solid #444; margin-top:5px;">
+                <h4 style="margin:0">Properties</h4>
+                <div style="font-size:0.8em; color:#aaa;" id="prop-id"></div>
+
+                <div style="display:flex; gap:2px;">
+                    <label>X <input id="prop-x" type="number" step="1" style="width:40px"></label>
+                    <label>Y <input id="prop-y" type="number" step="1" style="width:40px"></label>
+                    <label>Z <input id="prop-z" type="number" step="1" style="width:40px"></label>
+                </div>
+                <div style="display:flex; gap:2px;">
+                    <label>RX <input id="prop-rx" type="number" step="0.1" style="width:40px"></label>
+                    <label>RY <input id="prop-ry" type="number" step="0.1" style="width:40px"></label>
+                    <label>RZ <input id="prop-rz" type="number" step="0.1" style="width:40px"></label>
+                </div>
+
+                <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
+            </div>
+
             <hr style="width:100%">
             <h3>Objects</h3>
             <div class="palette">
@@ -45,6 +78,8 @@ export class DevUI {
                 <div class="palette-item" draggable="true" data-type="house">House</div>
                 <div class="palette-item" draggable="true" data-type="road">Road</div>
                 <div class="palette-item" draggable="true" data-type="ring">Ring</div>
+                <div class="palette-item" draggable="true" data-type="river">River</div>
+                <div class="palette-item" draggable="true" data-type="car">Car</div>
             </div>
         `;
 
@@ -87,6 +122,55 @@ export class DevUI {
             }
         };
 
+        // Tools
+        const gridCheck = this.dom.querySelector('#dev-grid-snap');
+        gridCheck.onchange = (e) => {
+            if (this.devMode.grid) {
+                this.devMode.grid.setEnabled(e.target.checked);
+                this.devMode.gizmo.updateSnapping(this.devMode.grid);
+            }
+        };
+
+        const gridSize = this.dom.querySelector('#dev-grid-size');
+        gridSize.onchange = (e) => {
+            const val = parseFloat(e.target.value);
+            if (val > 0 && this.devMode.grid) {
+                this.devMode.grid.setSnapSize(val);
+                this.devMode.gizmo.updateSnapping(this.devMode.grid);
+            }
+        };
+
+        this.dom.querySelector('#dev-mode-trans').onclick = () => {
+            this.devMode.gizmo.control.setMode('translate');
+        };
+        this.dom.querySelector('#dev-mode-rot').onclick = () => {
+            this.devMode.gizmo.control.setMode('rotate');
+        };
+
+        // Properties Input Bindings
+        ['x', 'y', 'z', 'rx', 'ry', 'rz'].forEach(axis => {
+             const input = this.dom.querySelector(`#prop-${axis}`);
+             if (input) {
+                 input.onchange = (e) => {
+                     const val = parseFloat(e.target.value);
+                     if (isNaN(val)) return;
+                     const obj = this.devMode.gizmo.selectedObject;
+                     if (obj) {
+                         if (axis === 'x') obj.position.x = val;
+                         if (axis === 'y') obj.position.y = val;
+                         if (axis === 'z') obj.position.z = val;
+                         if (axis === 'rx') obj.rotation.x = val;
+                         if (axis === 'ry') obj.rotation.y = val;
+                         if (axis === 'rz') obj.rotation.z = val;
+                     }
+                 };
+             }
+        });
+
+        this.dom.querySelector('#dev-delete').onclick = () => {
+            this.devMode.deleteSelected();
+        };
+
         // Drag Start
         const items = this.dom.querySelectorAll('.palette-item');
         items.forEach(item => {
@@ -99,9 +183,42 @@ export class DevUI {
 
     show() {
         this.dom.style.display = 'flex';
+        // Reset state
+        const gridCheck = this.dom.querySelector('#dev-grid-snap');
+        if (this.devMode.grid) {
+             gridCheck.checked = this.devMode.grid.enabled;
+        }
     }
 
     hide() {
         this.dom.style.display = 'none';
+    }
+
+    showProperties(object) {
+        const panel = this.dom.querySelector('#prop-panel');
+        const info = this.dom.querySelector('#prop-id');
+        panel.style.display = 'flex';
+        info.textContent = `Type: ${object.userData.type || 'Unknown'}`;
+
+        this.updateProperties(object);
+    }
+
+    updateProperties(object) {
+        if (!object) return;
+        const setVal = (id, val) => {
+            const el = this.dom.querySelector(`#prop-${id}`);
+            if (el && document.activeElement !== el) el.value = val.toFixed(2);
+        };
+
+        setVal('x', object.position.x);
+        setVal('y', object.position.y);
+        setVal('z', object.position.z);
+        setVal('rx', object.rotation.x);
+        setVal('ry', object.rotation.y);
+        setVal('rz', object.rotation.z);
+    }
+
+    hideProperties() {
+        this.dom.querySelector('#prop-panel').style.display = 'none';
     }
 }

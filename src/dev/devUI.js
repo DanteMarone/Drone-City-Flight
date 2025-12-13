@@ -77,6 +77,11 @@ export class DevUI {
                     <input type="checkbox" id="prop-scale-lock" checked> <span style="font-size:0.8em">Lock Aspect Ratio</span>
                 </div>
 
+                <div id="wait-controls" style="display:none; flex-direction:column; gap:2px; font-size:0.8em; margin-bottom:5px;">
+                    <label>Wait Time (s)</label>
+                    <input id="prop-wait" type="number" step="1" style="width:100%">
+                </div>
+
                 <div id="car-controls" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
                      <button id="btn-add-waypoint">Add Waypoint</button>
                      <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
@@ -96,6 +101,7 @@ export class DevUI {
                 <div class="palette-item" draggable="true" data-type="ring">Ring</div>
                 <div class="palette-item" draggable="true" data-type="river">River</div>
                 <div class="palette-item" draggable="true" data-type="car">Car</div>
+                <div class="palette-item" draggable="true" data-type="pickup">Pickup Truck</div>
                 <div class="palette-item" draggable="true" data-type="bicycle">Bicycle</div>
                 <div class="palette-item" draggable="true" data-type="orangeTree">Orange Tree</div>
                 <div class="palette-item" draggable="true" data-type="bird">Bird</div>
@@ -291,11 +297,27 @@ export class DevUI {
 
         // Car Controls
         const carControls = this.dom.querySelector('#car-controls');
-        if (['car', 'bicycle'].includes(object.userData.type)) {
+        if (['car', 'bicycle', 'pickup'].includes(object.userData.type)) {
             carControls.style.display = 'flex';
             this._updateWaypointList(object);
         } else {
             carControls.style.display = 'none';
+        }
+
+        // Wait Controls (Pickup Only)
+        const waitControls = this.dom.querySelector('#wait-controls');
+        if (object.userData.type === 'pickup') {
+             waitControls.style.display = 'flex';
+             const waitInput = this.dom.querySelector('#prop-wait');
+             if (waitInput) {
+                 waitInput.value = object.userData.waitTime || 0;
+                 waitInput.onchange = (e) => {
+                     const val = parseFloat(e.target.value);
+                     object.userData.waitTime = val;
+                 };
+             }
+        } else {
+            waitControls.style.display = 'none';
         }
     }
 

@@ -195,7 +195,7 @@ export function setupDragDrop(interaction, container) {
                     interaction.devMode.selectObject(entity.mesh);
 
                     // Special Visuals Check
-                    if (['car', 'bicycle'].includes(type) && interaction.devMode.enabled) {
+                    if (['car', 'bicycle', 'pickup'].includes(type) && interaction.devMode.enabled) {
                         const visuals = entity.mesh.getObjectByName('waypointVisuals');
                         if (visuals) visuals.visible = true;
                     }

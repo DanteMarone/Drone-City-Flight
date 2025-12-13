@@ -2,7 +2,7 @@
 import * as THREE from 'three';
 import { DevCameraController } from './devCamera.js';
 import { DevUI } from './devUI.js';
-import { InteractionManager } from './interaction.js';
+import { InteractionManager, setupDragDrop } from './interaction.js';
 import { GridSystem } from './grid.js';
 import { GizmoManager } from './gizmo.js';
 
@@ -21,9 +21,7 @@ export class DevMode {
         this.gizmo = new GizmoManager(app.renderer.scene, app.renderer.camera, app.renderer, this.interaction);
 
         // One-time setup for drag-drop
-        import('./interaction.js').then(({ setupDragDrop }) => {
-            setupDragDrop(this.interaction, this.app.container);
-        });
+        setupDragDrop(this.interaction, this.app.container);
 
         // Listen for toggle key
         window.addEventListener('keydown', (e) => {

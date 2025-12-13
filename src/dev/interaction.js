@@ -185,13 +185,15 @@ export class InteractionManager {
 
 // Extension to handle HTML5 Drag/Drop from UI
 export function setupDragDrop(interaction, container) {
-    container.addEventListener('dragover', (e) => {
+    // Attach to document.body to ensure we catch drops even if UI layers overlay the canvas
+    document.body.addEventListener('dragover', (e) => {
         e.preventDefault();
     });
 
-    container.addEventListener('drop', (e) => {
+    document.body.addEventListener('drop', (e) => {
         e.preventDefault();
         const type = e.dataTransfer.getData('type');
+        // We still calculate intersect relative to the app container
         let point = interaction._getIntersect(e);
 
         if (type && point) {

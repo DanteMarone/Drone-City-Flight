@@ -47,6 +47,7 @@ export class ObjectFactory {
             case 'orangeTree': return this.createOrangeTree(params);
             case 'bird': return this.createBird(params);
             case 'bush': return this.createBush(params);
+            case 'car': return this.createCar(params);
             default: console.warn('Unknown object type:', type); return null;
         }
     }

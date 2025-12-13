@@ -2,6 +2,12 @@
 import * as THREE from 'three';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 
+// Pre-allocate shared vectors to reduce GC
+const SEDAN_SIZE = new THREE.Vector3(1.8, 1.4, 4.2);
+const SUV_SIZE = new THREE.Vector3(2.0, 1.8, 4.6);
+const ROTATED_SEDAN_SIZE = new THREE.Vector3(SEDAN_SIZE.z, SEDAN_SIZE.y, SEDAN_SIZE.x);
+const ROTATED_SUV_SIZE = new THREE.Vector3(SUV_SIZE.z, SUV_SIZE.y, SUV_SIZE.x);
+
 export class TrafficSystem {
     constructor(scene) {
         this.scene = scene;
@@ -9,6 +15,9 @@ export class TrafficSystem {
         this.carTypes = []; // { bodyMesh, detailMesh, config }
 
         this.totalCars = 150;
+
+        // Optimization: Reusable object for matrix updates
+        this._dummy = new THREE.Object3D();
 
         this._initCarTypes();
         this._spawnCars();
@@ -146,7 +155,7 @@ export class TrafficSystem {
     }
 
     _spawnCars() {
-        const dummy = new THREE.Object3D();
+        // Use class dummy
         const range = 400; // World bounds
 
         // Reset all instance counts (we might not use all if we split them)
@@ -202,13 +211,13 @@ export class TrafficSystem {
             });
 
             // Set Initial Transform
-            dummy.position.copy(pos);
-            dummy.rotation.y = axis === 'x' ? (dir > 0 ? Math.PI/2 : -Math.PI/2) : (dir > 0 ? 0 : Math.PI);
-            dummy.updateMatrix();
+            this._dummy.position.copy(pos);
+            this._dummy.rotation.y = axis === 'x' ? (dir > 0 ? Math.PI/2 : -Math.PI/2) : (dir > 0 ? 0 : Math.PI);
+            this._dummy.updateMatrix();
 
-            type.bodyMesh.setMatrixAt(idx, dummy.matrix);
+            type.bodyMesh.setMatrixAt(idx, this._dummy.matrix);
             type.bodyMesh.setColorAt(idx, color);
-            type.detailMesh.setMatrixAt(idx, dummy.matrix);
+            type.detailMesh.setMatrixAt(idx, this._dummy.matrix);
         }
 
         // Update all meshes
@@ -221,10 +230,10 @@ export class TrafficSystem {
             // Move unused to infinity.
             const used = typeIndices[this.carTypes.indexOf(t)];
             for (let j = used; j < this.totalCars; j++) {
-                dummy.position.set(0, -100, 0);
-                dummy.updateMatrix();
-                t.bodyMesh.setMatrixAt(j, dummy.matrix);
-                t.detailMesh.setMatrixAt(j, dummy.matrix);
+                this._dummy.position.set(0, -100, 0);
+                this._dummy.updateMatrix();
+                t.bodyMesh.setMatrixAt(j, this._dummy.matrix);
+                t.detailMesh.setMatrixAt(j, this._dummy.matrix);
             }
         });
     }
@@ -246,7 +255,6 @@ export class TrafficSystem {
 
     update(dt) {
         const range = 500;
-        const dummy = new THREE.Object3D();
 
         this.cars.forEach(car => {
             // Move
@@ -261,13 +269,13 @@ export class TrafficSystem {
             }
 
             // Update Instance
-            dummy.position.copy(car.position);
-            dummy.rotation.y = car.rotation;
-            dummy.updateMatrix();
+            this._dummy.position.copy(car.position);
+            this._dummy.rotation.y = car.rotation;
+            this._dummy.updateMatrix();
 
             const type = this.carTypes[car.typeIdx];
-            type.bodyMesh.setMatrixAt(car.instanceIdx, dummy.matrix);
-            type.detailMesh.setMatrixAt(car.instanceIdx, dummy.matrix);
+            type.bodyMesh.setMatrixAt(car.instanceIdx, this._dummy.matrix);
+            type.detailMesh.setMatrixAt(car.instanceIdx, this._dummy.matrix);
         });
 
         this.carTypes.forEach(t => {
@@ -289,17 +297,16 @@ export class TrafficSystem {
                 // Approximate box for collision
                 const type = this.carTypes[car.typeIdx];
                 const isSUV = type.name === 'suv';
-                const size = isSUV ? new THREE.Vector3(2.0, 1.8, 4.6) : new THREE.Vector3(1.8, 1.4, 4.2);
 
-                // Rotate dimensions
+                // Use pre-allocated sizes
                 const boxSize = car.axis === 'x'
-                    ? new THREE.Vector3(size.z, size.y, size.x)
-                    : size;
+                    ? (isSUV ? ROTATED_SUV_SIZE : ROTATED_SEDAN_SIZE)
+                    : (isSUV ? SUV_SIZE : SEDAN_SIZE);
 
                 // Center adjustment (Cars origin is at bottom center, Box3 is from center)
                 // Position is at y=0.
                 const center = car.position.clone();
-                center.y += size.y / 2;
+                center.y += boxSize.y / 2;
 
                 const box = new THREE.Box3().setFromCenterAndSize(center, boxSize);
 

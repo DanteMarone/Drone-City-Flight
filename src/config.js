@@ -67,6 +67,6 @@ export const CONFIG = {
         GRAVITY: -9.81, // Not strictly used if using custom kinematic vertical movement, but good reference
         CHUNK_SIZE: 100,
         FOG_COLOR: 0xaaccff,
-        FOG_DENSITY: 0.008
+        FOG_DENSITY: 0 // Fog disabled for Skybox visibility
     }
 };

@@ -20,6 +20,7 @@ import { ParticleSystem } from '../fx/particles.js';
 import { PostProcessing } from '../fx/post.js';
 import { CONFIG } from '../config.js';
 import { DevMode } from '../dev/devMode.js';
+import { Skybox } from '../world/skybox.js';
 
 export class App {
     constructor() {
@@ -55,6 +56,8 @@ export class App {
 
         this.tutorial = new TutorialManager(this);
         this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
+
+        this.skybox = new Skybox(this.renderer.scene);
 
         this.cameraController = new CameraController(this.renderer.camera, this.drone);
 
@@ -189,6 +192,10 @@ export class App {
 
         if (this.cameraController) {
             this.cameraController.update(dt, move);
+        }
+
+        if (this.skybox) {
+            this.skybox.update(this.renderer.camera.position);
         }
 
         this.input.resetFrame();

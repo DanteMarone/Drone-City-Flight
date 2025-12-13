@@ -7,8 +7,10 @@ export class Renderer {
         this.container = container;
 
         this.scene = new THREE.Scene();
-        this.scene.fog = new THREE.FogExp2(CONFIG.WORLD.FOG_COLOR, CONFIG.WORLD.FOG_DENSITY);
-        this.scene.background = new THREE.Color(CONFIG.WORLD.FOG_COLOR);
+        if (CONFIG.WORLD.FOG_DENSITY > 0) {
+            this.scene.fog = new THREE.FogExp2(CONFIG.WORLD.FOG_COLOR, CONFIG.WORLD.FOG_DENSITY);
+            this.scene.background = new THREE.Color(CONFIG.WORLD.FOG_COLOR);
+        }
 
         this.camera = new THREE.PerspectiveCamera(
             CONFIG.CAMERA.FOV,

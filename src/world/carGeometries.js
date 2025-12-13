@@ -77,6 +77,60 @@ export function createSUVGeometry() {
     };
 }
 
+export function createPickupGeometry() {
+    const bodyParts = [];
+    const detailParts = [];
+
+    // Chassis
+    const chassis = new THREE.BoxGeometry(2.0, 0.6, 4.8);
+    chassis.translate(0, 0.7, 0); // High clearance
+    bodyParts.push(chassis);
+
+    // Cabin (Front half only)
+    const cabin = new THREE.BoxGeometry(1.9, 0.75, 1.8);
+    cabin.translate(0, 1.35, 0.8); // Forward
+    bodyParts.push(cabin);
+
+    // Bed Walls
+    // Left
+    const bedL = new THREE.BoxGeometry(0.15, 0.5, 2.0);
+    bedL.translate(0.9, 1.2, -1.3);
+    bodyParts.push(bedL);
+    // Right
+    const bedR = new THREE.BoxGeometry(0.15, 0.5, 2.0);
+    bedR.translate(-0.9, 1.2, -1.3);
+    bodyParts.push(bedR);
+    // Back (Tailgate)
+    const bedB = new THREE.BoxGeometry(1.9, 0.5, 0.15);
+    bedB.translate(0, 1.2, -2.3);
+    bodyParts.push(bedB);
+    // Front of bed (behind cabin)
+    const bedF = new THREE.BoxGeometry(1.9, 0.5, 0.15);
+    bedF.translate(0, 1.2, -0.2);
+    bodyParts.push(bedF);
+
+    // Wheels
+    const wheelGeo = new THREE.CylinderGeometry(0.42, 0.42, 0.5, 16);
+    wheelGeo.rotateZ(Math.PI / 2);
+    const wX = 0.9, wY = 0.42, wZ = 1.6;
+
+    const fl = wheelGeo.clone(); fl.translate(wX, wY, wZ); detailParts.push(fl);
+    const fr = wheelGeo.clone(); fr.translate(-wX, wY, wZ); detailParts.push(fr);
+    const bl = wheelGeo.clone(); bl.translate(wX, wY, -wZ); detailParts.push(bl);
+    const br = wheelGeo.clone(); br.translate(-wX, wY, -wZ); detailParts.push(br);
+
+    // Windows / Windshield
+    const windShield = new THREE.BoxGeometry(1.7, 0.5, 0.1);
+    windShield.rotateX(-Math.PI / 6);
+    windShield.translate(0, 1.4, 1.65);
+    detailParts.push(windShield);
+
+    return {
+        body: mergeGeometries(bodyParts),
+        details: mergeGeometries(detailParts)
+    };
+}
+
 export function createBicycleMesh() {
     const group = new THREE.Group();
 

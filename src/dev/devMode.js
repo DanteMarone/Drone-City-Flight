@@ -134,7 +134,7 @@ export class DevMode {
                     this._updateCarLine(vehicle);
                 }
             }
-        } else if (sel && ['car', 'bicycle'].includes(sel.userData.type)) {
+        } else if (sel && ['car', 'bicycle', 'pickup'].includes(sel.userData.type)) {
             // If dragging vehicle, update line because start point moved
              this._updateCarLine(sel);
         }
@@ -155,7 +155,7 @@ export class DevMode {
 
     addWaypointToSelected() {
         const car = this.gizmo.selectedObject;
-        if (!car || !['car', 'bicycle'].includes(car.userData.type)) return;
+        if (!car || !['car', 'bicycle', 'pickup'].includes(car.userData.type)) return;
 
         if (car.userData.waypoints.length >= 5) {
             alert("Maximum 5 waypoints allowed.");
@@ -211,7 +211,7 @@ export class DevMode {
 
     removeWaypointFromSelected() {
         const car = this.gizmo.selectedObject;
-        if (!car || !['car', 'bicycle'].includes(car.userData.type)) return;
+        if (!car || !['car', 'bicycle', 'pickup'].includes(car.userData.type)) return;
 
         if (car.userData.waypoints.length === 0) return;
 
@@ -250,16 +250,9 @@ export class DevMode {
             return;
         }
 
-        // Handle selecting a Waypoint Proxy
-        // If clicking a Waypoint Sphere, we want Gizmo to attach to it.
-        // But UI properties should probably show info about the CAR it belongs to?
-        // Or just "Waypoint".
-
         this.gizmo.attach(object);
 
         if (object.userData.type === 'waypoint' && object.userData.vehicle) {
-            // Maybe show parent vehicle props?
-            // For now, simple generic prop view is fine.
             this.ui.showProperties(object);
         } else {
             this.ui.showProperties(object);

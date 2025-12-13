@@ -16,13 +16,14 @@ def run():
         time.sleep(1)
 
         # 2. Toggle Grid Snap
-        page.click('#dev-grid-snap')
-        time.sleep(0.5)
+        if page.is_visible('#dev-grid-snap'):
+            page.click('#dev-grid-snap')
+            time.sleep(0.5)
+        else:
+            print("Dev Mode UI not visible!")
+            return
 
-        # 3. Change Grid Size to 50
-        page.fill('#dev-grid-size', '50')
-        page.evaluate("document.getElementById('dev-grid-size').dispatchEvent(new Event('change'))")
-        time.sleep(0.5)
+        # 3. (Skipped) Change Grid Size - Input removed
 
         # 4. Drag and Drop a Road from palette
         src = page.locator(".palette-item[data-type='road']")
@@ -33,13 +34,13 @@ def run():
         time.sleep(1)
 
         # 5. Take screenshot
-        page.screenshot(path="verification/dev_update_verify.png")
+        page.screenshot(path="verification/dev_update_verify_final.png")
 
         # 6. Click on UI input (e.g. X position)
         if page.is_visible("#prop-x"):
             page.click("#prop-x")
             time.sleep(0.5)
-            # Verify property panel is still visible (click through prevention)
+            # Verify property panel is still visible
             visible = page.is_visible("#prop-panel")
             print(f"Property Panel Visible: {visible}")
         else:

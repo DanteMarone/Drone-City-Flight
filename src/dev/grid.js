@@ -1,10 +1,10 @@
 import * as THREE from 'three';
 
 export class GridSystem {
-    constructor(scene, snapSize = 10) {
+    constructor(scene) {
         this.scene = scene;
-        this.cellSize = snapSize;
-        this.divisions = 200; // Keep visible grid density constant
+        this.cellSize = 1; // Fixed size
+        this.divisions = 1000; // Large area covered
         this.size = this.divisions * this.cellSize;
         this.enabled = false;
 
@@ -14,8 +14,10 @@ export class GridSystem {
     }
 
     _createHelper() {
-        const helper = new THREE.GridHelper(this.size, this.divisions, 0x888888, 0x444444);
-        // Slightly above ground to avoid Z-fighting with asphalt
+        // GridHelper(size, divisions)
+        // We want lines every 1 unit.
+        // size = 1000, divisions = 1000 -> 1 unit per cell.
+        const helper = new THREE.GridHelper(this.size, this.divisions, 0x888888, 0x222222);
         helper.position.y = 0.1;
         return helper;
     }
@@ -23,17 +25,6 @@ export class GridSystem {
     setEnabled(enabled) {
         this.enabled = enabled;
         this.helper.visible = enabled;
-    }
-
-    setSnapSize(size) {
-        this.cellSize = size;
-        this.size = this.divisions * this.cellSize;
-
-        // Recreate helper
-        this.scene.remove(this.helper);
-        this.helper = this._createHelper();
-        this.helper.visible = this.enabled;
-        this.scene.add(this.helper);
     }
 
     snap(position) {
@@ -54,12 +45,10 @@ export class GridSystem {
         if (!this.enabled || !this.helper) return;
 
         // "Infinite" Grid: Snap helper position to camera position
-        // This makes the grid travel with the camera
         const x = Math.round(camera.position.x / this.cellSize) * this.cellSize;
         const z = Math.round(camera.position.z / this.cellSize) * this.cellSize;
 
         this.helper.position.x = x;
         this.helper.position.z = z;
-        // y stays at 0.1
     }
 }

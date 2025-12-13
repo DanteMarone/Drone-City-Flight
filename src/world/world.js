@@ -44,7 +44,10 @@ export class World {
         // Iterate through all manually placed objects in colliders
         // Note: this.colliders contains objects created in DevMode that were registered.
         this.colliders.forEach(c => {
-            if (c.mesh && c.mesh.userData.type === 'car' && c.mesh.userData.waypoints && c.mesh.userData.waypoints.length > 0) {
+            const isCar = c.mesh && c.mesh.userData.type === 'car';
+            const isPickup = c.mesh && c.mesh.userData.type === 'pickup';
+
+            if ((isCar || isPickup) && c.mesh.userData.waypoints && c.mesh.userData.waypoints.length > 0) {
                 const anchor = c.mesh;
                 const waypoints = anchor.userData.waypoints;
                 const path = [new THREE.Vector3(0, 0, 0), ...waypoints];
@@ -59,6 +62,28 @@ export class World {
                 // Initialize State
                 if (anchor.userData.targetIndex === undefined) {
                     anchor.userData.targetIndex = 1; // Start by moving to first waypoint (Index 1)
+                    anchor.userData.movingForward = true;
+                }
+
+                // Handle Waiting
+                if (anchor.userData.waitTimer > 0) {
+                    anchor.userData.waitTimer -= dt;
+                    // If finished waiting, or waitTime was basically 0
+                    if (anchor.userData.waitTimer <= 0) {
+                        anchor.userData.waitTimer = 0;
+                        // Determine next target after wait
+                        if (anchor.userData.loopMode === 'pingpong') {
+                             if (anchor.userData.targetIndex === 0) {
+                                 anchor.userData.movingForward = true;
+                                 anchor.userData.targetIndex = 1;
+                             } else if (anchor.userData.targetIndex === path.length - 1) {
+                                 anchor.userData.movingForward = false;
+                                 anchor.userData.targetIndex = path.length - 2;
+                             }
+                        }
+                    } else {
+                        return; // Still waiting
+                    }
                 }
 
                 let targetIdx = anchor.userData.targetIndex;
@@ -82,7 +107,6 @@ export class World {
                     modelChildren.forEach(child => child.position.add(moveVec));
 
                     // Rotate
-                    // Calculate LookAt point in World Space because Object3D.lookAt expects World Coords
                     const worldTarget = anchor.localToWorld(targetPos.clone());
                     modelChildren.forEach(child => child.lookAt(worldTarget));
 
@@ -90,11 +114,45 @@ export class World {
                     // Snap
                     modelChildren.forEach(child => child.position.copy(targetPos));
 
-                    // Update Logic (Circular)
-                    if (targetIdx < path.length - 1) {
-                         anchor.userData.targetIndex++;
+                    // Update Logic
+                    if (anchor.userData.loopMode === 'pingpong') {
+                        // If reached end or start
+                        if (targetIdx === path.length - 1) {
+                            // Reached End -> Wait
+                            // If waitTime is 0, we must handle turn-around immediately
+                            const wait = anchor.userData.waitTime || 0;
+                            if (wait > 0) {
+                                anchor.userData.waitTimer = wait;
+                            } else {
+                                // Instant turn around
+                                anchor.userData.movingForward = false;
+                                anchor.userData.targetIndex = path.length - 2;
+                            }
+                        } else if (targetIdx === 0) {
+                            // Reached Start -> Wait
+                            const wait = anchor.userData.waitTime || 0;
+                            if (wait > 0) {
+                                anchor.userData.waitTimer = wait;
+                            } else {
+                                // Instant turn around
+                                anchor.userData.movingForward = true;
+                                anchor.userData.targetIndex = 1;
+                            }
+                        } else {
+                            // Intermediate point -> Continue
+                            if (anchor.userData.movingForward) {
+                                anchor.userData.targetIndex++;
+                            } else {
+                                anchor.userData.targetIndex--;
+                            }
+                        }
                     } else {
-                         anchor.userData.targetIndex = 0; // Loop back to start (Origin)
+                        // Default Circular Loop
+                        if (targetIdx < path.length - 1) {
+                             anchor.userData.targetIndex++;
+                        } else {
+                             anchor.userData.targetIndex = 0;
+                        }
                     }
                 }
 
@@ -288,8 +346,13 @@ export class World {
             if (c.mesh && c.mesh.userData.type) {
                 // Ensure waypoints are saved for cars
                 let params = c.mesh.userData.params || {};
-                if (c.mesh.userData.type === 'car' && c.mesh.userData.waypoints) {
-                    params = { ...params, waypoints: c.mesh.userData.waypoints };
+                const type = c.mesh.userData.type;
+                if ((type === 'car' || type === 'pickup') && c.mesh.userData.waypoints) {
+                    params = {
+                        ...params,
+                        waypoints: c.mesh.userData.waypoints,
+                        waitTime: c.mesh.userData.waitTime // Save wait time
+                    };
                 }
 
                 objects.push({

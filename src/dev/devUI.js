@@ -79,6 +79,10 @@ export class DevUI {
 
                 <div id="car-controls" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
                      <button id="btn-add-waypoint">Add Waypoint</button>
+                     <div id="pickup-controls" style="display:none; align-items:center; gap:5px; font-size:0.8em; margin-top:5px;">
+                        <label>Wait Time (s):</label>
+                        <input id="prop-wait-time" type="number" step="1" style="width:50px">
+                     </div>
                      <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
                      <button id="btn-remove-waypoint">Remove Last Waypoint</button>
                 </div>
@@ -96,6 +100,7 @@ export class DevUI {
                 <div class="palette-item" draggable="true" data-type="ring">Ring</div>
                 <div class="palette-item" draggable="true" data-type="river">River</div>
                 <div class="palette-item" draggable="true" data-type="car">Car</div>
+                <div class="palette-item" draggable="true" data-type="pickup">Pickup Truck</div>
                 <div class="palette-item" draggable="true" data-type="orangeTree">Orange Tree</div>
                 <div class="palette-item" draggable="true" data-type="bird">Bird</div>
                 <div class="palette-item" draggable="true" data-type="bush">Bush</div>
@@ -231,6 +236,16 @@ export class DevUI {
             if (this.devMode.removeWaypointFromSelected) this.devMode.removeWaypointFromSelected();
         };
 
+        const waitTimeInput = this.dom.querySelector('#prop-wait-time');
+        if (waitTimeInput) {
+            waitTimeInput.onchange = (e) => {
+                const val = parseFloat(e.target.value);
+                if (!isNaN(val) && this.devMode.gizmo.selectedObject) {
+                    this.devMode.gizmo.selectedObject.userData.waitTime = val;
+                }
+            };
+        }
+
         // Drag Start
         const items = this.dom.querySelectorAll('.palette-item');
         items.forEach(item => {
@@ -290,9 +305,19 @@ export class DevUI {
 
         // Car Controls
         const carControls = this.dom.querySelector('#car-controls');
-        if (object.userData.type === 'car') {
+        const pickupControls = this.dom.querySelector('#pickup-controls');
+
+        if (object.userData.type === 'car' || object.userData.type === 'pickup') {
             carControls.style.display = 'flex';
             this._updateWaypointList(object);
+
+            if (object.userData.type === 'pickup') {
+                pickupControls.style.display = 'flex';
+                const waitInput = this.dom.querySelector('#prop-wait-time');
+                if (waitInput) waitInput.value = object.userData.waitTime || 10;
+            } else {
+                pickupControls.style.display = 'none';
+            }
         } else {
             carControls.style.display = 'none';
         }

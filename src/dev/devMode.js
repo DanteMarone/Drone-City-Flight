@@ -98,7 +98,7 @@ export class DevMode {
         if (this.app.world && this.app.world.colliders) {
             this.app.world.colliders.forEach(c => {
                 const obj = c.mesh;
-                if (obj && obj.userData.type === 'car') {
+                if (obj && (obj.userData.type === 'car' || obj.userData.type === 'pickup')) {
                     const visuals = obj.getObjectByName('waypointVisuals');
                     if (visuals) visuals.visible = visible;
                 }
@@ -117,7 +117,7 @@ export class DevMode {
         const sel = this.gizmo.selectedObject;
         if (sel && sel.userData.type === 'waypoint') {
             const visualGroup = sel.parent;
-            if (visualGroup && visualGroup.parent && visualGroup.parent.userData.type === 'car') {
+            if (visualGroup && visualGroup.parent && (visualGroup.parent.userData.type === 'car' || visualGroup.parent.userData.type === 'pickup')) {
                 const car = visualGroup.parent;
                 // Sync underlying data
                 // Find index of this waypoint in visuals
@@ -145,7 +145,7 @@ export class DevMode {
 
     addWaypointToSelected() {
         const car = this.gizmo.selectedObject;
-        if (!car || car.userData.type !== 'car') return;
+        if (!car || (car.userData.type !== 'car' && car.userData.type !== 'pickup')) return;
 
         if (car.userData.waypoints.length >= 5) {
             alert("Maximum 5 waypoints allowed.");
@@ -190,7 +190,7 @@ export class DevMode {
 
     removeWaypointFromSelected() {
         const car = this.gizmo.selectedObject;
-        if (!car || car.userData.type !== 'car') return;
+        if (!car || (car.userData.type !== 'car' && car.userData.type !== 'pickup')) return;
 
         if (car.userData.waypoints.length === 0) return;
 

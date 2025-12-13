@@ -226,6 +226,19 @@ export function setupDragDrop(interaction, container) {
                         if (visuals) visuals.visible = true;
                     }
                 }
+            } else if (type === 'pickup') {
+                const res = interaction.factory.createPickup({ x: point.x, z: point.z });
+                if (res && res.mesh) {
+                    interaction.app.world.colliders.push(res);
+                    if (interaction.app.colliderSystem) {
+                        interaction.app.colliderSystem.addStatic([res]);
+                    }
+                    interaction.devMode.selectObject(res.mesh);
+                    if (interaction.devMode.enabled) {
+                        const visuals = res.mesh.getObjectByName('waypointVisuals');
+                        if (visuals) visuals.visible = true;
+                    }
+                }
             } else if (type === 'bird') {
                 const res = interaction.factory.createBird({ x: point.x, z: point.z });
                 if (res && res.mesh) {

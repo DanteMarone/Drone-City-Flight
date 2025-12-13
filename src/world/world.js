@@ -252,33 +252,10 @@ export class World {
 
         if (mapData.objects) {
             mapData.objects.forEach(obj => {
-                // Pass position to createObject so initial box calculation is correct
-                // Merge params with position
-                const params = { ...(obj.params || obj.userData?.params || {}) };
-                if (obj.position) {
-                    params.x = obj.position.x;
-                    params.z = obj.position.z;
-                }
-
-                const collider = factory.createObject(obj.type, params);
+                const collider = factory.createFromSerialized(obj);
                 if (collider) {
-                    // Restore transform if provided (Handles Y and Rotation)
-                    if (obj.position) collider.mesh.position.set(obj.position.x, obj.position.y, obj.position.z);
-                    if (obj.rotation) collider.mesh.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z);
-
-                    // Recompute box because rotation might have changed bounds
-                    // And position might have been tweaked
-                    // WARNING: For cars, this might shrink the box if we aren't careful?
-                    // createCar creates box from group (including path).
-                    // setFromObject(mesh) here will include path.
-                    // So we are safe for the "Huge Broadphase" strategy.
-                    if (collider.box) {
-                        collider.box.setFromObject(collider.mesh);
-                    }
-
                     this.colliders.push(collider);
 
-                    // System Registration
                     if (obj.type === 'bird' && this.birdSystem) {
                         this.birdSystem.add(collider.mesh);
                     }
@@ -288,22 +265,10 @@ export class World {
     }
 
     exportMap() {
-        // Iterate colliders to get static objects
         const objects = [];
         this.colliders.forEach(c => {
-            if (c.mesh && c.mesh.userData.type) {
-                // Ensure waypoints are saved for cars/bicycles
-                let params = c.mesh.userData.params || {};
-                if (['car', 'bicycle'].includes(c.mesh.userData.type) && c.mesh.userData.waypoints) {
-                    params = { ...params, waypoints: c.mesh.userData.waypoints };
-                }
-
-                objects.push({
-                    type: c.mesh.userData.type,
-                    params: params,
-                    position: { x: c.mesh.position.x, y: c.mesh.position.y, z: c.mesh.position.z },
-                    rotation: { x: c.mesh.rotation.x, y: c.mesh.rotation.y, z: c.mesh.rotation.z }
-                });
+            if (c.mesh && c.mesh.userData.type && typeof c.serialize === 'function') {
+                objects.push(c.serialize());
             }
         });
         return { version: 1, objects };

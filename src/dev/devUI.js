@@ -68,6 +68,15 @@ export class DevUI {
                     <label style="width:20px">RZ</label> <input id="prop-rz" type="number" step="1" style="flex:1">
                 </div>
 
+                <div style="display:flex; gap:2px; align-items: center;">
+                    <label style="width:20px">SX</label> <input id="prop-sx" type="number" step="0.1" style="flex:1">
+                    <label style="width:20px">SY</label> <input id="prop-sy" type="number" step="0.1" style="flex:1">
+                    <label style="width:20px">SZ</label> <input id="prop-sz" type="number" step="0.1" style="flex:1">
+                </div>
+                <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                    <input type="checkbox" id="prop-scale-lock" checked> <span style="font-size:0.8em">Lock Aspect Ratio</span>
+                </div>
+
                 <div id="car-controls" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
                      <button id="btn-add-waypoint">Add Waypoint</button>
                      <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
@@ -161,7 +170,7 @@ export class DevUI {
         // Properties Input Bindings
         const toRad = (deg) => deg * (Math.PI / 180);
 
-        ['x', 'y', 'z', 'rx', 'ry', 'rz'].forEach(axis => {
+        ['x', 'y', 'z', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz'].forEach(axis => {
              const input = this.dom.querySelector(`#prop-${axis}`);
              if (input) {
                  input.onchange = (e) => {
@@ -169,6 +178,7 @@ export class DevUI {
                      if (isNaN(val)) return;
                      const obj = this.devMode.gizmo.selectedObject;
                      if (obj) {
+                         // Position
                          if (axis === 'x') obj.position.x = val;
                          if (axis === 'y') obj.position.y = val;
                          if (axis === 'z') obj.position.z = val;
@@ -177,6 +187,28 @@ export class DevUI {
                          if (axis === 'rx') obj.rotation.x = toRad(val);
                          if (axis === 'ry') obj.rotation.y = toRad(val);
                          if (axis === 'rz') obj.rotation.z = toRad(val);
+
+                         // Scale
+                         if (['sx', 'sy', 'sz'].includes(axis)) {
+                             const lock = this.dom.querySelector('#prop-scale-lock').checked;
+                             const ratio = val / (axis === 'sx' ? obj.scale.x : axis === 'sy' ? obj.scale.y : obj.scale.z);
+
+                             if (lock) {
+                                 obj.scale.multiplyScalar(ratio);
+                             } else {
+                                 if (axis === 'sx') obj.scale.x = val;
+                                 if (axis === 'sy') obj.scale.y = val;
+                                 if (axis === 'sz') obj.scale.z = val;
+                             }
+
+                             // Update UI to reflect locked changes
+                             if (lock) this.updateProperties(obj);
+
+                             // Update Physics Body
+                             if (this.devMode.app.colliderSystem) {
+                                 this.devMode.app.colliderSystem.updateBody(obj);
+                             }
+                         }
 
                          // Sync proxy if gizmo is attached
                          if (this.devMode.gizmo) {
@@ -250,6 +282,11 @@ export class DevUI {
         setVal('rx', toDeg(object.rotation.x));
         setVal('ry', toDeg(object.rotation.y));
         setVal('rz', toDeg(object.rotation.z));
+
+        // Scale
+        setVal('sx', object.scale.x);
+        setVal('sy', object.scale.y);
+        setVal('sz', object.scale.z);
 
         // Car Controls
         const carControls = this.dom.querySelector('#car-controls');

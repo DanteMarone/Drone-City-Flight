@@ -16,58 +16,57 @@ export class VehicleEntity extends BaseEntity {
         if (this.mesh) {
             this.mesh.userData.waypoints = this.waypoints;
             this.mesh.userData.targetIndex = 1;
+            this.mesh.userData.isVehicle = true;
 
-            // Create Waypoint Visuals
             this._createWaypointVisuals();
         }
     }
 
     _createWaypointVisuals() {
-        if (!this.mesh) return;
+        this.waypointGroup = new THREE.Group();
+        this.waypointGroup.name = 'waypointVisuals_WorldSpace';
+        this.waypointGroup.visible = false;
 
-        let visualGroup = this.mesh.getObjectByName('waypointVisuals');
-        if (!visualGroup) {
-            visualGroup = new THREE.Group();
-            visualGroup.name = 'waypointVisuals';
-            visualGroup.visible = false;
-            this.mesh.add(visualGroup);
-        }
+        this.mesh.userData.waypointGroup = this.waypointGroup;
 
-        // Clear existing
-        while(visualGroup.children.length > 0) {
-            visualGroup.remove(visualGroup.children[0]);
+        this._refreshWaypointVisuals();
+    }
+
+    _refreshWaypointVisuals() {
+        if (!this.waypointGroup) return;
+
+        while(this.waypointGroup.children.length > 0) {
+            this.waypointGroup.remove(this.waypointGroup.children[0]);
         }
 
         const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
         const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
 
-        this.waypoints.forEach(pos => {
+        this.waypoints.forEach((pos, i) => {
             const orb = new THREE.Mesh(orbGeo, orbMat);
             orb.position.copy(pos);
-            orb.userData = { type: 'waypoint', isHelper: true };
-            visualGroup.add(orb);
+            orb.userData = { type: 'waypoint', isHelper: true, index: i, vehicle: this.mesh };
+            this.waypointGroup.add(orb);
         });
 
         if (this.waypoints.length > 0) {
-            const points = [new THREE.Vector3(0, 0, 0), ...this.waypoints];
+            const points = [this.mesh.position.clone(), ...this.waypoints];
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             const material = new THREE.LineBasicMaterial({ color: 0xffffff });
             const line = new THREE.Line(geometry, material);
             line.name = 'pathLine';
-            visualGroup.add(line);
+            this.waypointGroup.add(line);
         }
     }
 
     update(dt) {
-        if (!this.mesh || this.waypoints.length === 0) return;
+        if (!this.mesh) return;
 
-        const path = [new THREE.Vector3(0, 0, 0), ...this.waypoints];
+        const modelGroup = this.mesh.getObjectByName('modelGroup');
+        if (!modelGroup) return;
+
+        const path = [this.mesh.position.clone(), ...this.waypoints];
         if (path.length < 2) return;
-
-        // Separate visuals from model
-        const visualGroup = this.mesh.getObjectByName('waypointVisuals');
-        const modelChildren = this.mesh.children.filter(child => child !== visualGroup);
-        if (modelChildren.length === 0) return;
 
         let targetIdx = this.mesh.userData.targetIndex;
         if (targetIdx === undefined) targetIdx = 1;
@@ -76,21 +75,30 @@ export class VehicleEntity extends BaseEntity {
         if (targetIdx >= path.length) targetIdx = path.length - 1;
 
         const targetPos = path[targetIdx];
-        const currentPos = modelChildren[0].position.clone();
+
+        // Convert Target (World) to Local Space of Vehicle Mesh (Parent)
+        const localTarget = this.mesh.worldToLocal(targetPos.clone());
+        const currentLocal = modelGroup.position.clone();
 
         const speed = Math.max(0, this.baseSpeed);
-        const dist = currentPos.distanceTo(targetPos);
+        const dist = currentLocal.distanceTo(localTarget);
         const moveAmount = speed * dt;
 
         if (dist > moveAmount) {
-            const dir = targetPos.clone().sub(currentPos).normalize();
+            const dir = localTarget.sub(currentLocal).normalize();
+            // Move in Local Space
             const moveVec = dir.multiplyScalar(moveAmount);
-            modelChildren.forEach(child => child.position.add(moveVec));
+            modelGroup.position.add(moveVec);
 
-            const worldTarget = this.mesh.localToWorld(targetPos.clone());
-            modelChildren.forEach(child => child.lookAt(worldTarget));
+            // Rotation: Look at Target (World)
+            // Three.js Object3D.lookAt(vector) assumes vector is in World Space
+            // and handles parent transforms automatically.
+            modelGroup.lookAt(targetPos);
+
         } else {
-            modelChildren.forEach(child => child.position.copy(targetPos));
+            // Snap
+            modelGroup.position.copy(localTarget);
+
             if (targetIdx < path.length - 1) {
                 this.mesh.userData.targetIndex++;
             } else {
@@ -98,22 +106,16 @@ export class VehicleEntity extends BaseEntity {
             }
         }
 
-        // Update Box for Physics (Broadphase Hack)
-        // See World._updateManualCars logic in original code
+        // Update Box
         if (this.box) {
             this.box.makeEmpty();
-            modelChildren.forEach(child => {
-                child.updateMatrixWorld();
-                this.box.expandByObject(child);
-            });
-            // We assume World will handle SpatialHash updates if needed,
-            // or we rely on the large initial box approach.
+            modelGroup.updateMatrixWorld();
+            this.box.expandByObject(modelGroup);
         }
     }
 
     serialize() {
         const data = super.serialize();
-        // Include waypoints from userData (which might be edited)
         if (this.mesh && this.mesh.userData.waypoints) {
             data.params.waypoints = this.mesh.userData.waypoints;
         } else {
@@ -132,7 +134,9 @@ export class CarEntity extends VehicleEntity {
 
     createMesh(params) {
         const geoData = createSedanGeometry();
-        const group = new THREE.Group();
+
+        const modelGroup = new THREE.Group();
+        modelGroup.name = 'modelGroup';
 
         const bodyMat = new THREE.MeshStandardMaterial({ color: 0xff0000, roughness: 0.2, metalness: 0.6 });
         const detailMat = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8, metalness: 0.2 });
@@ -143,8 +147,12 @@ export class CarEntity extends VehicleEntity {
         body.castShadow = true;
         details.castShadow = true;
 
-        group.add(body);
-        group.add(details);
+        modelGroup.add(body);
+        modelGroup.add(details);
+
+        const group = new THREE.Group();
+        group.add(modelGroup);
+
         return group;
     }
 }
@@ -157,7 +165,16 @@ export class BicycleEntity extends VehicleEntity {
     }
 
     createMesh(params) {
-        return createBicycleMesh();
+        const partsGroup = createBicycleMesh();
+
+        const modelGroup = new THREE.Group();
+        modelGroup.name = 'modelGroup';
+        modelGroup.add(partsGroup);
+
+        const group = new THREE.Group();
+        group.add(modelGroup);
+
+        return group;
     }
 }
 

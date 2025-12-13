@@ -98,13 +98,17 @@ export class DevMode {
     }
 
     _setWaypointVisibility(visible) {
-        // Iterate through all colliders (which track the cars)
         if (this.app.world && this.app.world.colliders) {
             this.app.world.colliders.forEach(c => {
                 const obj = c.mesh;
-                if (obj && ['car', 'bicycle'].includes(obj.userData.type)) {
-                    const visuals = obj.getObjectByName('waypointVisuals');
-                    if (visuals) visuals.visible = visible;
+                if (obj && obj.userData.waypointGroup) {
+                    obj.userData.waypointGroup.visible = visible;
+                    // Ensure they are in scene
+                    if (visible && obj.userData.waypointGroup.parent !== this.app.renderer.scene) {
+                        this.app.renderer.scene.add(obj.userData.waypointGroup);
+                    } else if (!visible && obj.userData.waypointGroup.parent === this.app.renderer.scene) {
+                        this.app.renderer.scene.remove(obj.userData.waypointGroup);
+                    }
                 }
             });
         }
@@ -120,28 +124,30 @@ export class DevMode {
         // Update Line Visuals if a waypoint is being moved
         const sel = this.gizmo.selectedObject;
         if (sel && sel.userData.type === 'waypoint') {
-            const visualGroup = sel.parent;
-            if (visualGroup && visualGroup.parent && ['car', 'bicycle'].includes(visualGroup.parent.userData.type)) {
-                const car = visualGroup.parent;
+            const vehicle = sel.userData.vehicle;
+            if (vehicle) {
                 // Sync underlying data
-                // Find index of this waypoint in visuals
-                const wpMeshes = visualGroup.children.filter(c => c.userData.type === 'waypoint');
-                const idx = wpMeshes.indexOf(sel);
-                if (idx !== -1) {
-                    car.userData.waypoints[idx].copy(sel.position);
-                    this._updateCarLine(car);
+                const idx = sel.userData.index;
+                if (idx !== undefined && vehicle.userData.waypoints) {
+                    // Update World Coord in data
+                    vehicle.userData.waypoints[idx].copy(sel.position);
+                    this._updateCarLine(vehicle);
                 }
             }
+        } else if (sel && ['car', 'bicycle'].includes(sel.userData.type)) {
+            // If dragging vehicle, update line because start point moved
+             this._updateCarLine(sel);
         }
     }
 
-    _updateCarLine(carGroup) {
-        const visualGroup = carGroup.getObjectByName('waypointVisuals');
+    _updateCarLine(vehicleMesh) {
+        const visualGroup = vehicleMesh.userData.waypointGroup;
         if (!visualGroup) return;
 
         const line = visualGroup.getObjectByName('pathLine');
         if (line) {
-             const points = [new THREE.Vector3(0,0,0), ...carGroup.userData.waypoints];
+             // Path: Vehicle Position -> Waypoint 1 -> ...
+             const points = [vehicleMesh.position.clone(), ...vehicleMesh.userData.waypoints];
              line.geometry.dispose();
              line.geometry = new THREE.BufferGeometry().setFromPoints(points);
         }
@@ -156,31 +162,41 @@ export class DevMode {
             return;
         }
 
-        const visualGroup = car.getObjectByName('waypointVisuals');
-        if (!visualGroup) return; // Should exist
+        const visualGroup = car.userData.waypointGroup;
+        if (!visualGroup) {
+            console.error("No waypoint group found on selected car");
+            return;
+        }
 
-        // Determine position: Last waypoint or default offset
+        // Determine position: Last waypoint or default offset from car
         const lastPos = car.userData.waypoints.length > 0
             ? car.userData.waypoints[car.userData.waypoints.length - 1]
-            : new THREE.Vector3(0,0,0);
+            : car.position.clone();
 
-        const newPos = lastPos.clone().add(new THREE.Vector3(10, 0, 0)); // Offset 10m
+        const newPos = lastPos.clone().add(new THREE.Vector3(10, 0, 0)); // Offset 10m World
 
         // Add to data
         car.userData.waypoints.push(newPos);
+        const idx = car.userData.waypoints.length - 1;
 
         // Add visual
         const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
         const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
         const orb = new THREE.Mesh(orbGeo, orbMat);
         orb.position.copy(newPos);
-        orb.userData = { type: 'waypoint', isHelper: true };
+        orb.userData = { type: 'waypoint', isHelper: true, index: idx, vehicle: car };
         visualGroup.add(orb);
 
-        // Create line if first waypoint
+        // Ensure visual group is visible and in scene
+        visualGroup.visible = true;
+        if (visualGroup.parent !== this.app.renderer.scene) {
+            this.app.renderer.scene.add(visualGroup);
+        }
+
+        // Create or update line
         if (car.userData.waypoints.length === 1 && !visualGroup.getObjectByName('pathLine')) {
              const material = new THREE.LineBasicMaterial({ color: 0xffffff });
-             const points = [new THREE.Vector3(0,0,0), newPos];
+             const points = [car.position.clone(), newPos];
              const geometry = new THREE.BufferGeometry().setFromPoints(points);
              const line = new THREE.Line(geometry, material);
              line.name = 'pathLine';
@@ -188,6 +204,7 @@ export class DevMode {
         } else {
             this._updateCarLine(car);
         }
+
         if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
         this.ui.updateProperties(car);
     }
@@ -202,7 +219,7 @@ export class DevMode {
         car.userData.waypoints.pop();
 
         // Remove visual
-        const visualGroup = car.getObjectByName('waypointVisuals');
+        const visualGroup = car.userData.waypointGroup;
         if (visualGroup) {
             // Find last waypoint sphere
             // VisualGroup children include line and spheres.
@@ -233,15 +250,38 @@ export class DevMode {
             return;
         }
 
-        // Verify object is valid for selection (already checked by raycast usually)
+        // Handle selecting a Waypoint Proxy
+        // If clicking a Waypoint Sphere, we want Gizmo to attach to it.
+        // But UI properties should probably show info about the CAR it belongs to?
+        // Or just "Waypoint".
+
         this.gizmo.attach(object);
-        this.ui.showProperties(object);
+
+        if (object.userData.type === 'waypoint' && object.userData.vehicle) {
+            // Maybe show parent vehicle props?
+            // For now, simple generic prop view is fine.
+            this.ui.showProperties(object);
+        } else {
+            this.ui.showProperties(object);
+        }
     }
 
     deleteSelected() {
         if (this.gizmo.selectedObject) {
             const obj = this.gizmo.selectedObject;
+
+            // Special case: deleting a waypoint?
+            if (obj.userData.type === 'waypoint') {
+                // Not supported via delete key yet, use button
+                return;
+            }
+
             this.selectObject(null);
+
+            // Cleanup Waypoint Group if exists
+            if (obj.userData.waypointGroup) {
+                 this.app.renderer.scene.remove(obj.userData.waypointGroup);
+            }
 
             // Remove from scene and collider system
             this.app.renderer.scene.remove(obj);

@@ -110,6 +110,7 @@ export class DevMode {
         if (!this.enabled) return;
         this.cameraController.update(dt);
         this.grid.update(this.cameraController.camera);
+        this.gizmo.updateSnapping(this.grid);
         this.gizmo.update();
 
         // Update Line Visuals if a waypoint is being moved

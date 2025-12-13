@@ -9,8 +9,17 @@ export class GizmoManager {
         this.interaction = interactionManager;
 
         // Proxy object for handle offset
-        this.proxy = new THREE.Object3D();
-        this.proxy.visible = false; // It's invisible, just a pivot
+        // User Request: Visible sphere, floating just above.
+        const proxyGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const proxyMat = new THREE.MeshBasicMaterial({
+            color: 0x00ffff,
+            depthTest: false,
+            transparent: true,
+            opacity: 0.8
+        });
+        this.proxy = new THREE.Mesh(proxyGeo, proxyMat);
+        this.proxy.visible = false; // Hidden until selection
+        this.proxy.renderOrder = 999; // Ensure on top
         this.scene.add(this.proxy);
 
         // Create Controls
@@ -61,6 +70,9 @@ export class GizmoManager {
 
         this.scene.add(this.control);
         this.selectedObject = null;
+
+        // Configurable offset
+        this.offsetY = 5;
     }
 
     attach(object) {
@@ -68,6 +80,7 @@ export class GizmoManager {
 
         // Init Proxy
         this.syncProxyToObject();
+        this.proxy.visible = true; // Show the sphere
 
         // Attach to Proxy instead of object
         this.control.attach(this.proxy);
@@ -86,6 +99,7 @@ export class GizmoManager {
         this.selectedObject = null;
         this.control.detach();
         this.control.visible = false;
+        this.proxy.visible = false; // Hide the sphere
     }
 
     updateSnapping(grid) {
@@ -102,7 +116,7 @@ export class GizmoManager {
     syncProxyToObject() {
         if (!this.selectedObject) return;
         // Place proxy above object
-        this.proxy.position.copy(this.selectedObject.position).add(new THREE.Vector3(0, 20, 0));
+        this.proxy.position.copy(this.selectedObject.position).add(new THREE.Vector3(0, this.offsetY, 0));
         this.proxy.rotation.copy(this.selectedObject.rotation);
         this.proxy.scale.copy(this.selectedObject.scale);
         this.proxy.updateMatrixWorld();
@@ -111,7 +125,7 @@ export class GizmoManager {
     syncObjectToProxy() {
         if (!this.selectedObject) return;
         // Apply proxy transform back to object
-        this.selectedObject.position.copy(this.proxy.position).sub(new THREE.Vector3(0, 20, 0));
+        this.selectedObject.position.copy(this.proxy.position).sub(new THREE.Vector3(0, this.offsetY, 0));
         this.selectedObject.rotation.copy(this.proxy.rotation);
         this.selectedObject.scale.copy(this.proxy.scale);
         this.selectedObject.updateMatrixWorld();

@@ -70,7 +70,7 @@ export class World {
                 const targetPos = path[targetIdx];
                 const currentPos = modelChildren[0].position.clone();
 
-                const speed = Math.max(0, CONFIG.DRONE.SPEED - 0.5);
+                const speed = Math.max(0, (CONFIG.DRONE.MAX_SPEED || 18.0) - 0.5);
                 const dist = currentPos.distanceTo(targetPos);
                 const moveAmount = speed * dt;
 

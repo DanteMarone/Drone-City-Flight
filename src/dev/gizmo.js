@@ -49,6 +49,16 @@ export class GizmoManager {
             if (this.interaction && this.interaction.devMode && this.interaction.devMode.cameraController) {
                 this.interaction.devMode.cameraController.enabled = !event.value;
             }
+
+            // Update Physics on Drag End
+            if (!event.value && this.selectedObject && this.interaction.app.colliderSystem) {
+                let target = this.selectedObject;
+                // If dragging a waypoint, find the parent Car to update
+                if (target.userData.type === 'waypoint' && target.parent && target.parent.parent && target.parent.parent.userData.type === 'car') {
+                    target = target.parent.parent;
+                }
+                this.interaction.app.colliderSystem.updateBody(target);
+            }
         });
 
         // Handle changes from Gizmo (Dragging Handles)

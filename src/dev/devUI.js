@@ -297,6 +297,9 @@ export class DevUI {
                     if (this.devMode._updateCarLine) {
                         this.devMode._updateCarLine(car);
                     }
+                    if (this.devMode.app.colliderSystem) {
+                        this.devMode.app.colliderSystem.updateBody(car);
+                    }
                 };
                 row.appendChild(input);
             });

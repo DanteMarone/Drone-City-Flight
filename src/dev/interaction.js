@@ -150,6 +150,11 @@ export class InteractionManager {
                 // Apply
                 this.dragObject.position.set(newPos.x, this.dragObject.position.y, newPos.z);
 
+                // Sync Gizmo Proxy if active
+                if (this.devMode.gizmo) {
+                    this.devMode.gizmo.syncProxyToObject();
+                }
+
                 // Update Properties Panel
                 if (this.devMode.ui) {
                     this.devMode.ui.updateProperties(this.dragObject);

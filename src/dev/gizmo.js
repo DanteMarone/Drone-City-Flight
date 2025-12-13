@@ -25,35 +25,6 @@ export class GizmoManager {
         // Create Controls
         this.control = new TransformControls(camera, renderer.domElement);
 
-        // --- COMPATIBILITY FIXES ---
-        if (!this.control.isObject3D) {
-            this.control.isObject3D = true;
-        }
-
-        if (!this.control.children) this.control.children = [];
-        if (!this.control.matrix) this.control.matrix = new THREE.Matrix4();
-        if (!this.control.matrixWorld) this.control.matrixWorld = new THREE.Matrix4();
-        if (!this.control.position) this.control.position = new THREE.Vector3();
-        if (!this.control.quaternion) this.control.quaternion = new THREE.Quaternion();
-        if (!this.control.scale) this.control.scale = new THREE.Vector3(1, 1, 1);
-        if (!this.control.layers) this.control.layers = new THREE.Layers();
-
-        const patchMethod = (name, impl) => {
-            if (typeof this.control[name] !== 'function') {
-                this.control[name] = impl;
-            }
-        };
-
-        patchMethod('removeFromParent', function() {
-            if (this.parent) this.parent.remove(this);
-        });
-
-        patchMethod('updateMatrixWorld', THREE.Object3D.prototype.updateMatrixWorld);
-        patchMethod('raycast', THREE.Object3D.prototype.raycast);
-        patchMethod('traverse', THREE.Object3D.prototype.traverse);
-        patchMethod('dispatchEvent', THREE.EventDispatcher.prototype.dispatchEvent);
-        // ---------------------------
-
         this.control.addEventListener('dragging-changed', (event) => {
             if (this.interaction && this.interaction.devMode && this.interaction.devMode.cameraController) {
                 this.interaction.devMode.cameraController.enabled = !event.value;
@@ -68,7 +39,10 @@ export class GizmoManager {
              }
         });
 
-        this.scene.add(this.control);
+        // Add the helper (visual representation) to the scene
+        // TransformControls is not an Object3D, but getHelper() returns one.
+        this.scene.add(this.control.getHelper());
+
         this.selectedObject = null;
 
         // Configurable offset
@@ -84,12 +58,14 @@ export class GizmoManager {
 
         // Attach to Proxy instead of object
         this.control.attach(this.proxy);
-        this.control.visible = true;
+        // this.control.visible = true; // Not needed on control itself if using helper, but helper handles visibility via attach/detach usually.
+        // Actually TransformControls.detach() sets _root.visible = false. attach() sets it to true.
 
         // Force handles on top
-        // TransformControls usually does this, but we can enforce depthTest=false traversal just in case
-        if (this.control.traverse) {
-            this.control.traverse(child => {
+        // Traverse the helper, not the control
+        const helper = this.control.getHelper();
+        if (helper && helper.traverse) {
+            helper.traverse(child => {
                 if (child.material) child.material.depthTest = false;
             });
         }
@@ -98,7 +74,6 @@ export class GizmoManager {
     detach() {
         this.selectedObject = null;
         this.control.detach();
-        this.control.visible = false;
         this.proxy.visible = false; // Hide the sphere
     }
 

@@ -12,9 +12,16 @@ export class ColliderSystem {
     addStatic(colliders) {
         // Expects array of { mesh, box: Box3 }
         colliders.forEach(c => {
-            this.staticColliders.push(c);
-            this.spatialHash.insert(c, c.box);
+            if (c.box) { // Only add if it has a bounding box (roads might not)
+                this.staticColliders.push(c);
+                this.spatialHash.insert(c, c.box);
+            }
         });
+    }
+
+    clear() {
+        this.staticColliders = [];
+        this.spatialHash.clear();
     }
 
     checkCollisions(dronePos, radius, dynamicColliders = []) {

@@ -22,6 +22,14 @@ export class MenuSystem {
                 <button id="btn-resume">RESUME</button>
                 <button id="btn-reset">RESET DRONE</button>
 
+                <hr>
+                <button id="btn-dev">DEVELOPER MODE</button>
+                <label class="btn-like">
+                    LOAD CUSTOM MAP
+                    <input type="file" id="btn-load-map" accept=".json" style="display:none">
+                </label>
+                <hr>
+
                 <div class="menu-section">
                     <h2>SETTINGS</h2>
                     <label>
@@ -42,6 +50,8 @@ export class MenuSystem {
             menu: menu,
             resume: menu.querySelector('#btn-resume'),
             reset: menu.querySelector('#btn-reset'),
+            dev: menu.querySelector('#btn-dev'),
+            loadMap: menu.querySelector('#btn-load-map'),
             bloom: menu.querySelector('#opt-bloom'),
             sens: menu.querySelector('#opt-sens')
         };
@@ -55,6 +65,30 @@ export class MenuSystem {
         this.dom.reset.onclick = () => {
             this.app._resetGame();
             this.hide();
+        };
+
+        this.dom.dev.onclick = () => {
+            this.hide();
+            // Start Dev Mode
+            if (this.app.devMode) this.app.devMode.enable();
+        };
+
+        this.dom.loadMap.onchange = (e) => {
+            if (e.target.files.length > 0) {
+                const file = e.target.files[0];
+                const reader = new FileReader();
+                reader.onload = (ev) => {
+                    try {
+                        const data = JSON.parse(ev.target.result);
+                        this.app.loadMap(data);
+                        this.hide();
+                    } catch (err) {
+                        alert("Error loading map");
+                    }
+                };
+                reader.readAsText(file);
+                e.target.value = '';
+            }
         };
 
         this.dom.bloom.onchange = (e) => {

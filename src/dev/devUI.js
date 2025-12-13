@@ -81,6 +81,7 @@ export class DevUI {
                 <div class="palette-item" draggable="true" data-type="ring">Ring</div>
                 <div class="palette-item" draggable="true" data-type="river">River</div>
                 <div class="palette-item" draggable="true" data-type="car">Car</div>
+                <div class="palette-item" draggable="true" data-type="orangeTree">Orange Tree</div>
             </div>
         `;
 

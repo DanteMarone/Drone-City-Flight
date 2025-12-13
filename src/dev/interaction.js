@@ -19,7 +19,9 @@ export class InteractionManager {
         this._onMouseUp = this._onMouseUp.bind(this);
 
         this.isDragging = false;
-        this.dragObject = null;
+        // this.dragObject stores the object being "clicked" on,
+        // but if multi-selected, we might drag the proxy.
+        this.dragTarget = null; // Can be an object or the proxy
         this.dragPlane = new THREE.Plane();
         this.dragOffset = new THREE.Vector3();
     }
@@ -74,6 +76,10 @@ export class InteractionManager {
         let hit = null;
         for (const i of intersects) {
             let obj = i.object;
+            // Ignore Helpers
+            if (obj.userData && obj.userData.isHelper) continue;
+            if (obj.userData && (obj.userData.type === 'waypoint' || obj.userData.type === 'gizmoProxy')) continue; // handled specially?
+
             while (obj) {
                 if (obj.userData && obj.userData.type) {
                     hit = obj;
@@ -85,31 +91,47 @@ export class InteractionManager {
             if (hit) break;
         }
 
-        if (hit) {
-            this.devMode.selectObject(hit);
+        this.devMode.selectObject(hit, e.shiftKey);
+
+        // Drag Logic setup
+        if (this.devMode.selectedObjects.length > 0) {
             this.isDragging = true;
-            this.dragObject = hit;
 
-            if (this.devMode.cameraController && this.devMode.cameraController.setRotationLock) {
-                this.devMode.cameraController.setRotationLock(true);
+            // If we clicked on an object that is part of the selection, we want to move the GROUP.
+            // If the hit object is in selectedObjects, we are good.
+            // If we clicked "background" (hit=null) but we have selection?
+            // Standard behavior: click background deselects (handled by selectObject(null)).
+
+            if (hit) {
+                // Determine what to drag.
+                // We always drag the PROXY if multiple objects are selected or if the single object is selected.
+                // GizmoManager manages the Proxy position.
+                this.dragTarget = this.devMode.gizmo.proxy;
+
+                // We need to ensure offsets are captured because we are about to move the proxy manually
+                this.devMode.gizmo.captureOffsets();
+
+                if (this.devMode.cameraController && this.devMode.cameraController.setRotationLock) {
+                    this.devMode.cameraController.setRotationLock(true);
+                }
+
+                this.dragPlane.setComponents(0, 1, 0, -this.dragTarget.position.y);
+
+                const intersect = new THREE.Vector3();
+                this.raycaster.ray.intersectPlane(this.dragPlane, intersect);
+                if (intersect) {
+                    this.dragOffset.subVectors(this.dragTarget.position, intersect);
+                }
+            } else {
+                this.isDragging = false;
             }
-
-            this.dragPlane.setComponents(0, 1, 0, -hit.position.y);
-
-            const intersect = new THREE.Vector3();
-            this.raycaster.ray.intersectPlane(this.dragPlane, intersect);
-            if (intersect) {
-                this.dragOffset.subVectors(hit.position, intersect);
-            }
-        } else {
-            this.devMode.selectObject(null);
         }
     }
 
     _onMouseMove(e) {
         if (!this.active) return;
 
-        if (this.isDragging && this.dragObject) {
+        if (this.isDragging && this.dragTarget) {
             const rect = this.app.container.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
             const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
@@ -125,14 +147,17 @@ export class InteractionManager {
                     newPos.z = Math.round(newPos.z);
                 }
 
-                this.dragObject.position.set(newPos.x, this.dragObject.position.y, newPos.z);
+                // Move the Proxy
+                this.dragTarget.position.set(newPos.x, this.dragTarget.position.y, newPos.z);
 
+                // Sync Objects to Proxy
                 if (this.devMode.gizmo) {
-                    this.devMode.gizmo.syncProxyToObject();
+                    this.devMode.gizmo.syncProxyToObjects();
                 }
 
+                // Update UI
                 if (this.devMode.ui) {
-                    this.devMode.ui.updateProperties(this.dragObject);
+                    this.devMode.ui.updateProperties(this.dragTarget);
                 }
             }
         }
@@ -144,12 +169,21 @@ export class InteractionManager {
             if (this.devMode.cameraController && this.devMode.cameraController.setRotationLock) {
                 this.devMode.cameraController.setRotationLock(false);
             }
-            if (this.dragObject && this.app.colliderSystem) {
-                if (this.app.colliderSystem.updateBody) {
-                    this.app.colliderSystem.updateBody(this.dragObject);
-                }
+
+            // Update Physics for all selected
+             if (this.devMode.selectedObjects.length > 0 && this.app.colliderSystem) {
+                this.devMode.selectedObjects.forEach(obj => {
+                    let target = obj;
+                    if (target.userData.type === 'waypoint' && target.parent?.parent?.userData.type === 'car') {
+                        target = target.parent.parent;
+                    }
+                    if (this.app.colliderSystem.updateBody) {
+                        this.app.colliderSystem.updateBody(target);
+                    }
+                });
             }
-            this.dragObject = null;
+
+            this.dragTarget = null;
         }
     }
 }
@@ -176,22 +210,18 @@ export function setupDragDrop(interaction, container) {
                 // Rings handle their own registration internally in RingManager
             } else {
                 // Use ObjectFactory (which delegates to EntityRegistry)
-                // We assume createObject handles all mapped types (river, car, bird, building, etc.)
-                // Note: ObjectFactory wraps 'river' now too.
                 const entity = interaction.factory.createObject(type, { x: point.x, z: point.z });
 
                 if (entity && entity.mesh) {
                     // Centralized Registration
-                    interaction.app.world.addEntity(entity); // Adds to colliders, handles BirdSystem
+                    interaction.app.world.addEntity(entity);
 
                     // Add to Physics (Static/SpatialHash)
-                    // Note: Entities are added as "Static" by default here.
-                    // Even cars are "static" in terms of collision type (not dynamic rigidbodies), just moving static objects.
                     if (interaction.app.colliderSystem) {
                         interaction.app.colliderSystem.addStatic([entity]);
                     }
 
-                    // Select it
+                    // Select it (Clear previous, select new)
                     interaction.devMode.selectObject(entity.mesh);
 
                     // Special Visuals Check

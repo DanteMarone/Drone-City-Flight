@@ -58,9 +58,9 @@ export class DevUI {
                 <div style="font-size:0.8em; color:#aaa;" id="prop-id"></div>
 
                 <div style="display:flex; gap:2px; align-items: center;">
-                    <label style="width:20px">X</label> <input id="prop-x" type="number" step="0.1" style="flex:1">
-                    <label style="width:20px">Y</label> <input id="prop-y" type="number" step="0.1" style="flex:1">
-                    <label style="width:20px">Z</label> <input id="prop-z" type="number" step="0.1" style="flex:1">
+                    <label style="width:20px">X</label> <input id="prop-x" type="number" step="1" style="flex:1">
+                    <label style="width:20px">Y</label> <input id="prop-y" type="number" step="1" style="flex:1">
+                    <label style="width:20px">Z</label> <input id="prop-z" type="number" step="1" style="flex:1">
                 </div>
                 <div style="display:flex; gap:2px; align-items: center;">
                     <label style="width:20px">RX</label> <input id="prop-rx" type="number" step="1" style="flex:1">
@@ -168,6 +168,11 @@ export class DevUI {
                          if (axis === 'rx') obj.rotation.x = toRad(val);
                          if (axis === 'ry') obj.rotation.y = toRad(val);
                          if (axis === 'rz') obj.rotation.z = toRad(val);
+
+                         // Sync proxy if gizmo is attached
+                         if (this.devMode.gizmo) {
+                             this.devMode.gizmo.syncProxyToObject();
+                         }
                      }
                  };
              }
@@ -214,10 +219,6 @@ export class DevUI {
         const setVal = (id, val) => {
             const el = this.dom.querySelector(`#prop-${id}`);
             if (el && document.activeElement !== el) {
-                // Check if focused to avoid fighting user typing?
-                // Actually `change` event fires on blur/enter.
-                // But `dragging-changed` updates this continuously.
-                // We should update even if focused? Maybe not.
                 el.value = val.toFixed(2);
             }
         };

@@ -87,40 +87,31 @@ export class ObjectFactory {
         group.position.set(x, 0, z);
         group.userData.type = 'bush';
 
-        // Cluster of spheres
-        const count = 5 + Math.floor(Math.random() * 5);
-        const mat = new THREE.MeshStandardMaterial({ color: 0x228822, roughness: 1.0 });
+        // Try to use a texture; fall back to flat green if unavailable
+        let bushMat;
+        try {
+            const tex = this.textureLoader.load('/textures/bush.png');
+            tex.colorSpace = THREE.SRGBColorSpace;
+            bushMat = new THREE.MeshStandardMaterial({
+                map: tex,
+                color: 0xffffff,
+                roughness: 1.0,
+                side: THREE.DoubleSide
+            });
+        } catch (e) {
+            bushMat = new THREE.MeshStandardMaterial({ color: 0x228822, roughness: 1.0 });
+        }
 
+        const count = 3 + Math.floor(Math.random() * 3); // 3 to 5 spheres
         for (let i = 0; i < count; i++) {
             const r = 0.3 + Math.random() * 0.4;
             const geo = new THREE.SphereGeometry(r, 8, 8);
-            const mesh = new THREE.Mesh(geo, mat);
+            const mesh = new THREE.Mesh(geo, bushMat);
 
-            // Random offset
-            const ox = (Math.random() - 0.5) * 1.5;
-            const oz = (Math.random() - 0.5) * 1.5;
-            const oy = r * 0.8 + Math.random() * 0.5;
-
-            mesh.position.set(ox, oy, oz);
-        const tex = this.textureLoader.load('/textures/bush.png');
-        tex.colorSpace = THREE.SRGBColorSpace;
-
-        const mat = new THREE.MeshStandardMaterial({
-            map: tex,
-            color: 0xffffff,
-            roughness: 1.0,
-            side: THREE.DoubleSide
-        });
-
-        const geo = new THREE.SphereGeometry(0.5, 7, 7);
-        const count = 3 + Math.floor(Math.random() * 3); // 3 to 5 spheres
-
-        for (let i = 0; i < count; i++) {
-            const mesh = new THREE.Mesh(geo, mat);
             // Random scatter relative to center
             const ox = (Math.random() - 0.5) * 1.2;
             const oz = (Math.random() - 0.5) * 1.2;
-            const oy = 0.3 + Math.random() * 0.4;
+            const oy = r * 0.8 + Math.random() * 0.5;
             mesh.position.set(ox, oy, oz);
 
             const s = 0.7 + Math.random() * 0.6;
@@ -134,7 +125,6 @@ export class ObjectFactory {
         this.scene.add(group);
 
         // Bushes have no collision for drone
-        // No collision box
         return { mesh: group, box: null };
     }
 

@@ -21,6 +21,43 @@ export class RingManager {
         this.spawnRing();
     }
 
+    clear() {
+        this.rings.forEach(r => this.scene.remove(r.mesh));
+        this.rings = [];
+        this.collectedCount = 0;
+    }
+
+    loadRings(ringsData) {
+        this.clear();
+        if (!ringsData) return;
+        ringsData.forEach(rData => {
+            this.spawnRingAt(rData.position, rData.rotation);
+        });
+    }
+
+    spawnRingAt(pos, rot) {
+        const mesh = new THREE.Mesh(this.geo, this.mat);
+        mesh.position.set(pos.x, pos.y, pos.z);
+        if (rot) mesh.rotation.set(rot.x, rot.y, rot.z);
+        else {
+            mesh.rotation.x = 0;
+            mesh.rotation.y = Math.random() * Math.PI;
+        }
+
+        // Metadata for saving
+        mesh.userData.type = 'ring';
+
+        this.scene.add(mesh);
+        this.rings.push({ mesh });
+    }
+
+    exportRings() {
+        return this.rings.map(r => ({
+            position: { x: r.mesh.position.x, y: r.mesh.position.y, z: r.mesh.position.z },
+            rotation: { x: r.mesh.rotation.x, y: r.mesh.rotation.y, z: r.mesh.rotation.z }
+        }));
+    }
+
     update(dt) {
         // Spawning
         this.spawnTimer += dt;

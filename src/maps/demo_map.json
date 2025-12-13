@@ -1,0 +1,12 @@
+{
+    "version": 1,
+    "objects": [
+        {
+            "type": "skyscraper",
+            "position": {"x": 0, "y": 0, "z": 0},
+            "rotation": {"x": 0, "y": 0, "z": 0},
+            "scale": {"x": 20, "y": 100, "z": 20}
+        }
+    ],
+    "rings": []
+}

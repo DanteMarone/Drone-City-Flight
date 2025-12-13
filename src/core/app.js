@@ -19,6 +19,7 @@ import { WaterSystem } from '../world/water.js';
 import { ParticleSystem } from '../fx/particles.js';
 import { PostProcessing } from '../fx/post.js';
 import { CONFIG } from '../config.js';
+import { DevMode } from '../dev/devMode.js';
 
 export class App {
     constructor() {
@@ -62,6 +63,8 @@ export class App {
             this.post.setSize(e.detail.width, e.detail.height);
         });
 
+        this.devMode = new DevMode(this);
+
         this.running = true;
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
@@ -86,6 +89,20 @@ export class App {
     }
 
     update(dt) {
+        if (this.devMode && this.devMode.enabled) {
+            this.devMode.update(dt);
+            // Dev Mode Loop
+            const events = this.input.getEvents();
+             if (events.pause) {
+                // If in dev mode, maybe toggle a dev menu or exit?
+                // The DevUI handles its own interactions.
+                // But we might want 'Esc' to exit or pause?
+                // For now, let UI handle it.
+            }
+            this.input.resetFrame();
+            return; // Skip normal game loop
+        }
+
         const events = this.input.getEvents();
         if (events.pause) {
             this.menu.toggle();
@@ -185,6 +202,24 @@ export class App {
         this.battery.reset();
         this.rings.reset();
         this.tutorial.reset();
+    }
+
+    loadMap(data) {
+        console.log("Loading Map...", data);
+        // Reset Game State
+        this._resetGame();
+
+        // Load World
+        this.world.loadMap(data);
+
+        // Load Rings
+        if (data.rings) {
+            this.rings.loadRings(data.rings);
+        }
+
+        // Re-inject static colliders into physics system
+        this.colliderSystem.colliders = []; // Clear old
+        this.colliderSystem.addStatic(this.world.getStaticColliders());
     }
 
     animate(timestamp) {

@@ -26,7 +26,7 @@ export class MenuSystem {
                 <button id="btn-dev">DEVELOPER MODE</button>
                 <label class="btn-like">
                     LOAD CUSTOM MAP
-                    <input type="file" id="btn-load-map" accept=".json" style="display:none">
+                    <input type="file" id="btn-load-map" accept=".json" class="visually-hidden">
                 </label>
                 <hr>
 

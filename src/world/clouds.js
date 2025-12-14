@@ -7,6 +7,9 @@ export class CloudSystem {
         this.texture = new THREE.TextureLoader().load('textures/cloud.png');
         this.texture.colorSpace = THREE.SRGBColorSpace;
 
+        // Shared geometry for all clouds to reduce allocation
+        this.geometry = new THREE.PlaneGeometry(100, 50);
+
         this.maxClouds = 20;
         this.spawnTimer = 0;
         this.spawnInterval = 2.0; // Seconds between potential spawns
@@ -25,8 +28,8 @@ export class CloudSystem {
         for (let i = this.clouds.length - 1; i >= 0; i--) {
             const cloud = this.clouds[i];
 
-            // Move
-            cloud.mesh.position.add(cloud.velocity.clone().multiplyScalar(dt));
+            // Move - Optimized to avoid allocation
+            cloud.mesh.position.addScaledVector(cloud.velocity, dt);
 
             // Billboard
             cloud.mesh.lookAt(camera.position);
@@ -60,8 +63,7 @@ export class CloudSystem {
         const z = centerPos.z + Math.sin(angle) * distance;
         const y = height; // Absolute height, assuming flat world mostly
 
-        const geometry = new THREE.PlaneGeometry(100, 50); // Large clouds
-
+        // Use shared geometry
         const targetOpacity = 0.5 + Math.random() * 0.5;
         const material = new THREE.MeshBasicMaterial({
             map: this.texture,
@@ -70,7 +72,7 @@ export class CloudSystem {
             depthWrite: false
         });
 
-        const mesh = new THREE.Mesh(geometry, material);
+        const mesh = new THREE.Mesh(this.geometry, material);
         mesh.position.set(x, y, z);
 
         // Random scale
@@ -102,7 +104,7 @@ export class CloudSystem {
     _removeCloud(index) {
         const cloud = this.clouds[index];
         this.scene.remove(cloud.mesh);
-        cloud.mesh.geometry.dispose();
+        // Do NOT dispose shared geometry
         cloud.mesh.material.dispose();
         this.clouds.splice(index, 1);
     }

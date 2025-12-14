@@ -104,6 +104,9 @@ export class GizmoManager {
         // Update Visuals (Individual Indicators)
         this.updateSelectionVisuals();
 
+        // Ensure objects have updated matrices before capturing offsets
+        this.selectedObjects.forEach(obj => obj.updateMatrixWorld());
+
         // Capture initial offsets immediately so we are ready for moves
         this.captureOffsets();
 

@@ -53,10 +53,36 @@ export class InteractionManager {
 
         this.raycaster.setFromCamera(this.mouse, this.devMode.cameraController.camera);
 
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const target = new THREE.Vector3();
-        this.raycaster.ray.intersectPlane(plane, target);
-        return target;
+        // Raycast against all objects in the scene
+        const intersects = this.raycaster.intersectObjects(this.app.renderer.scene.children, true);
+
+        for (const i of intersects) {
+            // Check if valid surface
+            // 1. Ground
+            if (i.object === this.app.world.ground) {
+                return i.point;
+            }
+
+            // 2. Existing Entity (userData.type)
+            // Need to traverse up to find if it's part of an entity, or check directly
+            // Most entities have userData on the mesh or a parent group.
+            let obj = i.object;
+            while (obj) {
+                // Ignore Helpers and Gizmos
+                if (obj.userData && (obj.userData.isHelper || obj.userData.type === 'gizmoProxy')) {
+                    break; // Skip this branch
+                }
+
+                if (obj.userData && obj.userData.type) {
+                    // Valid Entity
+                    return i.point;
+                }
+                if (obj.parent === this.app.renderer.scene) break;
+                obj = obj.parent;
+            }
+        }
+
+        return null;
     }
 
     _onMouseDown(e) {
@@ -226,8 +252,14 @@ export function setupDragDrop(interaction, container) {
 
                     // Special Visuals Check
                     if (['car', 'bicycle'].includes(type) && interaction.devMode.enabled) {
-                        const visuals = entity.mesh.getObjectByName('waypointVisuals');
-                        if (visuals) visuals.visible = true;
+                        // Use the new standard: userData.waypointGroup
+                        const wg = entity.mesh.userData.waypointGroup;
+                        if (wg) {
+                            wg.visible = true;
+                            if (wg.parent !== interaction.app.renderer.scene) {
+                                interaction.app.renderer.scene.add(wg);
+                            }
+                        }
                     }
                 }
             }

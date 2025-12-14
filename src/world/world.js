@@ -32,15 +32,9 @@ export class World {
     }
 
     _generateWorld() {
-        // DistrictGenerator currently returns a list of {mesh, box}.
-        // We need to convert them to Entities or update DistrictGenerator.
-        // For MVP, we wrap them or refactor Generator.
-        // Generator calls factory.createObject.
-        // Since factory.createObject now returns Entity,
-        // DistrictGenerator will receive Entities.
-
-        const generator = new DistrictGenerator(this.scene);
-        this.colliders = generator.generateCityLayout();
+        // Default to Blank Map.
+        // No longer generating districts or roads by default.
+        this.colliders = [];
     }
 
     update(dt) {
@@ -71,6 +65,10 @@ export class World {
         this.colliders.forEach(c => {
             if (c.mesh) {
                 this.scene.remove(c.mesh);
+                // Clean up any auxiliary visuals like waypoints
+                if (c.mesh.userData.waypointGroup) {
+                    this.scene.remove(c.mesh.userData.waypointGroup);
+                }
             }
         });
         this.colliders = [];

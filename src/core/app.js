@@ -14,7 +14,6 @@ import { BatteryManager } from '../drone/battery.js';
 import { RingManager } from '../gameplay/rings.js';
 import { TutorialManager } from '../gameplay/tutorial.js';
 import { AudioManager } from '../audio/audio.js';
-import { WaterSystem } from '../world/water.js';
 import { ParticleSystem } from '../fx/particles.js';
 import { PostProcessing } from '../fx/post.js';
 import { CONFIG } from '../config.js';
@@ -41,7 +40,6 @@ export class App {
 
         this._setupLights();
         this.world = new World(this.renderer.scene);
-        this.water = new WaterSystem(this.renderer.scene);
         this.particles = new ParticleSystem(this.renderer.scene);
 
         this.colliderSystem = new ColliderSystem();
@@ -134,7 +132,6 @@ export class App {
             }
 
             this.world.update(dt); // Birds & Vehicles
-            this.water.update(dt);
             this.particles.update(dt);
 
             this.drone.update(dt, move);

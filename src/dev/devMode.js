@@ -323,6 +323,9 @@ export class DevMode {
     clearMap() {
         this.app.world.clear();
         this.app.rings.clear();
+        if (this.app.colliderSystem) {
+            this.app.colliderSystem.clear();
+        }
         this.selectObject(null);
     }
 

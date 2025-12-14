@@ -100,8 +100,8 @@
 - [x] 4.30 Graphics Overhaul (Improved Drone, Buildings, Traffic).
 - [x] 4.31 Particle Cloud System.
 - [x] 4.32 Ambient Animals (Birds).
-- [ ] 4.33 New Vehicles (Pickup Truck).
-- [ ] 4.34 New Vehicles (Bicycle).
+- [x] 4.33 New Vehicles (Pickup Truck).
+- [x] 4.34 New Vehicles (Bicycle).
 - [x] 4.35 Traffic Optimization.
 
 ## 5. Developer Tools

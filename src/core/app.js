@@ -17,7 +17,7 @@ import { AudioManager } from '../audio/audio.js';
 import { ParticleSystem } from '../fx/particles.js';
 import { PostProcessing } from '../fx/post.js';
 import { CONFIG } from '../config.js';
-import { DevMode } from '../dev/devMode.js';
+import { BuildMode } from '../dev/buildMode.js';
 import { Skybox } from '../world/skybox.js';
 import { CloudSystem } from '../world/clouds.js';
 
@@ -69,7 +69,7 @@ export class App {
             this.post.setSize(e.detail.width, e.detail.height);
         });
 
-        this.devMode = new DevMode(this);
+        this.buildMode = new BuildMode(this);
 
         this.running = true;
         this.animate = this.animate.bind(this);
@@ -95,9 +95,9 @@ export class App {
     }
 
     update(dt) {
-        // Dev Mode Handling
-        if (this.devMode && this.devMode.enabled) {
-            this.devMode.update(dt);
+        // Build Mode Handling
+        if (this.buildMode && this.buildMode.enabled) {
+            this.buildMode.update(dt);
             // Allow basic input processing if needed, but skip game logic
             this.input.resetFrame();
             return;
@@ -226,9 +226,9 @@ export class App {
         this.colliderSystem.clear();
         this.colliderSystem.addStatic(this.world.getStaticColliders());
 
-        // Refresh DevMode if active (to show new visuals)
-        if (this.devMode && this.devMode.enabled) {
-            this.devMode.refreshVisibility();
+        // Refresh BuildMode if active (to show new visuals)
+        if (this.buildMode && this.buildMode.enabled) {
+            this.buildMode.refreshVisibility();
         }
     }
 

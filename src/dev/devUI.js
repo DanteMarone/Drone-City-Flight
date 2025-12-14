@@ -184,42 +184,48 @@ export class DevUI {
                      const val = parseFloat(e.target.value);
                      if (isNaN(val)) return;
                      const obj = this.devMode.gizmo.selectedObject;
-                     if (obj) {
+                     // We need to act on the Gizmo PROXY, regardless of single or multi-select
+                     // GizmoManager logic handles propagating proxy changes to objects.
+                     const proxy = this.devMode.gizmo.proxy;
+
+                     if (proxy && this.devMode.selectedObjects.length > 0) {
                          // Position
-                         if (axis === 'x') obj.position.x = val;
-                         if (axis === 'y') obj.position.y = val;
-                         if (axis === 'z') obj.position.z = val;
+                         if (axis === 'x') proxy.position.x = val;
+                         if (axis === 'y') proxy.position.y = val;
+                         if (axis === 'z') proxy.position.z = val;
 
                          // Rotation: Inputs are Degrees, convert to Radians for Three.js
-                         if (axis === 'rx') obj.rotation.x = toRad(val);
-                         if (axis === 'ry') obj.rotation.y = toRad(val);
-                         if (axis === 'rz') obj.rotation.z = toRad(val);
+                         if (axis === 'rx') proxy.rotation.x = toRad(val);
+                         if (axis === 'ry') proxy.rotation.y = toRad(val);
+                         if (axis === 'rz') proxy.rotation.z = toRad(val);
 
                          // Scale
                          if (['sx', 'sy', 'sz'].includes(axis)) {
                              const lock = this.dom.querySelector('#prop-scale-lock').checked;
-                             const ratio = val / (axis === 'sx' ? obj.scale.x : axis === 'sy' ? obj.scale.y : obj.scale.z);
+                             const ratio = val / (axis === 'sx' ? proxy.scale.x : axis === 'sy' ? proxy.scale.y : proxy.scale.z);
 
                              if (lock) {
-                                 obj.scale.multiplyScalar(ratio);
+                                 proxy.scale.multiplyScalar(ratio);
                              } else {
-                                 if (axis === 'sx') obj.scale.x = val;
-                                 if (axis === 'sy') obj.scale.y = val;
-                                 if (axis === 'sz') obj.scale.z = val;
+                                 if (axis === 'sx') proxy.scale.x = val;
+                                 if (axis === 'sy') proxy.scale.y = val;
+                                 if (axis === 'sz') proxy.scale.z = val;
                              }
 
                              // Update UI to reflect locked changes
-                             if (lock) this.updateProperties(obj);
-
-                             // Update Physics Body
-                             if (this.devMode.app.colliderSystem) {
-                                 this.devMode.app.colliderSystem.updateBody(obj);
-                             }
+                             if (lock) this.updateProperties(proxy);
                          }
 
-                         // Sync proxy if gizmo is attached
+                         // Sync proxy change to objects
                          if (this.devMode.gizmo) {
-                             this.devMode.gizmo.syncProxyToObject();
+                             this.devMode.gizmo.syncProxyToObjects();
+                         }
+
+                         // Update Physics Bodies
+                         if (this.devMode.app.colliderSystem) {
+                             this.devMode.selectedObjects.forEach(obj => {
+                                 this.devMode.app.colliderSystem.updateBody(obj);
+                             });
                          }
                      }
                  };
@@ -265,7 +271,16 @@ export class DevUI {
         const panel = this.dom.querySelector('#prop-panel');
         const info = this.dom.querySelector('#prop-id');
         panel.style.display = 'flex';
-        info.textContent = `Type: ${object.userData.type || 'Unknown'}`;
+
+        // Use selected objects array to determine title
+        const count = this.devMode.selectedObjects.length;
+        if (count > 1) {
+            info.textContent = `Multiple Selection (${count} items)`;
+        } else if (count === 1) {
+            info.textContent = `Type: ${this.devMode.selectedObjects[0].userData.type || 'Unknown'}`;
+        } else {
+            info.textContent = '';
+        }
 
         this.updateProperties(object);
     }
@@ -297,10 +312,17 @@ export class DevUI {
 
         // Car Controls
         const carControls = this.dom.querySelector('#car-controls');
-        if (['car', 'bicycle', 'pickup'].includes(object.userData.type)) {
-            carControls.style.display = 'flex';
-            this._updateWaypointList(object);
+        // Show specific controls only if SINGLE selection and correct type
+        if (this.devMode.selectedObjects.length === 1) {
+            const sel = this.devMode.selectedObjects[0];
+            if (['car', 'bicycle', 'pickup'].includes(sel.userData.type)) {
+                carControls.style.display = 'flex';
+                this._updateWaypointList(sel);
+            } else {
+                carControls.style.display = 'none';
+            }
         } else {
+            // Hide for multi-select (per user requirement to hide incompatible options)
             carControls.style.display = 'none';
         }
 

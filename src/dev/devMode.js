@@ -11,6 +11,8 @@ export class DevMode {
         this.app = app;
         this.enabled = false;
 
+        this.selectedObjects = []; // Replaces single selectedObject
+
         // Controllers
         this.cameraController = new DevCameraController(app.renderer.camera, app.container);
         this.ui = new DevUI(this);
@@ -122,22 +124,27 @@ export class DevMode {
         this.gizmo.update();
 
         // Update Line Visuals if a waypoint is being moved
-        const sel = this.gizmo.selectedObject;
-        if (sel && sel.userData.type === 'waypoint') {
-            const vehicle = sel.userData.vehicle;
-            if (vehicle) {
-                // Sync underlying data
-                const idx = sel.userData.index;
-                if (idx !== undefined && vehicle.userData.waypoints) {
-                    // Update World Coord in data
-                    vehicle.userData.waypoints[idx].copy(sel.position);
-                    this._updateCarLine(vehicle);
+        // We need to check if ANY selected object is a waypoint or car
+        // Or simplified: Just check the selected objects list.
+
+        // For performance, maybe only check if gizmo is active?
+        // But dragging happens in InteractionManager/Gizmo.
+
+        // Let's iterate selected objects to update lines if needed
+        this.selectedObjects.forEach(sel => {
+            if (sel.userData.type === 'waypoint') {
+                const vehicle = sel.userData.vehicle;
+                if (vehicle) {
+                    const idx = sel.userData.index;
+                    if (idx !== undefined && vehicle.userData.waypoints) {
+                         vehicle.userData.waypoints[idx].copy(sel.position);
+                         this._updateCarLine(vehicle);
+                    }
                 }
+            } else if (['car', 'bicycle', 'pickup'].includes(sel.userData.type)) {
+                this._updateCarLine(sel);
             }
-        } else if (sel && ['car', 'bicycle', 'pickup'].includes(sel.userData.type)) {
-            // If dragging vehicle, update line because start point moved
-             this._updateCarLine(sel);
-        }
+        });
     }
 
     _updateCarLine(vehicleMesh) {
@@ -154,138 +161,167 @@ export class DevMode {
     }
 
     addWaypointToSelected() {
-        const car = this.gizmo.selectedObject;
-        if (!car || !['car', 'bicycle', 'pickup'].includes(car.userData.type)) return;
+        // Only works if a single car/bicycle is selected, or we iterate all.
+        // User requirements say "Any options that don't apply to all... should not be displayed"
+        // If multiple cars selected, we could add waypoint to all?
+        // For now, let's limit to single selection for waypoints or just the first valid one.
+        // But UI logic should probably handle the button visibility.
 
-        if (car.userData.waypoints.length >= 5) {
-            alert("Maximum 5 waypoints allowed.");
-            return;
-        }
+        // Let's apply to ALL selected cars.
+        const cars = this.selectedObjects.filter(o => ['car', 'bicycle', 'pickup'].includes(o.userData.type));
+        if (cars.length === 0) return;
 
-        const visualGroup = car.userData.waypointGroup;
-        if (!visualGroup) {
-            console.error("No waypoint group found on selected car");
-            return;
-        }
+        cars.forEach(car => {
+            if (car.userData.waypoints.length >= 5) {
+                console.warn(`Car ${car.id} max waypoints reached.`);
+                return;
+            }
 
-        // Determine position: Last waypoint or default offset from car
-        const lastPos = car.userData.waypoints.length > 0
-            ? car.userData.waypoints[car.userData.waypoints.length - 1]
-            : car.position.clone();
+            const visualGroup = car.userData.waypointGroup;
+            if (!visualGroup) return;
 
-        const newPos = lastPos.clone().add(new THREE.Vector3(10, 0, 0)); // Offset 10m World
+            const lastPos = car.userData.waypoints.length > 0
+                ? car.userData.waypoints[car.userData.waypoints.length - 1]
+                : car.position.clone();
 
-        // Add to data
-        car.userData.waypoints.push(newPos);
-        const idx = car.userData.waypoints.length - 1;
+            const newPos = lastPos.clone().add(new THREE.Vector3(10, 0, 0));
 
-        // Add visual
-        const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
-        const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-        const orb = new THREE.Mesh(orbGeo, orbMat);
-        orb.position.copy(newPos);
-        orb.userData = { type: 'waypoint', isHelper: true, index: idx, vehicle: car };
-        visualGroup.add(orb);
+            car.userData.waypoints.push(newPos);
+            const idx = car.userData.waypoints.length - 1;
 
-        // Ensure visual group is visible and in scene
-        visualGroup.visible = true;
-        if (visualGroup.parent !== this.app.renderer.scene) {
-            this.app.renderer.scene.add(visualGroup);
-        }
+            const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
+            const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            orb.position.copy(newPos);
+            orb.userData = { type: 'waypoint', isHelper: true, index: idx, vehicle: car };
+            visualGroup.add(orb);
 
-        // Create or update line
-        if (car.userData.waypoints.length === 1 && !visualGroup.getObjectByName('pathLine')) {
-             const material = new THREE.LineBasicMaterial({ color: 0xffffff });
-             const points = [car.position.clone(), newPos];
-             const geometry = new THREE.BufferGeometry().setFromPoints(points);
-             const line = new THREE.Line(geometry, material);
-             line.name = 'pathLine';
-             visualGroup.add(line);
-        } else {
-            this._updateCarLine(car);
-        }
-
-        if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
-        this.ui.updateProperties(car);
-    }
-
-    removeWaypointFromSelected() {
-        const car = this.gizmo.selectedObject;
-        if (!car || !['car', 'bicycle', 'pickup'].includes(car.userData.type)) return;
-
-        if (car.userData.waypoints.length === 0) return;
-
-        // Remove from data
-        car.userData.waypoints.pop();
-
-        // Remove visual
-        const visualGroup = car.userData.waypointGroup;
-        if (visualGroup) {
-            // Find last waypoint sphere
-            // VisualGroup children include line and spheres.
-            // Filter spheres
-            const spheres = visualGroup.children.filter(c => c.userData.type === 'waypoint');
-            if (spheres.length > 0) {
-                const lastSphere = spheres[spheres.length - 1];
-                visualGroup.remove(lastSphere);
+            visualGroup.visible = true;
+            if (visualGroup.parent !== this.app.renderer.scene) {
+                this.app.renderer.scene.add(visualGroup);
             }
 
             // Update or remove line
-            if (car.userData.waypoints.length === 0) {
-                const line = visualGroup.getObjectByName('pathLine');
-                if (line) visualGroup.remove(line);
+            if (car.userData.waypoints.length === 1 && !visualGroup.getObjectByName('pathLine')) {
+                 const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+                 const points = [car.position.clone(), newPos];
+                 const geometry = new THREE.BufferGeometry().setFromPoints(points);
+                 const line = new THREE.Line(geometry, material);
+                 line.name = 'pathLine';
+                 visualGroup.add(line);
             } else {
                 this._updateCarLine(car);
             }
+            if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
+        });
+
+        // Refresh properties if only 1 is selected (showing detailed view)
+        if (this.selectedObjects.length === 1) {
+            this.ui.updateProperties(this.selectedObjects[0]);
         }
-        if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
-        this.ui.updateProperties(car);
     }
 
-    selectObject(object) {
-        // Called by InteractionManager or Gizmo
+    removeWaypointFromSelected() {
+        const cars = this.selectedObjects.filter(o => ['car', 'bicycle', 'pickup'].includes(o.userData.type));
+
+        cars.forEach(car => {
+            if (car.userData.waypoints.length === 0) return;
+
+            car.userData.waypoints.pop();
+            const visualGroup = car.userData.waypointGroup;
+            if (visualGroup) {
+                const spheres = visualGroup.children.filter(c => c.userData.type === 'waypoint');
+                if (spheres.length > 0) {
+                    const lastSphere = spheres[spheres.length - 1];
+                    visualGroup.remove(lastSphere);
+                }
+                if (car.userData.waypoints.length === 0) {
+                    const line = visualGroup.getObjectByName('pathLine');
+                    if (line) visualGroup.remove(line);
+                } else {
+                    this._updateCarLine(car);
+                }
+            }
+            if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
+        });
+
+        if (this.selectedObjects.length === 1) {
+            this.ui.updateProperties(this.selectedObjects[0]);
+        }
+    }
+
+    selectObject(object, shiftKey = false) {
         if (!object) {
+            // Deselect all
+            this.selectedObjects = [];
             this.gizmo.detach();
             this.ui.hideProperties();
             return;
         }
 
-        this.gizmo.attach(object);
+        // Handle selecting a Waypoint Proxy
+        // If clicking a Waypoint Sphere, we want Gizmo to attach to it.
+        // But UI properties should probably show info about the CAR it belongs to?
+        // Or just "Waypoint".
 
-        if (object.userData.type === 'waypoint' && object.userData.vehicle) {
-            this.ui.showProperties(object);
+        if (shiftKey) {
+            // Toggle
+            const idx = this.selectedObjects.indexOf(object);
+            if (idx !== -1) {
+                // Remove
+                this.selectedObjects.splice(idx, 1);
+            } else {
+                // Add
+                this.selectedObjects.push(object);
+            }
         } else {
-            this.ui.showProperties(object);
+            // Single Select
+            // If already selected and single click, we might just want to keep it selected.
+            // But prompt says: "Clicking on a new object without holding select should only select the single item and clear the group."
+            // Implicitly, clicking the SAME object without shift should probably just keep it selected (or reset group to just that one).
+            this.selectedObjects = [object];
+        }
+
+        if (this.selectedObjects.length === 0) {
+             this.gizmo.detach();
+             this.ui.hideProperties();
+        } else {
+            // Pass the whole array to gizmo
+            this.gizmo.attach(this.selectedObjects);
+
+            // Show properties.
+            // If multiple, Gizmo will manage the "Proxy" and UI should show that.
+            if (this.selectedObjects.length > 1) {
+                this.ui.showProperties(this.gizmo.proxy); // Show Group Properties
+            } else {
+                this.ui.showProperties(this.selectedObjects[0]);
+            }
         }
     }
 
     deleteSelected() {
-        if (this.gizmo.selectedObject) {
-            const obj = this.gizmo.selectedObject;
+        if (this.selectedObjects.length > 0) {
+            // Create a copy because we modify the array during iteration if we weren't careful,
+            // but here we just clear selection at the end.
+            const toDelete = [...this.selectedObjects];
 
-            // Special case: deleting a waypoint?
-            if (obj.userData.type === 'waypoint') {
-                // Not supported via delete key yet, use button
-                return;
-            }
+            toDelete.forEach(obj => {
+                 if (obj.userData.type === 'waypoint') return; // Skip explicit waypoint deletion via DEL key for now
+
+                 if (obj.userData.waypointGroup) {
+                      this.app.renderer.scene.remove(obj.userData.waypointGroup);
+                 }
+                 this.app.renderer.scene.remove(obj);
+                 if (this.app.colliderSystem) {
+                     this.app.colliderSystem.remove(obj);
+                 }
+                 if (this.app.world && this.app.world.colliders) {
+                      const idx = this.app.world.colliders.findIndex(c => c.mesh === obj);
+                      if (idx !== -1) this.app.world.colliders.splice(idx, 1);
+                 }
+            });
 
             this.selectObject(null);
-
-            // Cleanup Waypoint Group if exists
-            if (obj.userData.waypointGroup) {
-                 this.app.renderer.scene.remove(obj.userData.waypointGroup);
-            }
-
-            // Remove from scene and collider system
-            this.app.renderer.scene.remove(obj);
-            if (this.app.colliderSystem) {
-                this.app.colliderSystem.remove(obj);
-            }
-            // Also remove from world.colliders
-            if (this.app.world && this.app.world.colliders) {
-                 const idx = this.app.world.colliders.findIndex(c => c.mesh === obj);
-                 if (idx !== -1) this.app.world.colliders.splice(idx, 1);
-            }
         }
     }
 
@@ -293,6 +329,7 @@ export class DevMode {
     clearMap() {
         this.app.world.clear();
         this.app.rings.clear();
+        this.selectObject(null);
     }
 
     saveMap() {

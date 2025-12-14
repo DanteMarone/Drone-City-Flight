@@ -10,6 +10,7 @@ export class GizmoManager {
 
         // Proxy object for handle offset
         // User Request: Visible sphere, floating just above.
+        // Group Proxy (Centroid)
         const proxyGeo = new THREE.SphereGeometry(0.5, 16, 16);
         const proxyMat = new THREE.MeshBasicMaterial({
             color: 0x00ffff,
@@ -18,9 +19,18 @@ export class GizmoManager {
             opacity: 0.8
         });
         this.proxy = new THREE.Mesh(proxyGeo, proxyMat);
-        this.proxy.visible = false; // Hidden until selection
-        this.proxy.renderOrder = 999; // Ensure on top
+        this.proxy.visible = false;
+        this.proxy.renderOrder = 999;
         this.scene.add(this.proxy);
+
+        // Selection Indicators (Individual spheres)
+        this.selectionHelpers = [];
+        this.selectionHelperMat = new THREE.MeshBasicMaterial({
+            color: 0xffff00, // Yellow for individual items
+            depthTest: false,
+            transparent: true,
+            opacity: 0.5
+        });
 
         // Create Controls
         this.control = new TransformControls(camera, renderer.domElement);
@@ -31,21 +41,31 @@ export class GizmoManager {
             }
 
             // Update Physics on Drag End
-            if (!event.value && this.selectedObject && this.interaction.app.colliderSystem) {
-                let target = this.selectedObject;
-                // If dragging a waypoint, find the parent Car to update
-                if (target.userData.type === 'waypoint' && target.parent && target.parent.parent && target.parent.parent.userData.type === 'car') {
-                    target = target.parent.parent;
+            if (event.value) {
+                // Drag Started
+                this.captureOffsets();
+            } else {
+                // Drag Ended
+                if (this.selectedObjects.length > 0 && this.interaction.app.colliderSystem) {
+                    // Update Physics Bodies for all selected
+                    this.selectedObjects.forEach(obj => {
+                        let target = obj;
+                        if (target.userData.type === 'waypoint' && target.parent?.parent?.userData.type === 'car') {
+                            target = target.parent.parent;
+                        }
+                        this.interaction.app.colliderSystem.updateBody(target);
+                    });
                 }
-                this.interaction.app.colliderSystem.updateBody(target);
             }
         });
 
         // Handle changes from Gizmo (Dragging Handles)
         this.control.addEventListener('change', () => {
-             if (this.selectedObject && this.interaction && this.interaction.devMode) {
-                 this.syncObjectToProxy(); // Apply gizmo move to object
-                 this.interaction.devMode.ui.updateProperties(this.selectedObject);
+             if (this.selectedObjects.length > 0 && this.interaction && this.interaction.devMode) {
+                 this.updateObjectsFromProxy(); // Apply gizmo move to objects
+
+                 // Update UI properties (showing Proxy properties)
+                 this.interaction.devMode.ui.updateProperties(this.proxy);
              }
         });
 
@@ -53,38 +73,125 @@ export class GizmoManager {
         // TransformControls is not an Object3D, but getHelper() returns one.
         this.scene.add(this.control.getHelper());
 
-        this.selectedObject = null;
-
         // Configurable offset
+        this.selectedObjects = [];
+        this.offsets = []; // Stores { position, quaternion, scale } relative to proxy inverse
         this.offsetY = 5;
     }
 
-    attach(object) {
-        this.selectedObject = object;
+    attach(objects) {
+        // Normalize input to array
+        if (!Array.isArray(objects)) {
+            objects = objects ? [objects] : [];
+        }
+
+        this.selectedObjects = objects;
+
+        if (this.selectedObjects.length === 0) {
+            this.detach();
+            return;
+        }
+
+        // Calculate Centroid
+        const centroid = new THREE.Vector3();
+        this.selectedObjects.forEach(obj => centroid.add(obj.position));
+        centroid.divideScalar(this.selectedObjects.length);
 
         // Init Proxy
-        this.syncProxyToObject();
         this.proxy.visible = true; // Show the sphere
+        // Position Proxy at Centroid (plus offsetY)
+        this.proxy.position.copy(centroid).add(new THREE.Vector3(0, this.offsetY, 0));
+        this.proxy.rotation.set(0, 0, 0); // Reset rotation for group pivot
+        this.proxy.scale.set(1, 1, 1);    // Reset scale
+        this.proxy.updateMatrixWorld();
 
-        // Attach to Proxy instead of object
+        // Attach Controls to Proxy
         this.control.attach(this.proxy);
-        // this.control.visible = true; // Not needed on control itself if using helper, but helper handles visibility via attach/detach usually.
-        // Actually TransformControls.detach() sets _root.visible = false. attach() sets it to true.
+
+        // Update Visuals (Individual Indicators)
+        this.updateSelectionVisuals();
+
+        // Capture initial offsets immediately so we are ready for moves
+        this.captureOffsets();
 
         // Force handles on top
         // Traverse the helper, not the control
         const helper = this.control.getHelper();
         if (helper && helper.traverse) {
             helper.traverse(child => {
+                child.renderOrder = 1000;
                 if (child.material) child.material.depthTest = false;
             });
         }
     }
 
     detach() {
-        this.selectedObject = null;
+        this.selectedObjects = [];
         this.control.detach();
-        this.proxy.visible = false; // Hide the sphere
+        this.proxy.visible = false;
+        this.clearSelectionVisuals();
+    }
+
+    clearSelectionVisuals() {
+        this.selectionHelpers.forEach(h => this.scene.remove(h));
+        this.selectionHelpers = [];
+    }
+
+    updateSelectionVisuals() {
+        this.clearSelectionVisuals();
+        const sphereGeo = new THREE.SphereGeometry(0.5, 8, 8); // Low poly is fine
+
+        this.selectedObjects.forEach(obj => {
+            // Don't add indicator to waypoints, they are already spheres
+            if (obj.userData.type === 'waypoint') return;
+
+            const mesh = new THREE.Mesh(sphereGeo, this.selectionHelperMat);
+            mesh.position.copy(obj.position);
+            mesh.renderOrder = 998;
+            this.scene.add(mesh);
+            this.selectionHelpers.push(mesh);
+        });
+    }
+
+    captureOffsets() {
+        this.offsets = [];
+        const proxyInverse = this.proxy.matrixWorld.clone().invert();
+
+        this.selectedObjects.forEach(obj => {
+            // Store the transform of the object relative to the Proxy
+            // Matrix: Offset = ProxyInverse * ObjectWorld
+            const offsetMatrix = proxyInverse.clone().multiply(obj.matrixWorld);
+            this.offsets.push(offsetMatrix);
+        });
+    }
+
+    updateObjectsFromProxy() {
+        if (this.selectedObjects.length === 0) return;
+
+        // Update objects based on Proxy's new transform
+        // ObjectNewWorld = ProxyNewWorld * OffsetMatrix
+
+        this.proxy.updateMatrixWorld(); // Ensure current
+
+        this.selectedObjects.forEach((obj, i) => {
+            if (!this.offsets[i]) return;
+
+            const newMatrix = this.proxy.matrixWorld.clone().multiply(this.offsets[i]);
+
+            // Decompose back to position/quaternion/scale
+            newMatrix.decompose(obj.position, obj.quaternion, obj.scale);
+            obj.updateMatrixWorld();
+        });
+
+        // Update the visual indicators positions too
+        // We can just re-copy positions since objects moved
+        let helperIdx = 0;
+        this.selectedObjects.forEach(obj => {
+            if (obj.userData.type !== 'waypoint' && this.selectionHelpers[helperIdx]) {
+                this.selectionHelpers[helperIdx].position.copy(obj.position);
+                helperIdx++;
+            }
+        });
     }
 
     updateSnapping(grid) {
@@ -98,22 +205,20 @@ export class GizmoManager {
     }
 
     // Sync Logic
-    syncProxyToObject() {
-        if (!this.selectedObject) return;
-        // Place proxy above object
-        this.proxy.position.copy(this.selectedObject.position).add(new THREE.Vector3(0, this.offsetY, 0));
-        this.proxy.rotation.copy(this.selectedObject.rotation);
-        this.proxy.scale.copy(this.selectedObject.scale);
-        this.proxy.updateMatrixWorld();
+    // Called when direct dragging or property updates happen externally
+    // We need to propagate proxy changes to objects
+    syncProxyToObjects() {
+        // This is essentially updateObjectsFromProxy, but let's keep naming consistent
+        this.updateObjectsFromProxy();
     }
 
+    // Legacy sync (deprecated but kept if needed for single-object logic fallback?)
+    // Actually, attach() logic handles setup.
+    syncProxyToObject() {
+         // Replaced by captureOffsets and multi-object logic
+    }
     syncObjectToProxy() {
-        if (!this.selectedObject) return;
-        // Apply proxy transform back to object
-        this.selectedObject.position.copy(this.proxy.position).sub(new THREE.Vector3(0, this.offsetY, 0));
-        this.selectedObject.rotation.copy(this.proxy.rotation);
-        this.selectedObject.scale.copy(this.proxy.scale);
-        this.selectedObject.updateMatrixWorld();
+         // Replaced
     }
 
     setMode(mode) {

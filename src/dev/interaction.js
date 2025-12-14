@@ -77,8 +77,8 @@ export class InteractionManager {
         for (const i of intersects) {
             let obj = i.object;
             // Ignore Helpers
-            if (obj.userData && obj.userData.isHelper) continue;
-            if (obj.userData && (obj.userData.type === 'waypoint' || obj.userData.type === 'gizmoProxy')) continue; // handled specially?
+            if (obj.userData && obj.userData.isHelper && obj.userData.type !== 'waypoint') continue;
+            if (obj.userData && obj.userData.type === 'gizmoProxy') continue;
 
             while (obj) {
                 if (obj.userData && obj.userData.type) {

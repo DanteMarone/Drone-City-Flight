@@ -133,9 +133,6 @@ export class GizmoManager {
         const sphereGeo = new THREE.SphereGeometry(0.5, 8, 8); // Low poly is fine
 
         this.selectedObjects.forEach(obj => {
-            // Don't add indicator to waypoints, they are already spheres
-            if (obj.userData.type === 'waypoint') return;
-
             const mesh = new THREE.Mesh(sphereGeo, this.selectionHelperMat);
             mesh.position.copy(obj.position);
             mesh.renderOrder = 998;

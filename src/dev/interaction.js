@@ -51,10 +51,26 @@ export class InteractionManager {
 
         this.raycaster.setFromCamera(this.mouse, this.devMode.cameraController.camera);
 
-        const plane = new THREE.Plane(new THREE.Vector3(0, 1, 0), 0);
-        const target = new THREE.Vector3();
-        this.raycaster.ray.intersectPlane(plane, target);
-        return target;
+        const intersects = this.raycaster.intersectObjects(this.app.renderer.scene.children, true);
+
+        for (const hit of intersects) {
+            // Check for ground
+            if (this.app.world && hit.object === this.app.world.ground) {
+                return hit.point;
+            }
+
+            // Check for entity
+            let obj = hit.object;
+            while (obj) {
+                if (obj.userData && obj.userData.type) {
+                    return hit.point;
+                }
+                if (obj.parent === this.app.renderer.scene) break;
+                obj = obj.parent;
+            }
+        }
+
+        return null;
     }
 
     _onMouseDown(e) {
@@ -178,7 +194,7 @@ export function setupDragDrop(interaction, container) {
                 // Use ObjectFactory (which delegates to EntityRegistry)
                 // We assume createObject handles all mapped types (river, car, bird, building, etc.)
                 // Note: ObjectFactory wraps 'river' now too.
-                const entity = interaction.factory.createObject(type, { x: point.x, z: point.z });
+                const entity = interaction.factory.createObject(type, { x: point.x, y: point.y, z: point.z });
 
                 if (entity && entity.mesh) {
                     // Centralized Registration

@@ -104,6 +104,9 @@ export class GizmoManager {
         // Update Visuals (Individual Indicators)
         this.updateSelectionVisuals();
 
+        // Ensure objects have updated matrices before capturing offsets
+        this.selectedObjects.forEach(obj => obj.updateMatrixWorld());
+
         // Capture initial offsets immediately so we are ready for moves
         this.captureOffsets();
 
@@ -133,9 +136,6 @@ export class GizmoManager {
         const sphereGeo = new THREE.SphereGeometry(0.5, 8, 8); // Low poly is fine
 
         this.selectedObjects.forEach(obj => {
-            // Don't add indicator to waypoints, they are already spheres
-            if (obj.userData.type === 'waypoint') return;
-
             const mesh = new THREE.Mesh(sphereGeo, this.selectionHelperMat);
             mesh.position.copy(obj.position);
             mesh.renderOrder = 998;

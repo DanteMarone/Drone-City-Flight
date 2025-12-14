@@ -141,7 +141,7 @@ export class DevMode {
                          this._updateCarLine(vehicle);
                     }
                 }
-            } else if (['car', 'bicycle'].includes(sel.userData.type)) {
+            } else if (['car', 'bicycle', 'pickup'].includes(sel.userData.type)) {
                 this._updateCarLine(sel);
             }
         });
@@ -167,8 +167,8 @@ export class DevMode {
         // For now, let's limit to single selection for waypoints or just the first valid one.
         // But UI logic should probably handle the button visibility.
 
-        // Let's apply to ALL selected cars.
-        const cars = this.selectedObjects.filter(o => ['car', 'bicycle'].includes(o.userData.type));
+        // Let's apply to ALL selected cars/pickups.
+        const cars = this.selectedObjects.filter(o => ['car', 'bicycle', 'pickup'].includes(o.userData.type));
         if (cars.length === 0) return;
 
         cars.forEach(car => {
@@ -221,7 +221,7 @@ export class DevMode {
     }
 
     removeWaypointFromSelected() {
-        const cars = this.selectedObjects.filter(o => ['car', 'bicycle'].includes(o.userData.type));
+        const cars = this.selectedObjects.filter(o => ['car', 'bicycle', 'pickup'].includes(o.userData.type));
 
         cars.forEach(car => {
             if (car.userData.waypoints.length === 0) return;

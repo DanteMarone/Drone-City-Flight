@@ -78,6 +78,12 @@ export class DevUI {
                 </div>
 
                 <div id="car-controls" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
+                     <!-- Pickup Specific -->
+                     <div id="pickup-controls" style="display:none; align-items:center; gap:5px;">
+                        <label style="width:70px; font-size:0.8em;">Wait Time</label>
+                        <input id="prop-waitTime" type="number" step="1" min="0" style="flex:1">
+                     </div>
+
                      <button id="btn-add-waypoint">Add Waypoint</button>
                      <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
                      <button id="btn-remove-waypoint">Remove Last Waypoint</button>
@@ -96,6 +102,7 @@ export class DevUI {
                 <div class="palette-item" draggable="true" data-type="ring">Ring</div>
                 <div class="palette-item" draggable="true" data-type="river">River</div>
                 <div class="palette-item" draggable="true" data-type="car">Car</div>
+                <div class="palette-item" draggable="true" data-type="pickup">Pickup Truck</div>
                 <div class="palette-item" draggable="true" data-type="bicycle">Bicycle</div>
                 <div class="palette-item" draggable="true" data-type="orangeTree">Orange Tree</div>
                 <div class="palette-item" draggable="true" data-type="bird">Bird</div>
@@ -230,6 +237,20 @@ export class DevUI {
             this.devMode.deleteSelected();
         };
 
+        const waitTimeInput = this.dom.querySelector('#prop-waitTime');
+        if (waitTimeInput) {
+            waitTimeInput.onchange = (e) => {
+                 const val = parseFloat(e.target.value);
+                 if (isNaN(val)) return;
+                 if (this.devMode.selectedObjects.length === 1) {
+                     const obj = this.devMode.selectedObjects[0];
+                     obj.userData.waitTime = val;
+                     // Also update internal state if needed, though update() reads it directly
+                     // Reset timer if we want immediate effect? Maybe not necessary.
+                 }
+            };
+        }
+
         this.dom.querySelector('#btn-add-waypoint').onclick = () => {
             if (this.devMode.addWaypointToSelected) this.devMode.addWaypointToSelected();
         };
@@ -306,13 +327,25 @@ export class DevUI {
 
         // Car Controls
         const carControls = this.dom.querySelector('#car-controls');
+        const pickupControls = this.dom.querySelector('#pickup-controls');
 
         // Show specific controls only if SINGLE selection and correct type
         if (this.devMode.selectedObjects.length === 1) {
             const sel = this.devMode.selectedObjects[0];
-            if (['car', 'bicycle'].includes(sel.userData.type)) {
+            if (['car', 'bicycle', 'pickup'].includes(sel.userData.type)) {
                 carControls.style.display = 'flex';
                 this._updateWaypointList(sel);
+
+                if (sel.userData.type === 'pickup') {
+                    pickupControls.style.display = 'flex';
+                    const waitInput = this.dom.querySelector('#prop-waitTime');
+                    if (waitInput) {
+                        waitInput.value = (sel.userData.waitTime !== undefined) ? sel.userData.waitTime : 10;
+                    }
+                } else {
+                     pickupControls.style.display = 'none';
+                }
+
             } else {
                 carControls.style.display = 'none';
             }
@@ -346,7 +379,9 @@ export class DevUI {
                     wp[axis] = val;
 
                     // Update Visual Sphere
-                    const visuals = car.getObjectByName('waypointVisuals');
+                    const visuals = car.getObjectByName('waypointVisuals_WorldSpace') || car.getObjectByName('waypointVisuals');
+                    // Check logic in VehicleEntity: group name is 'waypointVisuals_WorldSpace'
+
                     if (visuals) {
                         const spheres = visuals.children.filter(c => c.userData.type === 'waypoint');
                         if (spheres[index]) {

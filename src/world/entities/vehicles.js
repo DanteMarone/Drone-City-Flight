@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
-import { createSedanGeometry, createBicycleMesh } from '../../world/carGeometries.js';
+import { createSedanGeometry, createBicycleMesh, createPickupGeometry } from '../../world/carGeometries.js';
 import { CONFIG } from '../../config.js';
 
 export class VehicleEntity extends BaseEntity {
@@ -17,6 +17,17 @@ export class VehicleEntity extends BaseEntity {
             this.mesh.userData.waypoints = this.waypoints;
             this.mesh.userData.targetIndex = 1;
             this.mesh.userData.isVehicle = true;
+
+            // Ping Pong State
+            if (this.type === 'pickup') {
+                 this.mesh.userData.pingPong = true;
+                 this.mesh.userData.reverse = false;
+                 this.mesh.userData.waitTimer = 0;
+                 // Set default wait time if not exists
+                 if (this.mesh.userData.waitTime === undefined) {
+                     this.mesh.userData.waitTime = 10;
+                 }
+            }
 
             this._createWaypointVisuals();
         }
@@ -68,9 +79,17 @@ export class VehicleEntity extends BaseEntity {
         const path = [this.mesh.position.clone(), ...this.waypoints];
         if (path.length < 2) return;
 
+        // Ping-Pong Logic: Wait Handling
+        if (this.mesh.userData.pingPong && this.mesh.userData.waitTimer > 0) {
+            this.mesh.userData.waitTimer -= dt;
+            if (this.mesh.userData.waitTimer < 0) this.mesh.userData.waitTimer = 0;
+            return; // Waiting
+        }
+
         let targetIdx = this.mesh.userData.targetIndex;
         if (targetIdx === undefined) targetIdx = 1;
 
+        // Sanity Check
         if (targetIdx < 0) targetIdx = 0;
         if (targetIdx >= path.length) targetIdx = path.length - 1;
 
@@ -91,18 +110,49 @@ export class VehicleEntity extends BaseEntity {
             modelGroup.position.add(moveVec);
 
             // Rotation: Look at Target (World)
-            // Three.js Object3D.lookAt(vector) assumes vector is in World Space
-            // and handles parent transforms automatically.
             modelGroup.lookAt(targetPos);
 
         } else {
             // Snap
             modelGroup.position.copy(localTarget);
 
-            if (targetIdx < path.length - 1) {
-                this.mesh.userData.targetIndex++;
+            // Logic for Next Waypoint
+            if (this.mesh.userData.pingPong) {
+                const isReverse = this.mesh.userData.reverse;
+
+                if (!isReverse) {
+                    // Moving Forward (Start -> End)
+                    if (targetIdx < path.length - 1) {
+                        this.mesh.userData.targetIndex++;
+                    } else {
+                        // Reached End
+                        this.mesh.userData.reverse = true;
+                        this.mesh.userData.targetIndex = path.length - 2; // Next target is previous
+                        // Wait
+                        this.mesh.userData.waitTimer = this.mesh.userData.waitTime || 0;
+                    }
+                } else {
+                    // Moving Backward (End -> Start)
+                    if (targetIdx > 0) {
+                        this.mesh.userData.targetIndex--;
+                    } else {
+                        // Reached Start (which is index 0 in path construction, but here path[0] is start position)
+                        // Wait, path[0] is the start position.
+                        // Actually path is [Pos, W1, W2].
+                        // Index 0 is Pos.
+                        this.mesh.userData.reverse = false;
+                        this.mesh.userData.targetIndex = 1; // Next target is first waypoint
+                        // Wait
+                        this.mesh.userData.waitTimer = this.mesh.userData.waitTime || 0;
+                    }
+                }
             } else {
-                this.mesh.userData.targetIndex = 0;
+                // Loop Logic (Car/Bicycle)
+                if (targetIdx < path.length - 1) {
+                    this.mesh.userData.targetIndex++;
+                } else {
+                    this.mesh.userData.targetIndex = 0;
+                }
             }
         }
 
@@ -121,6 +171,13 @@ export class VehicleEntity extends BaseEntity {
         } else {
             data.params.waypoints = this.waypoints;
         }
+
+        if (this.mesh && this.mesh.userData.waitTime !== undefined) {
+            data.params.waitTime = this.mesh.userData.waitTime;
+        } else if (this.params.waitTime !== undefined) {
+             data.params.waitTime = this.params.waitTime;
+        }
+
         return data;
     }
 }
@@ -178,5 +235,46 @@ export class BicycleEntity extends VehicleEntity {
     }
 }
 
+export class PickupEntity extends VehicleEntity {
+    constructor(params) {
+        super(params);
+        this.type = 'pickup';
+        this.baseSpeed = (CONFIG.DRONE.MAX_SPEED || 18.0) - 1.0; // Slightly slower
+        this.params.waitTime = params.waitTime !== undefined ? params.waitTime : 10;
+    }
+
+    postInit() {
+        super.postInit();
+        if (this.mesh) {
+            this.mesh.userData.waitTime = this.params.waitTime;
+        }
+    }
+
+    createMesh(params) {
+        const geoData = createPickupGeometry();
+
+        const modelGroup = new THREE.Group();
+        modelGroup.name = 'modelGroup';
+
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x0044aa, roughness: 0.3, metalness: 0.4 });
+        const detailMat = new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.8, metalness: 0.1 });
+
+        const body = new THREE.Mesh(geoData.body, bodyMat);
+        const details = new THREE.Mesh(geoData.details, detailMat);
+
+        body.castShadow = true;
+        details.castShadow = true;
+
+        modelGroup.add(body);
+        modelGroup.add(details);
+
+        const group = new THREE.Group();
+        group.add(modelGroup);
+
+        return group;
+    }
+}
+
 EntityRegistry.register('car', CarEntity);
 EntityRegistry.register('bicycle', BicycleEntity);
+EntityRegistry.register('pickup', PickupEntity);

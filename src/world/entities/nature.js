@@ -8,6 +8,8 @@ export class BushEntity extends BaseEntity {
         this.type = 'bush';
     }
 
+    static get displayName() { return 'Bush'; }
+
     createMesh(params) {
         const group = new THREE.Group();
 
@@ -52,6 +54,8 @@ export class OrangeTreeEntity extends BaseEntity {
         super(params);
         this.type = 'orangeTree';
     }
+
+    static get displayName() { return 'Orange Tree'; }
 
     createMesh(params) {
         const group = new THREE.Group();

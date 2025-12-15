@@ -6,7 +6,7 @@ export class GridSystem {
         this.cellSize = 1; // Fixed size
         this.divisions = 1000; // Large area covered
         this.size = this.divisions * this.cellSize;
-        this.enabled = false;
+        this.enabled = true;
 
         this.helper = this._createHelper();
         this.helper.visible = false;

@@ -240,8 +240,7 @@ export class SchoolBusEntity extends BusEntity {
         // 6. Stop Sign (Paddle on left)
         const paddleGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.05, 8);
         paddleGeo.rotateZ(Math.PI / 2); // Flat facing side
-        paddleGeo.rotateY(Math.PI / 6); // Folded out slightly? Or flush. Let's make it flush.
-        paddleGeo.rotation.y = 0;
+        // paddleGeo.rotateY(Math.PI / 6); // Folded out slightly? Or flush. Let's make it flush.
         paddleGeo.translate(width / 2 + 0.05, 2.0, 1.0);
         // We'll make it red later, but for now let's just add it to black parts or separate?
         // Let's make a separate red material for it.

@@ -7,6 +7,7 @@ export { RadioTowerEntity } from './radioTower.js';
 export { NeonSignEntity } from './neonSign.js';
 export { HVACEntity } from './hvac.js';
 export { LandingPadEntity } from './landingPad.js';
+export { RadarDishEntity } from './radarDish.js';
 
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated

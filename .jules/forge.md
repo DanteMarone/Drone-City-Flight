@@ -30,6 +30,9 @@
   - **Animation**: Logic in `update(dt)` rotates the assembly layer, keeping the base static.
 - **Industrial HVAC**: Created using `BoxGeometry` (Housing) + `CylinderGeometry` (Recess) + Rotated `BoxGeometry` blades.
   - **Animation**: Rotates the blade group on the Y-axis.
+- **Radar Dish**: Created using `SphereGeometry` and `CylinderGeometry`.
+  - **Dish**: Used a `SphereGeometry` with `thetaLength` and non-uniform scaling (flattened on Z) to create a parabolic dish effect without complex curve generation.
+  - **Pivot Logic**: Separated `turret` (Y-axis rotation) and `dishPivot` (X-axis elevation) into nested Groups to allow independent, simultaneous 2-axis animation.
 - **Generic NPC**: Created using `CylinderGeometry` (Legs, Torso) + `SphereGeometry` (Head) within a `THREE.Group`.
   - **Texture**: `CanvasTexture` on the head sphere enables procedural facial expressions without external assets.
 

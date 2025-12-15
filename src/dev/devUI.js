@@ -81,6 +81,12 @@ export class DevUI {
                      <button id="btn-add-waypoint">Add Waypoint</button>
                      <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
                      <button id="btn-remove-waypoint">Remove Last Waypoint</button>
+                     <div id="pickup-controls" style="display:none; flex-direction:column; gap:5px;">
+                        <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                            Wait Time (s)
+                            <input id="pickup-wait-time" type="number" min="0" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                        </label>
+                     </div>
                 </div>
 
                 <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
@@ -96,6 +102,7 @@ export class DevUI {
                 <div class="palette-item" draggable="true" data-type="ring">Ring</div>
                 <div class="palette-item" draggable="true" data-type="river">River</div>
                 <div class="palette-item" draggable="true" data-type="car">Car</div>
+                <div class="palette-item" draggable="true" data-type="pickupTruck">Pickup Truck</div>
                 <div class="palette-item" draggable="true" data-type="bicycle">Bicycle</div>
                 <div class="palette-item" draggable="true" data-type="orangeTree">Orange Tree</div>
                 <div class="palette-item" draggable="true" data-type="bird">Bird</div>
@@ -238,6 +245,20 @@ export class DevUI {
             if (this.devMode.removeWaypointFromSelected) this.devMode.removeWaypointFromSelected();
         };
 
+        const pickupWaitInput = this.dom.querySelector('#pickup-wait-time');
+        if (pickupWaitInput) {
+            pickupWaitInput.onchange = (e) => {
+                const val = parseFloat(e.target.value);
+                if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
+
+                const sel = this.devMode.selectedObjects[0];
+                if (sel.userData.type !== 'pickupTruck') return;
+
+                sel.userData.waitTime = Math.max(0, val);
+                if (sel.userData.params) sel.userData.params.waitTime = sel.userData.waitTime;
+            };
+        }
+
         // Drag Start
         const items = this.dom.querySelectorAll('.palette-item');
         items.forEach(item => {
@@ -306,19 +327,33 @@ export class DevUI {
 
         // Car Controls
         const carControls = this.dom.querySelector('#car-controls');
+        const pickupControls = this.dom.querySelector('#pickup-controls');
 
         // Show specific controls only if SINGLE selection and correct type
         if (this.devMode.selectedObjects.length === 1) {
             const sel = this.devMode.selectedObjects[0];
-            if (['car', 'bicycle'].includes(sel.userData.type)) {
+            if (['car', 'bicycle', 'pickupTruck'].includes(sel.userData.type)) {
                 carControls.style.display = 'flex';
                 this._updateWaypointList(sel);
+
+                if (sel.userData.type === 'pickupTruck') {
+                    pickupControls.style.display = 'flex';
+                    const waitInput = this.dom.querySelector('#pickup-wait-time');
+                    if (waitInput && document.activeElement !== waitInput) {
+                        const wait = sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 10;
+                        waitInput.value = wait;
+                    }
+                } else {
+                    pickupControls.style.display = 'none';
+                }
             } else {
                 carControls.style.display = 'none';
+                pickupControls.style.display = 'none';
             }
         } else {
             // Hide for multi-select (per user requirement to hide incompatible options)
             carControls.style.display = 'none';
+            pickupControls.style.display = 'none';
         }
     }
 

@@ -77,6 +77,60 @@ export function createSUVGeometry() {
     };
 }
 
+export function createPickupGeometry() {
+    const bodyParts = [];
+    const detailParts = [];
+
+    // Chassis (longer frame for bed)
+    const chassis = new THREE.BoxGeometry(2.1, 0.6, 5.0);
+    chassis.translate(0, 0.6, 0.1);
+    bodyParts.push(chassis);
+
+    // Cabin
+    const cabin = new THREE.BoxGeometry(1.8, 0.9, 2.2);
+    cabin.translate(0, 1.3, -0.8);
+    bodyParts.push(cabin);
+
+    // Truck Bed walls
+    const bedFloor = new THREE.BoxGeometry(1.9, 0.2, 2.4);
+    bedFloor.translate(0, 0.7, 1.35);
+    bodyParts.push(bedFloor);
+
+    const bedSide = new THREE.BoxGeometry(0.1, 0.6, 2.4);
+    const leftSide = bedSide.clone(); leftSide.translate(0.95, 1.0, 1.35); bodyParts.push(leftSide);
+    const rightSide = bedSide.clone(); rightSide.translate(-0.95, 1.0, 1.35); bodyParts.push(rightSide);
+
+    const tailgate = new THREE.BoxGeometry(1.9, 0.6, 0.15);
+    tailgate.translate(0, 1.0, 2.45);
+    bodyParts.push(tailgate);
+
+    // Wheels (chunky)
+    const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.5, 14);
+    wheelGeo.rotateZ(Math.PI / 2);
+    const wX = 0.95, wY = 0.45, wZ = 1.6;
+
+    const fl = wheelGeo.clone(); fl.translate(wX, wY, wZ); detailParts.push(fl);
+    const fr = wheelGeo.clone(); fr.translate(-wX, wY, wZ); detailParts.push(fr);
+    const bl = wheelGeo.clone(); bl.translate(wX, wY, -wZ + 0.3); detailParts.push(bl);
+    const br = wheelGeo.clone(); br.translate(-wX, wY, -wZ + 0.3); detailParts.push(br);
+
+    // Grill + bumper accents
+    const bumper = new THREE.BoxGeometry(2.0, 0.3, 0.25);
+    const frontB = bumper.clone(); frontB.translate(0, 0.5, -2.65); detailParts.push(frontB);
+    const rearB = bumper.clone(); rearB.translate(0, 0.5, 2.7); detailParts.push(rearB);
+
+    // Simple windshield
+    const windshield = new THREE.BoxGeometry(1.6, 0.6, 0.12);
+    windshield.rotateX(-Math.PI / 7);
+    windshield.translate(0, 1.35, -1.4);
+    detailParts.push(windshield);
+
+    return {
+        body: mergeGeometries(bodyParts),
+        details: mergeGeometries(detailParts)
+    };
+}
+
 export function createBicycleMesh() {
     const group = new THREE.Group();
 

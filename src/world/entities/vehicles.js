@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
-import { createSedanGeometry, createBicycleMesh } from '../../world/carGeometries.js';
+import { createSedanGeometry, createBicycleMesh, createPickupGeometry } from '../../world/carGeometries.js';
 import { CONFIG } from '../../config.js';
 
 export class VehicleEntity extends BaseEntity {
@@ -157,6 +157,123 @@ export class CarEntity extends VehicleEntity {
     }
 }
 
+export class PickupTruckEntity extends CarEntity {
+    constructor(params) {
+        super(params);
+        this.type = 'pickupTruck';
+        this.baseSpeed = (CONFIG.DRONE.MAX_SPEED || 18.0) - 1.0;
+
+        this.waitTime = params?.waitTime ?? 10;
+        this.waitTimer = 0;
+        this.direction = 1; // 1 forward, -1 backward
+    }
+
+    createMesh(params) {
+        const geoData = createPickupGeometry();
+
+        const modelGroup = new THREE.Group();
+        modelGroup.name = 'modelGroup';
+
+        const bodyMat = new THREE.MeshStandardMaterial({ color: 0x2d5c88, roughness: 0.3, metalness: 0.5 });
+        const detailMat = new THREE.MeshStandardMaterial({ color: 0x2b2b2b, roughness: 0.85, metalness: 0.2 });
+
+        const body = new THREE.Mesh(geoData.body, bodyMat);
+        const details = new THREE.Mesh(geoData.details, detailMat);
+
+        body.castShadow = true;
+        details.castShadow = true;
+
+        modelGroup.add(body);
+        modelGroup.add(details);
+
+        const group = new THREE.Group();
+        group.add(modelGroup);
+
+        return group;
+    }
+
+    postInit() {
+        super.postInit();
+        if (this.mesh) {
+            this.mesh.userData.waitTime = this.waitTime;
+            if (this.mesh.userData.params) {
+                this.mesh.userData.params.waitTime = this.waitTime;
+            }
+        }
+    }
+
+    update(dt) {
+        if (!this.mesh) return;
+
+        const modelGroup = this.mesh.getObjectByName('modelGroup');
+        if (!modelGroup) return;
+
+        const path = [this.mesh.position.clone(), ...this.waypoints];
+        if (path.length < 2) return;
+
+        const currentWait = this.mesh.userData.waitTime ?? this.waitTime;
+        this.waitTime = currentWait;
+        if (this.mesh.userData.params) {
+            this.mesh.userData.params.waitTime = currentWait;
+        }
+
+        if (this.waitTimer > 0) {
+            if (currentWait === 0) {
+                this.waitTimer = 0;
+            } else {
+                this.waitTimer = Math.max(0, Math.min(this.waitTimer, currentWait) - dt);
+            }
+
+            if (this.waitTimer > 0) return;
+        }
+
+        let targetIdx = this.mesh.userData.targetIndex;
+        if (targetIdx === undefined) targetIdx = 1;
+        targetIdx = THREE.MathUtils.clamp(targetIdx, 0, path.length - 1);
+
+        const targetPos = path[targetIdx];
+        const localTarget = this.mesh.worldToLocal(targetPos.clone());
+        const currentLocal = modelGroup.position.clone();
+
+        const speed = Math.max(0, this.baseSpeed);
+        const dist = currentLocal.distanceTo(localTarget);
+        const moveAmount = speed * dt;
+
+        if (dist > moveAmount) {
+            const dir = localTarget.sub(currentLocal).normalize();
+            const moveVec = dir.multiplyScalar(moveAmount);
+            modelGroup.position.add(moveVec);
+            modelGroup.lookAt(targetPos);
+        } else {
+            modelGroup.position.copy(localTarget);
+
+            const atForwardEnd = targetIdx >= path.length - 1;
+            const atBackwardEnd = targetIdx <= 0;
+
+            if (atForwardEnd || atBackwardEnd) {
+                this.direction *= -1;
+                this.waitTimer = Math.max(0, currentWait);
+                const nextIdx = THREE.MathUtils.clamp(targetIdx + this.direction, 0, path.length - 1);
+                this.mesh.userData.targetIndex = nextIdx;
+            } else {
+                this.mesh.userData.targetIndex = targetIdx + this.direction;
+            }
+        }
+
+        if (this.box) {
+            this.box.makeEmpty();
+            modelGroup.updateMatrixWorld();
+            this.box.expandByObject(modelGroup);
+        }
+    }
+
+    serialize() {
+        const data = super.serialize();
+        data.params.waitTime = this.mesh?.userData?.waitTime ?? this.waitTime;
+        return data;
+    }
+}
+
 export class BicycleEntity extends VehicleEntity {
     constructor(params) {
         super(params);
@@ -179,4 +296,5 @@ export class BicycleEntity extends VehicleEntity {
 }
 
 EntityRegistry.register('car', CarEntity);
+EntityRegistry.register('pickupTruck', PickupTruckEntity);
 EntityRegistry.register('bicycle', BicycleEntity);

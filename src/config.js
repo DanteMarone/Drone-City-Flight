@@ -51,7 +51,8 @@ export const CONFIG = {
         DRAIN_DESCEND: 0.5,
         DRAIN_IDLE: 0,
         REWARD: 15,
-        DRAIN_COLLISION: 20.0 // Drain per second when hit by bird
+        DRAIN_COLLISION: 20.0, // Drain per second when hit by bird
+        RECHARGE_RATE: 10.0 // Charge per second on landing pad
     },
 
     // Birds

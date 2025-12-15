@@ -255,45 +255,44 @@ export class DevMode {
 
     selectObject(object, shiftKey = false) {
         if (!object) {
-            // Deselect all
-            this.selectedObjects = [];
+            this.selectObjects([]);
+            return;
+        }
+
+        let nextSelection = [];
+
+        if (shiftKey) {
+            const idx = this.selectedObjects.indexOf(object);
+            if (idx !== -1) {
+                nextSelection = [
+                    ...this.selectedObjects.slice(0, idx),
+                    ...this.selectedObjects.slice(idx + 1),
+                ];
+            } else {
+                nextSelection = [...this.selectedObjects, object];
+            }
+        } else {
+            nextSelection = [object];
+        }
+
+        this.selectObjects(nextSelection);
+    }
+
+    selectObjects(objects) {
+        this.selectedObjects = objects || [];
+
+        if (this.selectedObjects.length === 0) {
             this.gizmo.detach();
             this.ui.hideProperties();
             return;
         }
 
-        if (shiftKey) {
-            // Toggle
-            const idx = this.selectedObjects.indexOf(object);
-            if (idx !== -1) {
-                // Remove
-                this.selectedObjects.splice(idx, 1);
-            } else {
-                // Add
-                this.selectedObjects.push(object);
-            }
-        } else {
-            // Single Select
-            // If already selected and single click, we might just want to keep it selected.
-            // But prompt says: "Clicking on a new object without holding select should only select the single item and clear the group."
-            // Implicitly, clicking the SAME object without shift should probably just keep it selected (or reset group to just that one).
-            this.selectedObjects = [object];
-        }
+        this.gizmo.attach(this.selectedObjects);
 
-        if (this.selectedObjects.length === 0) {
-             this.gizmo.detach();
-             this.ui.hideProperties();
+        if (this.selectedObjects.length > 1) {
+            this.ui.showProperties(this.gizmo.proxy);
         } else {
-            // Pass the whole array to gizmo
-            this.gizmo.attach(this.selectedObjects);
-
-            // Show properties.
-            // If multiple, Gizmo will manage the "Proxy" and UI should show that.
-            if (this.selectedObjects.length > 1) {
-                this.ui.showProperties(this.gizmo.proxy); // Show Group Properties
-            } else {
-                this.ui.showProperties(this.selectedObjects[0]);
-            }
+            this.ui.showProperties(this.selectedObjects[0]);
         }
     }
 
@@ -361,10 +360,12 @@ export class DevMode {
 
     copySelected() {
         if (!this.selectedObjects.length) return false;
-        const target = this.selectedObjects[0];
-        const data = this._serializeMesh(target);
-        if (!data) return false;
-        this.clipboard = data;
+        const serialized = this.selectedObjects
+            .map(obj => this._serializeMesh(obj))
+            .filter(Boolean);
+
+        if (!serialized.length) return false;
+        this.clipboard = serialized;
         return true;
     }
 
@@ -422,11 +423,21 @@ export class DevMode {
 
     pasteClipboard() {
         if (!this.clipboard) return null;
-        const mesh = this._instantiateFromClipboard(this._deepClone(this.clipboard));
-        if (mesh) {
-            this.selectObject(mesh);
+
+        const clipboardItems = Array.isArray(this.clipboard)
+            ? this.clipboard
+            : [this.clipboard];
+
+        const newObjects = clipboardItems
+            .map(item => this._instantiateFromClipboard(this._deepClone(item)))
+            .filter(Boolean);
+
+        if (newObjects.length > 0) {
+            this.selectObjects(newObjects);
+            return newObjects;
         }
-        return mesh;
+
+        return null;
     }
 
     duplicateSelected() {

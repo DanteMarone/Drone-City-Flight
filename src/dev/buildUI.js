@@ -104,16 +104,16 @@ export class BuildUI {
             /* Properties Flyout */
             .dev-prop-flyout {
                 position: fixed;
-                top: 20px;
+                top: 0;
                 right: 0;
-                bottom: 20px;
-                width: 320px;
+                bottom: 0;
+                width: 350px;
                 background: rgba(0, 0, 0, 0.9);
                 color: white;
                 display: flex;
                 flex-direction: column;
                 gap: 10px;
-                padding: 14px;
+                padding: 14px 14px 20px 14px;
                 border-left: 1px solid #444;
                 box-shadow: -4px 0 12px rgba(0,0,0,0.5);
                 transform: translateX(100%);
@@ -121,6 +121,8 @@ export class BuildUI {
                 opacity: 0;
                 pointer-events: none;
                 z-index: 1500;
+                overflow-y: auto;
+                max-height: 100vh;
             }
 
             .dev-prop-flyout.open {

@@ -72,6 +72,11 @@ export class DevMode {
         // 7. Show Waypoint Visuals
         this.refreshVisibility();
 
+        // 8. Clear Drone Effects
+        if (this.app.drone && this.app.drone.resetAltitudeEffects) {
+            this.app.drone.resetAltitudeEffects();
+        }
+
         // Pause Gameplay
         this.app.paused = true;
     }

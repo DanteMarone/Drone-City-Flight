@@ -41,7 +41,8 @@ export const CONFIG = {
         VERTICAL_DRAG: 3.4,
         YAW_SPEED: 2.5,
         RADIUS: 0.5, // Collider radius
-        TILT_MAX: 0.3 // Visual tilt only, physics is level
+        TILT_MAX: 0.3, // Visual tilt only, physics is level
+        MAX_ALTITUDE: 120
     },
 
     BATTERY: {

@@ -1,7 +1,7 @@
 // src/dev/buildUI.js
 import * as THREE from 'three';
 import { EntityRegistry } from '../world/entities/index.js';
-import { TransformCommand, ValueChangeCommand, WaypointCommand, cloneWaypointState } from './history.js';
+import { TransformCommand, PropertyChangeCommand, WaypointCommand, cloneWaypointState } from './history.js';
 
 export class BuildUI {
     constructor(devMode) {
@@ -408,7 +408,15 @@ export class BuildUI {
                 };
 
                 applyWait(next);
-                this.devMode.history.push(new ValueChangeCommand(applyWait, before, next, 'Update pickup wait time'));
+                // Use PropertyChangeCommand for persistence
+                this.devMode.history.push(new PropertyChangeCommand(
+                    this.devMode,
+                    sel.userData.uuid,
+                    'waitTime',
+                    before,
+                    next,
+                    'Update pickup wait time'
+                ));
                 waitStart = null;
             };
         }

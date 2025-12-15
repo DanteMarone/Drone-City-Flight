@@ -214,17 +214,80 @@ export class App {
         // Reset Game State
         this._resetGame();
 
-        // Load World
-        this.world.loadMap(data);
+        // Step 1: Handle History / Hybrid Loading
+        // We need to decide which objects from data.objects to load.
+        // If history exists, we should NOT load objects that are created by the history to avoid duplicates.
+        let objectsToLoad = data.objects || [];
+        let historyCommands = [];
+
+        if (data.history && Array.isArray(data.history) && data.history.length > 0) {
+             console.log("History found. Analyzing for hybrid load...");
+
+             // Extract UUIDs created in history
+             const createdUUIDs = new Set();
+             data.history.forEach(cmd => {
+                 if (cmd.type === 'CreateObject' && cmd.serializedData) {
+                     cmd.serializedData.forEach(obj => {
+                         if (obj.params?.uuid) createdUUIDs.add(obj.params.uuid);
+                     });
+                 }
+             });
+
+             // Filter objects: Keep only those NOT created in history (Legacy/Base objects)
+             objectsToLoad = objectsToLoad.filter(obj => {
+                 const uuid = obj.params?.uuid;
+                 return !uuid || !createdUUIDs.has(uuid);
+             });
+
+             historyCommands = data.history;
+        }
+
+        // Load World (Base/Legacy Objects)
+        // We temporarily modify data.objects to pass to world.loadMap
+        const filteredData = { ...data, objects: objectsToLoad };
+        this.world.loadMap(filteredData);
 
         // Load Rings
         if (data.rings) {
             this.rings.loadRings(data.rings);
         }
 
-        // Re-inject static colliders into physics system
+        // Re-inject static colliders into physics system (for base objects)
         this.colliderSystem.clear();
         this.colliderSystem.addStatic(this.world.getStaticColliders());
+
+        // Step 2: Replay History
+        if (this.devMode && historyCommands.length > 0) {
+            console.log(`Replaying ${historyCommands.length} history commands...`);
+
+            // Reconstruct History Stack
+            const CommandManager = this.devMode.history.constructor;
+            const newHistory = CommandManager.fromJSON(historyCommands, this.devMode);
+
+            // Execute Replay
+            // We iterate the reconstructed undoStack and execute each command
+            // Since fromJSON populates the undoStack, we can just iterate it.
+            // CAUTION: 'execute' is usually 'redo'.
+
+            // Clear current history before replay
+            this.devMode.history.undoStack = [];
+            this.devMode.history.redoStack = [];
+
+            if (newHistory && newHistory.undoStack) {
+                newHistory.undoStack.forEach(cmd => {
+                     // Execute the command to apply changes to the world
+                     if (cmd.execute) cmd.execute();
+                     else if (cmd.redo) cmd.redo();
+
+                     // Push to the REAL history stack so user can Undo
+                     this.devMode.history.undoStack.push(cmd);
+                });
+            }
+
+            // After replay, update physics again for new objects
+            this.colliderSystem.clear(); // Rebuild fully to be safe
+            this.colliderSystem.addStatic(this.world.getStaticColliders());
+        }
 
         // Refresh DevMode if active (to show new visuals)
         if (this.devMode && this.devMode.enabled) {

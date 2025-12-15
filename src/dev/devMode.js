@@ -527,6 +527,11 @@ export class DevMode {
         }
 
         const params = this._deepClone(data.params || {});
+        // Ensure UUID is preserved or assigned
+        if (!params.uuid && data.params?.uuid) {
+            params.uuid = data.params.uuid;
+        }
+
         if (data.position) {
             params.x = data.position.x;
             params.y = data.position.y;
@@ -620,7 +625,8 @@ export class DevMode {
         const mapData = {
             version: 1,
             objects: this.app.world.exportMap().objects,
-            rings: this.app.rings.exportRings()
+            rings: this.app.rings.exportRings(),
+            history: this.history.toJSON()
         };
 
         const blob = new Blob([JSON.stringify(mapData, null, 2)], { type: 'application/json' });
@@ -637,6 +643,8 @@ export class DevMode {
         reader.onload = (e) => {
             try {
                 const data = JSON.parse(e.target.result);
+                // Hybrid Load Logic is handled in App.loadMap, but we need to pass the history data
+                // App.loadMap receives the whole data object.
                 this.app.loadMap(data);
             } catch (err) {
                 console.error("Failed to load map:", err);

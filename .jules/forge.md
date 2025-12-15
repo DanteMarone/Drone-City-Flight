@@ -18,5 +18,13 @@
 ### 3. Procedural Hedges
 * **Concept:** BoxGeometry with noise-displaced vertices (if possible) or just a rough normal map creates good hedges. For now, simple green rough boxes work for MVP.
 
----
-*Log updated: `new Date().toISOString()`*
+# Forge's Log
+
+## Discoveries
+
+### Composite Shapes
+- **Construction Crane**: Created using a hierarchy of `BoxGeometry` and `CylinderGeometry` within a `THREE.Group`.
+  - **Base**: Static concrete block.
+  - **Mast**: Vertical pillar.
+  - **Rotating Assembly**: Child Group containing Cab, Jib, Counter-Jib, and Counterweights.
+  - **Animation**: Logic in `update(dt)` rotates the assembly layer, keeping the base static.

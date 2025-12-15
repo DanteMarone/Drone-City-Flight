@@ -54,7 +54,7 @@ export class App {
         // Also attach battery for drain
         this.drone.battery = this.battery;
 
-        this.rings = new RingManager(this.renderer.scene, this.drone);
+        this.rings = new RingManager(this.renderer.scene, this.drone, this.colliderSystem);
 
         this.tutorial = new TutorialManager(this);
         this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New

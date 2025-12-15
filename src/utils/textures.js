@@ -93,5 +93,134 @@ export const TextureGenerator = {
 
         textureCache.set(key, tex);
         return tex;
+    },
+
+    createGrass: () => {
+        const key = 'grass';
+        if (textureCache.has(key)) return textureCache.get(key).clone();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        // Base Green
+        ctx.fillStyle = '#3a5f0b';
+        ctx.fillRect(0, 0, 256, 256);
+
+        // Noise
+        for (let i = 0; i < 8000; i++) {
+            const hue = 80 + Math.random() * 40; // Greenish hue variation
+            const sat = 40 + Math.random() * 40;
+            const lig = 20 + Math.random() * 30;
+            ctx.fillStyle = `hsl(${hue}, ${sat}%, ${lig}%)`;
+            const s = Math.random() * 2 + 1;
+            ctx.fillRect(Math.random() * 256, Math.random() * 256, s, s);
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+
+        textureCache.set(key, tex);
+        return tex;
+    },
+
+    createSand: () => {
+        const key = 'sand';
+        if (textureCache.has(key)) return textureCache.get(key).clone();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        // Base Beige
+        ctx.fillStyle = '#e6cc9c';
+        ctx.fillRect(0, 0, 256, 256);
+
+        // Noise (Grain)
+        for (let i = 0; i < 10000; i++) {
+            const v = Math.floor(Math.random() * 40) - 20;
+            ctx.fillStyle = `rgba(0,0,0, ${Math.random() * 0.1})`;
+            ctx.fillRect(Math.random() * 256, Math.random() * 256, 1, 1);
+
+            if (i % 2 === 0) {
+                 ctx.fillStyle = `rgba(255,255,255, ${Math.random() * 0.1})`;
+                 ctx.fillRect(Math.random() * 256, Math.random() * 256, 1, 1);
+            }
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+
+        textureCache.set(key, tex);
+        return tex;
+    },
+
+    createWater: () => {
+        const key = 'water';
+        if (textureCache.has(key)) return textureCache.get(key).clone();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        // Base Blue
+        ctx.fillStyle = '#006994';
+        ctx.fillRect(0, 0, 256, 256);
+
+        // Caustics / Waves approximation
+        for (let i = 0; i < 500; i++) {
+             ctx.strokeStyle = `rgba(255,255,255, 0.1)`;
+             ctx.lineWidth = 1 + Math.random() * 2;
+             ctx.beginPath();
+             const x = Math.random() * 256;
+             const y = Math.random() * 256;
+             ctx.moveTo(x, y);
+             ctx.bezierCurveTo(x + 20, y - 20, x + 40, y + 20, x + 60, y);
+             ctx.stroke();
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+
+        textureCache.set(key, tex);
+        return tex;
+    },
+
+    createConcrete: () => {
+        const key = 'concrete';
+        if (textureCache.has(key)) return textureCache.get(key).clone();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        // Base Gray
+        ctx.fillStyle = '#999999';
+        ctx.fillRect(0, 0, 256, 256);
+
+        // Noise
+        for (let i = 0; i < 8000; i++) {
+            const v = Math.floor(Math.random() * 50);
+            ctx.fillStyle = `rgba(${v},${v},${v}, 0.05)`;
+            ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+
+        textureCache.set(key, tex);
+        return tex;
     }
 };

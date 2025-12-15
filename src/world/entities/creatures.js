@@ -45,15 +45,15 @@ export class CowEntity extends BaseEntity {
         super(params);
         this.type = 'cow';
 
-        // Configuration
-        this.moveDuration = params.moveDuration || 3.0; // Seconds walking
-        this.stopDuration = params.stopDuration || 4.0; // Seconds idle
-        this.speed = params.speed || 1.5;               // Walk speed
-        this.wanderRadius = params.wanderRadius || 15.0; // Max radius from spawn
+        // Configuration with Defaults
+        this.moveDuration = params.moveDuration || 3.0;
+        this.stopDuration = params.stopDuration || 4.0;
+        this.speed = params.speed || 1.5;
+        this.wanderRadius = params.wanderRadius || 15.0;
 
         // State
         this.state = 'idle'; // 'idle' or 'walk'
-        this.timer = Math.random() * this.stopDuration; // Start with random offset
+        this.timer = Math.random() * this.stopDuration;
         this.spawnPos = null;
         this.currentDir = new THREE.Vector3(1, 0, 0);
         this.legGroup = null;
@@ -65,13 +65,19 @@ export class CowEntity extends BaseEntity {
         super.init();
         if (this.mesh) {
             this.spawnPos = this.mesh.position.clone();
-            // Store config in userData for UI to potentially pick up (if implemented later)
-            this.mesh.userData.cowConfig = {
-                moveDuration: this.moveDuration,
-                stopDuration: this.stopDuration,
-                speed: this.speed,
-                wanderRadius: this.wanderRadius
-            };
+
+            // Sync params to userData for UI
+            if (!this.mesh.userData.params) this.mesh.userData.params = {};
+            this.mesh.userData.params.moveDuration = this.moveDuration;
+            this.mesh.userData.params.stopDuration = this.stopDuration;
+            this.mesh.userData.params.speed = this.speed;
+            this.mesh.userData.params.wanderRadius = this.wanderRadius;
+
+            // Also store directly on userData for easier access if needed
+            this.mesh.userData.moveDuration = this.moveDuration;
+            this.mesh.userData.stopDuration = this.stopDuration;
+            this.mesh.userData.speed = this.speed;
+            this.mesh.userData.wanderRadius = this.wanderRadius;
         }
     }
 
@@ -97,7 +103,7 @@ export class CowEntity extends BaseEntity {
         body.receiveShadow = true;
         bodyGroup.add(body);
 
-        // Spots (Composite Geometry)
+        // Spots
         const spot1 = new THREE.Mesh(new THREE.BoxGeometry(0.82, 0.4, 0.5), blackMat);
         spot1.position.set(0, 0.1, -0.3);
         spot1.castShadow = true;
@@ -110,7 +116,7 @@ export class CowEntity extends BaseEntity {
 
         // Head Group
         const headGroup = new THREE.Group();
-        headGroup.position.set(0, 0.5, 0.9); // Forward and Up
+        headGroup.position.set(0, 0.5, 0.9);
         bodyGroup.add(headGroup);
 
         // Head Mesh
@@ -146,7 +152,6 @@ export class CowEntity extends BaseEntity {
         group.add(this.legGroup);
 
         const legGeo = new THREE.BoxGeometry(0.2, 0.9, 0.2);
-        // Pivot point at top of leg
         legGeo.translate(0, -0.45, 0);
 
         const createLeg = (x, z) => {
@@ -170,19 +175,23 @@ export class CowEntity extends BaseEntity {
     update(dt) {
         if (!this.mesh) return;
 
-        // Initialize spawnPos if missing (e.g. created dynamically)
         if (!this.spawnPos) {
             this.spawnPos = this.mesh.position.clone();
         }
 
+        // --- Sync Parameters from UserData (UI) ---
+        // Checks both params object and direct userData (safety net)
+        const p = this.mesh.userData.params || {};
+        this.moveDuration = p.moveDuration ?? this.mesh.userData.moveDuration ?? this.moveDuration;
+        this.stopDuration = p.stopDuration ?? this.mesh.userData.stopDuration ?? this.stopDuration;
+        this.speed = p.speed ?? this.mesh.userData.speed ?? this.speed;
+        this.wanderRadius = p.wanderRadius ?? this.mesh.userData.wanderRadius ?? this.wanderRadius;
+
         this.timer -= dt;
 
         if (this.state === 'idle') {
-            // IDLE LOGIC
-            // Simple breathing animation
+            // Animation
             this.mesh.scale.setScalar(1 + Math.sin(Date.now() * 0.002) * 0.01);
-
-            // Reset legs
             this.legs.forEach(l => l.rotation.x = THREE.MathUtils.lerp(l.rotation.x, 0, dt * 5));
 
             if (this.timer <= 0) {
@@ -190,8 +199,6 @@ export class CowEntity extends BaseEntity {
             }
 
         } else if (this.state === 'walk') {
-            // WALK LOGIC
-
             // 1. Move
             const moveDist = this.speed * dt;
             const nextPos = this.mesh.position.clone().addScaledVector(this.currentDir, moveDist);
@@ -201,29 +208,24 @@ export class CowEntity extends BaseEntity {
 
             // 2a. Wander Radius
             if (nextPos.distanceTo(this.spawnPos) > this.wanderRadius) {
-                // If too far, don't move, and force a direction change towards home
                 blocked = true;
                 const dirToHome = new THREE.Vector3().subVectors(this.spawnPos, this.mesh.position).normalize();
                 this.currentDir.copy(dirToHome);
-                // Add some randomness so they don't all walk in a straight line to center
                 this.currentDir.x += (Math.random() - 0.5);
                 this.currentDir.z += (Math.random() - 0.5);
                 this.currentDir.normalize();
             }
 
             // 2b. Physical Obstacles
-            // Check against ColliderSystem if available
             if (!blocked && window.app && window.app.colliderSystem) {
-                // Create a test box for the next position
                 const testBox = this.box.clone();
                 const offset = new THREE.Vector3().subVectors(nextPos, this.mesh.position);
                 testBox.translate(offset);
-                // Slightly shrink box for navigation to allow squeezing through tight-ish spots
                 testBox.expandByScalar(-0.1);
 
                 const nearby = window.app.colliderSystem.spatialHash.query(nextPos.x, nextPos.z);
                 for (const other of nearby) {
-                    if (other.mesh === this.mesh) continue; // Ignore self
+                    if (other.mesh === this.mesh) continue;
                     if (other.box && testBox.intersectsBox(other.box)) {
                         blocked = true;
                         break;
@@ -232,21 +234,15 @@ export class CowEntity extends BaseEntity {
             }
 
             if (blocked) {
-                // If blocked, stop immediately and think (switch to idle)
                 this.timer = 0;
                 this.state = 'idle';
             } else {
-                // Apply Move
                 this.mesh.position.copy(nextPos);
+                this.mesh.position.y = 0; // Terrain snap
 
-                // Snap to Ground (assuming y=0 for MVP, or raycast down if we had terrain data)
-                this.mesh.position.y = 0;
-
-                // Face Direction
                 const lookTarget = this.mesh.position.clone().add(this.currentDir);
                 this.mesh.lookAt(lookTarget);
 
-                // Animate Legs (Walk Cycle)
                 const walkTime = Date.now() * 0.005 * this.speed;
                 this.legs[0].rotation.x = Math.sin(walkTime) * 0.5; // FL
                 this.legs[1].rotation.x = Math.cos(walkTime) * 0.5; // FR
@@ -259,7 +255,7 @@ export class CowEntity extends BaseEntity {
             }
         }
 
-        // Always update collider to match new position
+        // Update Physics
         if (this.box && window.app && window.app.colliderSystem) {
              window.app.colliderSystem.updateBody(this.mesh);
         }
@@ -267,15 +263,12 @@ export class CowEntity extends BaseEntity {
 
     pickNewState() {
         if (this.state === 'idle') {
-            // Switch to Walk
             this.state = 'walk';
-            this.timer = this.moveDuration * (0.8 + Math.random() * 0.4); // +/- 20% variance
+            this.timer = this.moveDuration * (0.8 + Math.random() * 0.4);
 
-            // Pick random direction
             const angle = Math.random() * Math.PI * 2;
             this.currentDir.set(Math.sin(angle), 0, Math.cos(angle));
         } else {
-            // Switch to Idle
             this.state = 'idle';
             this.timer = this.stopDuration * (0.8 + Math.random() * 0.4);
         }
@@ -283,7 +276,7 @@ export class CowEntity extends BaseEntity {
 
     serialize() {
         const data = super.serialize();
-        // Persist params
+        // Ensure params are up to date
         data.params.moveDuration = this.moveDuration;
         data.params.stopDuration = this.stopDuration;
         data.params.speed = this.speed;

@@ -231,6 +231,21 @@ export class BuildUI {
                  </div>
             </div>
 
+            <div id="cow-controls" class="dev-prop-section" style="display:none;">
+                <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                    Wander Radius (m)
+                    <input id="cow-radius" type="number" min="1" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                    Move Time (s)
+                    <input id="cow-move-time" type="number" min="0.5" step="0.5" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                </label>
+                <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                    Stop Time (s)
+                    <input id="cow-stop-time" type="number" min="0.5" step="0.5" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                </label>
+            </div>
+
             <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
         `;
 
@@ -441,6 +456,58 @@ export class BuildUI {
             };
         }
 
+        // Cow Controls Logic
+        const bindCowInput = (id, prop, name) => {
+            const input = this.propPanel.querySelector(id);
+            let startVal = null;
+            if (input) {
+                input.onfocus = () => {
+                    if (this.devMode.selectedObjects.length === 1 && this.devMode.selectedObjects[0].userData.type === 'cow') {
+                        const sel = this.devMode.selectedObjects[0];
+                        const p = sel.userData.params || {};
+                        startVal = p[prop] ?? sel.userData[prop] ?? 0;
+                    }
+                };
+                input.onchange = (e) => {
+                    const val = parseFloat(e.target.value);
+                    if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
+
+                    const sel = this.devMode.selectedObjects[0];
+                    if (sel.userData.type !== 'cow') return;
+
+                    const p = sel.userData.params || {};
+                    const before = startVal ?? p[prop] ?? sel.userData[prop] ?? 0;
+                    const next = Math.max(0.1, val);
+
+                    // Apply
+                    const applyVal = (v) => {
+                        if (!sel.userData.params) sel.userData.params = {};
+                        sel.userData.params[prop] = v;
+                        // Also set on root for safety as per CowEntity logic
+                        sel.userData[prop] = v;
+                        this.updateProperties(sel);
+                    };
+
+                    applyVal(next);
+
+                    // History
+                    this.devMode.history.push(new PropertyChangeCommand(
+                        this.devMode,
+                        sel.userData.uuid,
+                        prop,
+                        before,
+                        next,
+                        `Update Cow ${name}`
+                    ));
+                    startVal = null;
+                };
+            }
+        };
+
+        bindCowInput('#cow-radius', 'wanderRadius', 'Radius');
+        bindCowInput('#cow-move-time', 'moveDuration', 'Move Time');
+        bindCowInput('#cow-stop-time', 'stopDuration', 'Stop Time');
+
     }
 
     show() {
@@ -503,15 +570,20 @@ export class BuildUI {
         // Car Controls
         const carControls = this.propPanel.querySelector('#car-controls');
         const pickupControls = this.propPanel.querySelector('#pickup-controls');
+        const cowControls = this.propPanel.querySelector('#cow-controls');
 
         // Show specific controls only if SINGLE selection and correct type
         if (this.devMode.selectedObjects.length === 1) {
             const sel = this.devMode.selectedObjects[0];
-            if (['car', 'bicycle', 'pickupTruck'].includes(sel.userData.type)) {
+            const type = sel.userData.type;
+
+            // -- Vehicles --
+            if (['car', 'bicycle', 'pickupTruck'].includes(type)) {
                 carControls.style.display = 'flex';
+                cowControls.style.display = 'none';
                 this._updateWaypointList(sel);
 
-                if (sel.userData.type === 'pickupTruck') {
+                if (type === 'pickupTruck') {
                     pickupControls.style.display = 'flex';
                     const waitInput = this.propPanel.querySelector('#pickup-wait-time');
                     if (waitInput && document.activeElement !== waitInput) {
@@ -521,14 +593,33 @@ export class BuildUI {
                 } else {
                     pickupControls.style.display = 'none';
                 }
-            } else {
+            }
+            // -- Cow --
+            else if (type === 'cow') {
                 carControls.style.display = 'none';
                 pickupControls.style.display = 'none';
+                cowControls.style.display = 'flex';
+
+                const p = sel.userData.params || {};
+                const setInput = (id, val) => {
+                    const el = this.propPanel.querySelector(id);
+                    if (el && document.activeElement !== el) el.value = val;
+                };
+
+                setInput('#cow-radius', p.wanderRadius ?? sel.userData.wanderRadius ?? 15);
+                setInput('#cow-move-time', p.moveDuration ?? sel.userData.moveDuration ?? 3);
+                setInput('#cow-stop-time', p.stopDuration ?? sel.userData.stopDuration ?? 4);
+            }
+            else {
+                carControls.style.display = 'none';
+                pickupControls.style.display = 'none';
+                cowControls.style.display = 'none';
             }
         } else {
-            // Hide for multi-select (per user requirement to hide incompatible options)
+            // Hide for multi-select
             carControls.style.display = 'none';
             pickupControls.style.display = 'none';
+            if (cowControls) cowControls.style.display = 'none';
         }
     }
 

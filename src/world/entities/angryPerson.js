@@ -2,42 +2,65 @@ import * as THREE from 'three';
 import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 
+const STYLES = [
+    { name: 'Classic', pants: 0x111199, shirt: 0xcc0000, skin: 0xffccaa }, // Blue pants, Red shirt
+    { name: 'Business', pants: 0x333333, shirt: 0xffffff, skin: 0xffdbac, tie: true }, // Grey/Black pants, White shirt
+    { name: 'Worker', pants: 0x2244aa, shirt: 0xff6600, skin: 0xe0ac69, hat: 0xffff00 }, // Blue pants, Orange shirt, Yellow hat
+    { name: 'Goth', pants: 0x111111, shirt: 0x222222, skin: 0xf0f0f0 }, // All black, pale skin
+    { name: 'Summer', pants: 0xddccaa, shirt: 0x00ccff, skin: 0x8d5524 }, // Khaki pants, Cyan shirt
+    { name: 'Farmer', pants: 0x223377, shirt: 0xcccc55, skin: 0xf1c27d, hat: 0x886633 }, // Overalls blue, dull shirt, brown hat
+    { name: 'Sporty', pants: 0x111111, shirt: 0x333333, skin: 0xffccaa, stripes: true }, // Tracksuit
+    { name: 'Doctor', pants: 0xffffff, shirt: 0x99ddff, skin: 0xffdbac } // White pants, Light blue shirt
+];
+
 export class AngryPersonEntity extends BaseEntity {
     constructor(params = {}) {
+        // Defaults
+        if (params.appearance === undefined) params.appearance = Math.floor(Math.random() * STYLES.length);
+        if (params.throwInterval === undefined) params.throwInterval = 3.0;
+        if (params.firingRange === undefined) params.firingRange = 10;
+
         super(params);
         this.type = 'angryPerson';
         this.projectiles = [];
         this.cooldown = 0;
-        this.fireRate = 3.0; // Seconds
-
-        // Ensure firingRange is set in params (default 10)
-        if (this.params.firingRange === undefined) {
-            this.params.firingRange = 10;
-        }
     }
 
     createMesh(params) {
+        const styleIndex = params.appearance !== undefined ? params.appearance : 0;
+        const style = STYLES[styleIndex % STYLES.length];
+
         const group = new THREE.Group();
 
-        // 1. Pants (Blue Cylinder)
+        // 1. Pants (Cylinder)
         const pantsGeo = new THREE.CylinderGeometry(0.25, 0.25, 0.9, 12);
-        const pantsMat = new THREE.MeshStandardMaterial({ color: 0x111199, roughness: 0.9 });
+        const pantsMat = new THREE.MeshStandardMaterial({ color: style.pants, roughness: 0.9 });
         const pants = new THREE.Mesh(pantsGeo, pantsMat);
         pants.position.y = 0.45;
         pants.castShadow = true;
         group.add(pants);
 
-        // 2. Torso (Red Shirt Cylinder)
+        // 2. Torso (Cylinder)
         const torsoGeo = new THREE.CylinderGeometry(0.28, 0.26, 0.6, 12);
-        const torsoMat = new THREE.MeshStandardMaterial({ color: 0xcc0000, roughness: 0.9 });
+        const torsoMat = new THREE.MeshStandardMaterial({ color: style.shirt, roughness: 0.9 });
         const torso = new THREE.Mesh(torsoGeo, torsoMat);
         torso.position.y = 0.9 + 0.3; // 1.2
         torso.castShadow = true;
         group.add(torso);
 
+        // Add Tie for Business
+        if (style.tie) {
+            const tieGeo = new THREE.BoxGeometry(0.1, 0.4, 0.05);
+            const tieMat = new THREE.MeshStandardMaterial({ color: 0xaa0000 });
+            const tie = new THREE.Mesh(tieGeo, tieMat);
+            tie.position.set(0, 1.2, 0.25);
+            tie.castShadow = true;
+            group.add(tie);
+        }
+
         // 3. Head (Sphere + Face Texture)
         const headGeo = new THREE.SphereGeometry(0.25, 16, 16);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0xffccaa });
+        const headMat = new THREE.MeshStandardMaterial({ color: style.skin });
 
         // Procedural Face Texture
         const canvas = document.createElement('canvas');
@@ -45,7 +68,8 @@ export class AngryPersonEntity extends BaseEntity {
         const ctx = canvas.getContext('2d');
 
         // Skin background
-        ctx.fillStyle = '#ffccaa';
+        const c = new THREE.Color(style.skin);
+        ctx.fillStyle = '#' + c.getHexString();
         ctx.fillRect(0, 0, 128, 128);
 
         // Angry Eyebrows
@@ -79,11 +103,27 @@ export class AngryPersonEntity extends BaseEntity {
         const head = new THREE.Mesh(headGeo, headMat);
         head.position.y = 1.5 + 0.25; // 1.75
         // Rotate so face looks forward (+Z)
-        // Default sphere mapping wraps around. We usually need to adjust rotation.
-        // Let's assume -PI/2 aligns the texture center to +Z or similar.
         head.rotation.y = -Math.PI / 2;
         head.castShadow = true;
         group.add(head);
+
+        // Hat Logic
+        if (style.hat) {
+            const hatGeo = new THREE.CylinderGeometry(0.3, 0.3, 0.1, 12);
+            const hatMat = new THREE.MeshStandardMaterial({ color: style.hat });
+            const hat = new THREE.Mesh(hatGeo, hatMat);
+            hat.position.y = 2.0;
+            hat.castShadow = true;
+            group.add(hat);
+
+            // Brim for Farmer
+            if (style.name === 'Farmer') {
+                 const brimGeo = new THREE.CylinderGeometry(0.5, 0.5, 0.02, 12);
+                 const brim = new THREE.Mesh(brimGeo, hatMat);
+                 brim.position.y = 1.95;
+                 group.add(brim);
+            }
+        }
 
         // 4. Arms (Raised in anger)
         const armGeo = new THREE.BoxGeometry(0.12, 0.6, 0.12);
@@ -129,14 +169,15 @@ export class AngryPersonEntity extends BaseEntity {
             this.mesh.lookAt(targetPos);
         }
 
-        // Get firing range from params (editable in DevMode)
+        // Get firing range and interval from params
         const range = parseFloat(this.params.firingRange) || 10;
+        const interval = parseFloat(this.params.throwInterval) || 3.0;
 
         if (this.cooldown > 0) this.cooldown -= dt;
 
         if (dist <= range && this.cooldown <= 0) {
             this.throwObject(drone);
-            this.cooldown = this.fireRate;
+            this.cooldown = interval;
         }
 
         // 2. Projectile Logic
@@ -158,19 +199,13 @@ export class AngryPersonEntity extends BaseEntity {
         mesh.position.addScaledVector(forward, 0.5);
 
         // Velocity Calculation: Arc towards target
-        // V = Direction * Speed + Upward component
         const dir = new THREE.Vector3().subVectors(target.position, mesh.position);
         const dist = dir.length();
         dir.normalize();
 
-        // Heuristic for aiming:
-        // Speed proportional to distance? Or fixed?
-        // Let's use a base speed and add some height compensation
         const baseSpeed = 10;
         const velocity = dir.multiplyScalar(baseSpeed);
-        // Add upward arc: proportional to distance so it reaches
-        // Simple Physics: t = dist/speed. h = 0.5*g*t^2.
-        // We just add impulse.
+        // Add upward arc: proportional to distance
         velocity.y += 3 + (dist * 0.15);
 
         // Add random variation
@@ -211,7 +246,6 @@ export class AngryPersonEntity extends BaseEntity {
             p.mesh.rotation.z += dt * 5;
 
             // 1. Check Drone Collision
-            // Drone radius approx 0.5m. Projectile radius 0.15m.
             if (p.mesh.position.distanceTo(drone.position) < (0.5 + p.radius)) {
                 // Impact!
                 if (window.app.audio) window.app.audio.playImpact();
@@ -229,7 +263,6 @@ export class AngryPersonEntity extends BaseEntity {
 
             // 2. Check World Collision
             if (window.app.colliderSystem) {
-                // Use radius slightly larger than visual to ensure clean hits
                 const hits = window.app.colliderSystem.checkCollisions(p.mesh.position, p.radius);
                 if (hits.length > 0) {
                     // Hit wall/ground
@@ -253,7 +286,6 @@ export class AngryPersonEntity extends BaseEntity {
             p.mesh.parent.remove(p.mesh);
         }
         if (p.mesh.geometry) p.mesh.geometry.dispose();
-        // Material might be shared, be careful.
         this.projectiles.splice(index, 1);
     }
 

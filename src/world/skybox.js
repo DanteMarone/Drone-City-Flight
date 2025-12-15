@@ -9,28 +9,17 @@ export class Skybox {
 
     _init() {
         const textureLoader = new THREE.TextureLoader();
-        const texture = textureLoader.load('sky.png');
-        texture.colorSpace = THREE.SRGBColorSpace;
+        textureLoader.load('sky.png', (texture) => {
+            texture.colorSpace = THREE.SRGBColorSpace;
+            texture.mapping = THREE.EquirectangularReflectionMapping;
+            texture.minFilter = THREE.LinearMipMapLinearFilter;
+            texture.magFilter = THREE.LinearFilter;
 
-        // High segment count for smooth curvature
-        const geometry = new THREE.SphereGeometry(900, 60, 40);
-
-        const material = new THREE.MeshBasicMaterial({
-            map: texture,
-            side: THREE.BackSide, // Render on the inside
-            depthWrite: false,    // Don't write to depth buffer (background)
-            fog: false            // Ignore fog
+            this.scene.background = texture;
         });
-
-        this.mesh = new THREE.Mesh(geometry, material);
-        this.mesh.renderOrder = -1; // Render before other transparent objects
-
-        this.scene.add(this.mesh);
     }
 
-    update(cameraPosition) {
-        if (this.mesh) {
-            this.mesh.position.copy(cameraPosition);
-        }
-    }
+    // Background textures follow the camera automatically
+    // so no per-frame update is necessary.
+    update() {}
 }

@@ -12,6 +12,8 @@ export class InteractionManager {
         this.factory = new ObjectFactory(app.renderer.scene);
 
         this.draggedType = null;
+        this.roadPlacementStart = null;
+        this.roadPreview = null;
         this.active = false;
 
         this._onMouseDown = this._onMouseDown.bind(this);
@@ -44,6 +46,43 @@ export class InteractionManager {
 
     onDragStart(type) {
         this.draggedType = type;
+        if (type !== 'road') {
+            this._clearRoadPreview();
+        }
+    }
+
+    _snapPoint(point) {
+        if (this.devMode.grid && this.devMode.grid.enabled && this.devMode.grid.snap) {
+            return this.devMode.grid.snap(point.clone());
+        }
+        return point.clone();
+    }
+
+    _clearRoadPreview() {
+        this.roadPlacementStart = null;
+        if (this.roadPreview) {
+            this.app.renderer.scene.remove(this.roadPreview);
+            this.roadPreview.geometry.dispose();
+            this.roadPreview.material.dispose();
+            this.roadPreview = null;
+        }
+    }
+
+    _updateRoadPreview(endPoint) {
+        if (!this.roadPlacementStart) return;
+        const start = this.roadPlacementStart;
+        const points = [start, endPoint];
+
+        if (!this.roadPreview) {
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffff00 });
+            this.roadPreview = new THREE.Line(geometry, material);
+            this.roadPreview.userData.isHelper = true;
+            this.app.renderer.scene.add(this.roadPreview);
+            return;
+        }
+
+        this.roadPreview.geometry.setFromPoints(points);
     }
 
     _getIntersect(e) {
@@ -91,6 +130,11 @@ export class InteractionManager {
 
         if (e.target !== this.app.renderer.domElement) return;
         if (this.devMode.gizmo && this.devMode.gizmo.control.axis !== null) return;
+
+        // Reset road preview if we are beginning a new drag unrelated to road placement
+        if (this.draggedType !== 'road') {
+            this._clearRoadPreview();
+        }
 
         const rect = this.app.container.getBoundingClientRect();
         const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -217,12 +261,27 @@ export class InteractionManager {
 export function setupDragDrop(interaction, container) {
     document.body.addEventListener('dragover', (e) => {
         e.preventDefault();
+
+        if (interaction.draggedType === 'road') {
+            const point = interaction._getIntersect(e);
+            if (point) {
+                if (!interaction.roadPlacementStart) {
+                    interaction.roadPlacementStart = interaction._snapPoint(point);
+                }
+                interaction._updateRoadPreview(interaction._snapPoint(point));
+            }
+        }
     });
 
     document.body.addEventListener('drop', (e) => {
         e.preventDefault();
         const type = e.dataTransfer.getData('type');
         let point = interaction._getIntersect(e);
+
+        if (!point) {
+            interaction._clearRoadPreview();
+            return;
+        }
 
         if (type && point) {
             if (interaction.devMode.grid && interaction.devMode.grid.enabled) {
@@ -234,6 +293,50 @@ export function setupDragDrop(interaction, container) {
             if (type === 'ring') {
                 interaction.app.rings.spawnRingAt(point);
                 // Rings handle their own registration internally in RingManager
+            } else if (type === 'road') {
+                const startPoint = interaction.roadPlacementStart || point;
+                const snappedStart = interaction._snapPoint(startPoint);
+                const snappedEnd = interaction._snapPoint(point);
+                const dx = snappedEnd.x - snappedStart.x;
+                const dz = snappedEnd.z - snappedStart.z;
+                const distance = Math.max(Math.hypot(dx, dz), 1);
+
+                let desiredLength = distance;
+                if (e.shiftKey) {
+                    const userLength = parseFloat(prompt('Road length:', `${Math.round(distance)}`));
+                    if (!Number.isNaN(userLength) && userLength > 0) {
+                        desiredLength = userLength;
+                    }
+                }
+
+                const angle = Math.atan2(dx, dz);
+                const center = new THREE.Vector3(
+                    snappedStart.x + dx * 0.5,
+                    snappedStart.y,
+                    snappedStart.z + dz * 0.5
+                );
+
+                const entity = interaction.factory.createObject('road', {
+                    x: center.x,
+                    y: center.y,
+                    z: center.z,
+                    rotY: angle,
+                    length: desiredLength
+                });
+
+                interaction._clearRoadPreview();
+
+                if (entity && entity.mesh) {
+                    // Centralized Registration
+                    interaction.app.world.addEntity(entity);
+
+                    // Add to Physics (Static/SpatialHash)
+                    if (interaction.app.colliderSystem) {
+                        interaction.app.colliderSystem.addStatic([entity]);
+                    }
+
+                    interaction.devMode.selectObject(entity.mesh);
+                }
             } else {
                 // Use ObjectFactory (which delegates to EntityRegistry)
                 const entity = interaction.factory.createObject(type, { x: point.x, z: point.z });

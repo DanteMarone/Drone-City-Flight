@@ -4,6 +4,9 @@ A 3D drone flight simulation game built with Three.js.
 
 ## Developer Documentation
 
+### [Developer Tools Architecture](./docs/dev_tools.md)
+A comprehensive guide to the in-game level editor, including selection, history, and object creation workflows.
+
 ### Adding New Object Types
 
 The project uses an Entity-Component-like system for world objects. To add a new object type:

@@ -1,4 +1,5 @@
 export { BaseEntity } from './base.js';
+export { BillboardEntity } from './billboard.js';
 export { EntityRegistry } from './registry.js';
 
 // Eagerly load all entity modules to trigger their registrations.

@@ -1,6 +1,7 @@
 // src/dev/buildUI.js
 import * as THREE from 'three';
 import { EntityRegistry } from '../world/entities/index.js';
+import { TransformCommand, ValueChangeCommand, WaypointCommand, cloneWaypointState } from './history.js';
 
 export class BuildUI {
     constructor(devMode) {
@@ -52,6 +53,11 @@ export class BuildUI {
             <div style="display:flex; gap:5px; margin-top:5px;">
                 <button id="dev-mode-trans" style="flex:1; font-size:0.8em;">Move</button>
                 <button id="dev-mode-rot" style="flex:1; font-size:0.8em;">Rotate</button>
+            </div>
+
+            <div style="display:flex; gap:5px; margin-top:5px;">
+                <button id="dev-undo" style="flex:1; font-size:0.8em;">Undo</button>
+                <button id="dev-redo" style="flex:1; font-size:0.8em;">Redo</button>
             </div>
 
             <div style="display:flex; gap:5px; margin-top:5px;">
@@ -274,6 +280,14 @@ export class BuildUI {
             this.devMode.gizmo.control.setMode('rotate');
         };
 
+        this.dom.querySelector('#dev-undo').onclick = () => {
+            this.devMode.history.undo();
+        };
+
+        this.dom.querySelector('#dev-redo').onclick = () => {
+            this.devMode.history.redo();
+        };
+
         this.dom.querySelector('#dev-copy').onclick = () => {
             if (this.devMode.copySelected) this.devMode.copySelected();
         };
@@ -288,60 +302,73 @@ export class BuildUI {
 
         // Properties Input Bindings
         const toRad = (deg) => deg * (Math.PI / 180);
+        let transformStart = null;
 
         ['x', 'y', 'z', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz'].forEach(axis => {
-             const input = this.propPanel.querySelector(`#prop-${axis}`);
-             if (input) {
-                 input.onchange = (e) => {
-                     const val = parseFloat(e.target.value);
-                     if (isNaN(val)) return;
+            const input = this.propPanel.querySelector(`#prop-${axis}`);
+            if (input) {
+                input.onfocus = () => {
+                    transformStart = this.devMode.captureTransforms(this.devMode.selectedObjects);
+                };
 
-                     // We need to act on the Gizmo PROXY, regardless of single or multi-select
-                     // GizmoManager logic handles propagating proxy changes to objects.
-                     const proxy = this.devMode.gizmo.proxy;
+                input.onchange = (e) => {
+                    const val = parseFloat(e.target.value);
+                    if (isNaN(val)) return;
 
-                     if (proxy && this.devMode.selectedObjects.length > 0) {
-                         // Position
-                         if (axis === 'x') proxy.position.x = val;
-                         if (axis === 'y') proxy.position.y = val;
-                         if (axis === 'z') proxy.position.z = val;
+                    const beforeStates = transformStart || this.devMode.captureTransforms(this.devMode.selectedObjects);
 
-                         // Rotation: Inputs are Degrees, convert to Radians for Three.js
-                         if (axis === 'rx') proxy.rotation.x = toRad(val);
-                         if (axis === 'ry') proxy.rotation.y = toRad(val);
-                         if (axis === 'rz') proxy.rotation.z = toRad(val);
+                    // We need to act on the Gizmo PROXY, regardless of single or multi-select
+                    // GizmoManager logic handles propagating proxy changes to objects.
+                    const proxy = this.devMode.gizmo.proxy;
 
-                         // Scale
-                         if (['sx', 'sy', 'sz'].includes(axis)) {
-                             const lock = this.propPanel.querySelector('#prop-scale-lock').checked;
-                             const ratio = val / (axis === 'sx' ? proxy.scale.x : axis === 'sy' ? proxy.scale.y : proxy.scale.z);
+                    if (proxy && this.devMode.selectedObjects.length > 0) {
+                        // Position
+                        if (axis === 'x') proxy.position.x = val;
+                        if (axis === 'y') proxy.position.y = val;
+                        if (axis === 'z') proxy.position.z = val;
 
-                             if (lock) {
-                                 proxy.scale.multiplyScalar(ratio);
-                             } else {
-                                 if (axis === 'sx') proxy.scale.x = val;
-                                 if (axis === 'sy') proxy.scale.y = val;
-                                 if (axis === 'sz') proxy.scale.z = val;
-                             }
+                        // Rotation: Inputs are Degrees, convert to Radians for Three.js
+                        if (axis === 'rx') proxy.rotation.x = toRad(val);
+                        if (axis === 'ry') proxy.rotation.y = toRad(val);
+                        if (axis === 'rz') proxy.rotation.z = toRad(val);
 
-                             // Update UI to reflect locked changes
-                             if (lock) this.updateProperties(proxy);
-                         }
+                        // Scale
+                        if (['sx', 'sy', 'sz'].includes(axis)) {
+                            const lock = this.propPanel.querySelector('#prop-scale-lock').checked;
+                            const ratio = val / (axis === 'sx' ? proxy.scale.x : axis === 'sy' ? proxy.scale.y : proxy.scale.z);
 
-                         // Sync proxy change to objects
-                         if (this.devMode.gizmo) {
-                             this.devMode.gizmo.syncProxyToObjects();
-                         }
+                            if (lock) {
+                                proxy.scale.multiplyScalar(ratio);
+                            } else {
+                                if (axis === 'sx') proxy.scale.x = val;
+                                if (axis === 'sy') proxy.scale.y = val;
+                                if (axis === 'sz') proxy.scale.z = val;
+                            }
 
-                         // Update Physics Bodies
-                         if (this.devMode.app.colliderSystem) {
-                             this.devMode.selectedObjects.forEach(obj => {
-                                 this.devMode.app.colliderSystem.updateBody(obj);
-                             });
-                         }
-                     }
-                 };
-             }
+                            // Update UI to reflect locked changes
+                            if (lock) this.updateProperties(proxy);
+                        }
+
+                        // Sync proxy change to objects
+                        if (this.devMode.gizmo) {
+                            this.devMode.gizmo.syncProxyToObjects();
+                        }
+
+                        // Update Physics Bodies
+                        if (this.devMode.app.colliderSystem) {
+                            this.devMode.selectedObjects.forEach(obj => {
+                                this.devMode.app.colliderSystem.updateBody(obj);
+                            });
+                        }
+
+                        const afterStates = this.devMode.captureTransforms(this.devMode.selectedObjects);
+                        if (this.devMode.history && this.devMode._transformsChanged(beforeStates, afterStates)) {
+                            this.devMode.history.push(new TransformCommand(this.devMode, beforeStates, afterStates, 'Property transform'));
+                        }
+                        transformStart = null;
+                    }
+                };
+            }
         });
 
         this.propPanel.querySelector('#dev-delete').onclick = () => {
@@ -358,6 +385,13 @@ export class BuildUI {
 
         const pickupWaitInput = this.propPanel.querySelector('#pickup-wait-time');
         if (pickupWaitInput) {
+            let waitStart = null;
+            pickupWaitInput.onfocus = () => {
+                if (this.devMode.selectedObjects.length === 1 && this.devMode.selectedObjects[0].userData.type === 'pickupTruck') {
+                    const sel = this.devMode.selectedObjects[0];
+                    waitStart = sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 0;
+                }
+            };
             pickupWaitInput.onchange = (e) => {
                 const val = parseFloat(e.target.value);
                 if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
@@ -365,8 +399,17 @@ export class BuildUI {
                 const sel = this.devMode.selectedObjects[0];
                 if (sel.userData.type !== 'pickupTruck') return;
 
-                sel.userData.waitTime = Math.max(0, val);
-                if (sel.userData.params) sel.userData.params.waitTime = sel.userData.waitTime;
+                const before = waitStart ?? sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 0;
+                const next = Math.max(0, val);
+                const applyWait = (value) => {
+                    sel.userData.waitTime = Math.max(0, value);
+                    if (sel.userData.params) sel.userData.params.waitTime = sel.userData.waitTime;
+                    this.updateProperties(sel);
+                };
+
+                applyWait(next);
+                this.devMode.history.push(new ValueChangeCommand(applyWait, before, next, 'Update pickup wait time'));
+                waitStart = null;
             };
         }
 
@@ -482,24 +525,18 @@ export class BuildUI {
                 input.onchange = (e) => {
                     const val = parseFloat(e.target.value);
                     if (isNaN(val)) return;
+                    const before = cloneWaypointState(car);
                     wp[axis] = val;
 
-                    // Update Visual Sphere
-                    const visuals = car.getObjectByName('waypointVisuals');
-                    if (visuals) {
-                        const spheres = visuals.children.filter(c => c.userData.type === 'waypoint');
-                        if (spheres[index]) {
-                            spheres[index].position[axis] = val;
-                        }
-                    }
-
-                    // Update Line
-                    if (this.devMode._updateCarLine) {
-                        this.devMode._updateCarLine(car);
+                    if (this.devMode._syncWaypointVisuals) {
+                        this.devMode._syncWaypointVisuals(car);
                     }
                     if (this.devMode.app.colliderSystem) {
                         this.devMode.app.colliderSystem.updateBody(car);
                     }
+
+                    const after = cloneWaypointState(car);
+                    this.devMode.history.push(new WaypointCommand(this.devMode, [before], [after], 'Move waypoint'));
                 };
                 row.appendChild(input);
             });

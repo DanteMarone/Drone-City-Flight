@@ -6,6 +6,7 @@ import { InteractionManager, setupDragDrop } from './interaction.js';
 import { GridSystem } from './grid.js';
 import { GizmoManager } from './gizmo.js';
 import { EntityRegistry } from '../world/entities/index.js';
+import { CommandManager, CreateObjectCommand, DeleteObjectCommand, TransformCommand, WaypointCommand, cloneTransform, cloneWaypointState } from './history.js';
 
 export class DevMode {
     constructor(app) {
@@ -14,6 +15,7 @@ export class DevMode {
 
         this.selectedObjects = []; // Replaces single selectedObject
         this.clipboard = null;
+        this.history = new CommandManager(this);
 
         // Controllers
         this.cameraController = new DevCameraController(app.renderer.camera, app.container);
@@ -22,7 +24,7 @@ export class DevMode {
 
         // New Systems
         this.grid = new GridSystem(app.renderer.scene);
-        this.gizmo = new GizmoManager(app.renderer.scene, app.renderer.camera, app.renderer, this.interaction);
+        this.gizmo = new GizmoManager(app.renderer.scene, app.renderer.camera, app.renderer, this.interaction, this);
 
         // One-time setup for drag-drop
         setupDragDrop(this.interaction, this.app.container);
@@ -164,6 +166,130 @@ export class DevMode {
         }
     }
 
+    captureTransforms(targets = this.selectedObjects) {
+        if (!targets) return [];
+        return targets.map(obj => cloneTransform(obj));
+    }
+
+    _transformsChanged(before, after) {
+        if (!before || !after || before.length !== after.length) return true;
+        for (let i = 0; i < before.length; i++) {
+            const b = before[i];
+            const a = after[i];
+            if (!b.object || !a.object) return true;
+            if (!b.position.equals(a.position)) return true;
+            if (!b.rotation.equals(a.rotation)) return true;
+            if (!b.scale.equals(a.scale)) return true;
+        }
+        return false;
+    }
+
+    applyTransformSnapshot(states) {
+        if (!states || states.length === 0) return;
+        const toUpdate = new Set();
+
+        states.forEach(state => {
+            const obj = state.object;
+            if (!obj) return;
+
+            obj.position.copy(state.position);
+            obj.rotation.copy(state.rotation);
+            obj.scale.copy(state.scale);
+            obj.updateMatrixWorld();
+
+            if (obj.userData?.type === 'waypoint') {
+                const vehicle = obj.userData.vehicle;
+                const idx = obj.userData.index;
+                if (vehicle && idx !== undefined && vehicle.userData?.waypoints?.[idx]) {
+                    vehicle.userData.waypoints[idx].copy(obj.position);
+                    this._updateCarLine(vehicle);
+                    toUpdate.add(vehicle);
+                }
+            } else if (['car', 'bicycle', 'pickupTruck'].includes(obj.userData?.type)) {
+                this._updateCarLine(obj);
+                toUpdate.add(obj);
+            } else {
+                toUpdate.add(obj);
+            }
+        });
+
+        if (this.app.colliderSystem) {
+            toUpdate.forEach(obj => this.app.colliderSystem.updateBody(obj));
+        }
+
+        if (this.selectedObjects.length > 0) {
+            this.gizmo.attach(this.selectedObjects);
+        }
+
+        if (this.selectedObjects.length === 1) {
+            this.ui.updateProperties(this.selectedObjects[0]);
+        } else if (this.selectedObjects.length > 1) {
+            this.ui.updateProperties(this.gizmo.proxy);
+        }
+    }
+
+    applyWaypointSnapshot(states) {
+        if (!states || states.length === 0) return;
+
+        states.forEach(state => {
+            if (!state.car) return;
+            state.car.userData.waypoints = state.waypoints.map(wp => wp.clone());
+            this._syncWaypointVisuals(state.car);
+            if (this.app.colliderSystem) {
+                this.app.colliderSystem.updateBody(state.car);
+            }
+        });
+
+        if (this.selectedObjects.length === 1) {
+            this.ui.updateProperties(this.selectedObjects[0]);
+        }
+    }
+
+    _syncWaypointVisuals(car) {
+        const visualGroup = car.userData.waypointGroup;
+        if (!visualGroup) return;
+
+        const oldLine = visualGroup.getObjectByName('pathLine');
+        if (oldLine) {
+            oldLine.geometry.dispose();
+            visualGroup.remove(oldLine);
+        }
+
+        const oldWaypoints = visualGroup.children.filter(c => c.userData?.type === 'waypoint');
+        oldWaypoints.forEach(c => visualGroup.remove(c));
+
+        const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+        (car.userData.waypoints || []).forEach((wp, idx) => {
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            orb.position.copy(wp);
+            orb.userData = { type: 'waypoint', isHelper: true, index: idx, vehicle: car };
+            visualGroup.add(orb);
+        });
+
+        if (car.userData.waypoints?.length) {
+            const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+            const points = [car.position.clone(), ...car.userData.waypoints];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const line = new THREE.Line(geometry, material);
+            line.name = 'pathLine';
+            visualGroup.add(line);
+        }
+
+        if (this.enabled) {
+            visualGroup.visible = true;
+            if (visualGroup.parent !== this.app.renderer.scene) {
+                this.app.renderer.scene.add(visualGroup);
+            }
+        } else {
+            visualGroup.visible = false;
+            if (visualGroup.parent === this.app.renderer.scene) {
+                this.app.renderer.scene.remove(visualGroup);
+            }
+        }
+    }
+
     addWaypointToSelected() {
         // Only works if a single car/bicycle is selected, or we iterate all.
         // User requirements say "Any options that don't apply to all... should not be displayed"
@@ -175,11 +301,16 @@ export class DevMode {
         const cars = this.selectedObjects.filter(o => ['car', 'bicycle', 'pickupTruck'].includes(o.userData.type));
         if (cars.length === 0) return;
 
+        const beforeStates = cars.map(cloneWaypointState);
+        let changed = false;
+
         cars.forEach(car => {
             if (car.userData.waypoints.length >= 5) {
                 console.warn(`Car ${car.id} max waypoints reached.`);
                 return;
             }
+
+            changed = true;
 
             const visualGroup = car.userData.waypointGroup;
             if (!visualGroup) return;
@@ -189,32 +320,8 @@ export class DevMode {
                 : car.position.clone();
 
             const newPos = lastPos.clone().add(new THREE.Vector3(10, 0, 0));
-
             car.userData.waypoints.push(newPos);
-            const idx = car.userData.waypoints.length - 1;
-
-            const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
-            const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
-            const orb = new THREE.Mesh(orbGeo, orbMat);
-            orb.position.copy(newPos);
-            orb.userData = { type: 'waypoint', isHelper: true, index: idx, vehicle: car };
-            visualGroup.add(orb);
-
-            visualGroup.visible = true;
-            if (visualGroup.parent !== this.app.renderer.scene) {
-                this.app.renderer.scene.add(visualGroup);
-            }
-
-            if (car.userData.waypoints.length === 1 && !visualGroup.getObjectByName('pathLine')) {
-                 const material = new THREE.LineBasicMaterial({ color: 0xffffff });
-                 const points = [car.position.clone(), newPos];
-                 const geometry = new THREE.BufferGeometry().setFromPoints(points);
-                 const line = new THREE.Line(geometry, material);
-                 line.name = 'pathLine';
-                 visualGroup.add(line);
-            } else {
-                this._updateCarLine(car);
-            }
+            this._syncWaypointVisuals(car);
             if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
         });
 
@@ -222,35 +329,56 @@ export class DevMode {
         if (this.selectedObjects.length === 1) {
             this.ui.updateProperties(this.selectedObjects[0]);
         }
+
+        if (changed) {
+            const afterStates = cars.map(cloneWaypointState);
+            this.history.push(new WaypointCommand(this, beforeStates, afterStates, 'Add waypoint'));
+        }
     }
 
     removeWaypointFromSelected() {
         const cars = this.selectedObjects.filter(o => ['car', 'bicycle', 'pickupTruck'].includes(o.userData.type));
 
+        const beforeStates = cars.map(cloneWaypointState);
+        let changed = false;
+
         cars.forEach(car => {
             if (car.userData.waypoints.length === 0) return;
 
+            changed = true;
+
             car.userData.waypoints.pop();
-            const visualGroup = car.userData.waypointGroup;
-            if (visualGroup) {
-                const spheres = visualGroup.children.filter(c => c.userData.type === 'waypoint');
-                if (spheres.length > 0) {
-                    const lastSphere = spheres[spheres.length - 1];
-                    visualGroup.remove(lastSphere);
-                }
-                if (car.userData.waypoints.length === 0) {
-                    const line = visualGroup.getObjectByName('pathLine');
-                    if (line) visualGroup.remove(line);
-                } else {
-                    this._updateCarLine(car);
-                }
-            }
+            this._syncWaypointVisuals(car);
             if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
         });
 
         if (this.selectedObjects.length === 1) {
             this.ui.updateProperties(this.selectedObjects[0]);
         }
+
+        if (changed) {
+            const afterStates = cars.map(cloneWaypointState);
+            this.history.push(new WaypointCommand(this, beforeStates, afterStates, 'Remove waypoint'));
+        }
+    }
+
+    _removeObjects(objects) {
+        if (!objects) return;
+        objects.forEach(obj => {
+            if (!obj || obj.userData?.type === 'waypoint') return;
+
+            if (obj.userData.waypointGroup) {
+                this.app.renderer.scene.remove(obj.userData.waypointGroup);
+            }
+            this.app.renderer.scene.remove(obj);
+            if (this.app.colliderSystem) {
+                this.app.colliderSystem.remove(obj);
+            }
+            if (this.app.world && this.app.world.colliders) {
+                const idx = this.app.world.colliders.findIndex(c => c.mesh === obj);
+                if (idx !== -1) this.app.world.colliders.splice(idx, 1);
+            }
+        });
     }
 
     selectObject(object, shiftKey = false) {
@@ -301,7 +429,13 @@ export class DevMode {
         if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
         if (e.ctrlKey) {
-            if (e.code === 'KeyC') {
+            if (e.code === 'KeyZ') {
+                e.preventDefault();
+                this.history.undo();
+            } else if (e.code === 'KeyY') {
+                e.preventDefault();
+                this.history.redo();
+            } else if (e.code === 'KeyC') {
                 e.preventDefault();
                 this.copySelected();
             } else if (e.code === 'KeyV') {
@@ -356,6 +490,16 @@ export class DevMode {
         }
 
         return null;
+    }
+
+    _recordCreation(objects, description = 'Create object') {
+        const serialized = (objects || [])
+            .map(obj => this._serializeMesh(obj))
+            .filter(Boolean);
+
+        if (serialized.length) {
+            this.history.push(new CreateObjectCommand(this, serialized, objects, description));
+        }
     }
 
     copySelected() {
@@ -434,6 +578,7 @@ export class DevMode {
 
         if (newObjects.length > 0) {
             this.selectObjects(newObjects);
+            this._recordCreation(newObjects, 'Paste objects');
             return newObjects;
         }
 
@@ -447,29 +592,18 @@ export class DevMode {
     }
 
     deleteSelected() {
-        if (this.selectedObjects.length > 0) {
-            // Create a copy because we modify the array during iteration if we weren't careful,
-            // but here we just clear selection at the end.
-            const toDelete = [...this.selectedObjects];
+        if (this.selectedObjects.length === 0) return;
 
-            toDelete.forEach(obj => {
-                 if (obj.userData.type === 'waypoint') return; // Skip explicit waypoint deletion via DEL key for now
+        const serialized = this.selectedObjects
+            .map(obj => this._serializeMesh(obj))
+            .filter(Boolean);
 
-                 if (obj.userData.waypointGroup) {
-                      this.app.renderer.scene.remove(obj.userData.waypointGroup);
-                 }
-                 this.app.renderer.scene.remove(obj);
-                 if (this.app.colliderSystem) {
-                     this.app.colliderSystem.remove(obj);
-                 }
-                 if (this.app.world && this.app.world.colliders) {
-                      const idx = this.app.world.colliders.findIndex(c => c.mesh === obj);
-                      if (idx !== -1) this.app.world.colliders.splice(idx, 1);
-                 }
-            });
+        if (!serialized.length) return;
 
-            this.selectObject(null);
-        }
+        const command = new DeleteObjectCommand(this, serialized, 'Delete objects');
+        this._removeObjects([...this.selectedObjects]);
+        this.selectObject(null);
+        this.history.push(command);
     }
 
     // Commands

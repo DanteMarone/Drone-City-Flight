@@ -231,6 +231,17 @@ export class BuildUI {
                  </div>
             </div>
 
+            <div id="angry-person-controls" class="dev-prop-section" style="display:none;">
+                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                     Throw Interval (s)
+                     <input id="angry-throw-interval" type="number" min="0.1" step="0.1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                 </label>
+                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                     Throw Distance
+                     <input id="angry-throw-dist" type="number" min="1" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                 </label>
+            </div>
+
             <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
         `;
 
@@ -441,6 +452,59 @@ export class BuildUI {
             };
         }
 
+        // Angry Person Bindings
+        const angryIntervalInput = this.propPanel.querySelector('#angry-throw-interval');
+        const angryDistInput = this.propPanel.querySelector('#angry-throw-dist');
+
+        const bindAngryInput = (input, key, label) => {
+            let startVal = null;
+            input.onfocus = () => {
+                if (this.devMode.selectedObjects.length === 1 && this.devMode.selectedObjects[0].userData.type === 'angryPerson') {
+                    const sel = this.devMode.selectedObjects[0];
+                    startVal = sel.userData.params?.[key] ?? (key === 'throwInterval' ? 3.0 : 10);
+                }
+            };
+            input.onchange = (e) => {
+                const val = parseFloat(e.target.value);
+                if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
+                const sel = this.devMode.selectedObjects[0];
+                if (sel.userData.type !== 'angryPerson') return;
+
+                const before = startVal ?? sel.userData.params?.[key] ?? (key === 'throwInterval' ? 3.0 : 10);
+                const next = val;
+
+                if (!sel.userData.params) sel.userData.params = {};
+                sel.userData.params[key] = next;
+
+                // Update Entity instance too if possible (for runtime update without reload)
+                // DevMode usually stores params in userData, but Entity instance reads from this.params.
+                // We must sync them.
+                // 'sel' is the Mesh. The Entity logic might hold a reference or read from mesh.userData if written that way.
+                // BaseEntity constructor: this.params = params. this.mesh.userData.params = this.params.
+                // So updating mesh.userData.params is modifying the shared object if it's the same reference.
+                // If not, we might need to find the entity instance.
+                // The current architecture seems to rely on userData for serialization.
+                // Runtime update: BaseEntity doesn't automatically re-read userData.params every frame unless coded to.
+                // AngryPersonEntity.update reads this.params.
+                // Since this.mesh.userData.params === this.params (reference), updating userData.params works instantly.
+
+                this.updateProperties(sel);
+
+                this.devMode.history.push(new PropertyChangeCommand(
+                    this.devMode,
+                    sel.userData.uuid,
+                    key,
+                    before,
+                    next,
+                    label
+                ));
+                startVal = null;
+            };
+        };
+
+        if (angryIntervalInput) bindAngryInput(angryIntervalInput, 'throwInterval', 'Update throw interval');
+        if (angryDistInput) bindAngryInput(angryDistInput, 'firingRange', 'Update firing range');
+
     }
 
     show() {
@@ -503,32 +567,50 @@ export class BuildUI {
         // Car Controls
         const carControls = this.propPanel.querySelector('#car-controls');
         const pickupControls = this.propPanel.querySelector('#pickup-controls');
+        const angryControls = this.propPanel.querySelector('#angry-person-controls');
 
         // Show specific controls only if SINGLE selection and correct type
         if (this.devMode.selectedObjects.length === 1) {
             const sel = this.devMode.selectedObjects[0];
-            if (['car', 'bicycle', 'pickupTruck'].includes(sel.userData.type)) {
+            const type = sel.userData.type;
+
+            // Reset all special controls
+            carControls.style.display = 'none';
+            pickupControls.style.display = 'none';
+            if (angryControls) angryControls.style.display = 'none';
+
+            if (['car', 'bicycle', 'pickupTruck'].includes(type)) {
                 carControls.style.display = 'flex';
                 this._updateWaypointList(sel);
 
-                if (sel.userData.type === 'pickupTruck') {
+                if (type === 'pickupTruck') {
                     pickupControls.style.display = 'flex';
                     const waitInput = this.propPanel.querySelector('#pickup-wait-time');
                     if (waitInput && document.activeElement !== waitInput) {
                         const wait = sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 10;
                         waitInput.value = wait;
                     }
-                } else {
-                    pickupControls.style.display = 'none';
                 }
-            } else {
-                carControls.style.display = 'none';
-                pickupControls.style.display = 'none';
+            } else if (type === 'angryPerson') {
+                if (angryControls) {
+                    angryControls.style.display = 'flex';
+                    const intervalInput = this.propPanel.querySelector('#angry-throw-interval');
+                    const distInput = this.propPanel.querySelector('#angry-throw-dist');
+
+                    const params = sel.userData.params || {};
+                    if (intervalInput && document.activeElement !== intervalInput) {
+                        intervalInput.value = params.throwInterval !== undefined ? params.throwInterval : 3.0;
+                    }
+                    if (distInput && document.activeElement !== distInput) {
+                        distInput.value = params.firingRange !== undefined ? params.firingRange : 10;
+                    }
+                }
             }
         } else {
             // Hide for multi-select (per user requirement to hide incompatible options)
             carControls.style.display = 'none';
             pickupControls.style.display = 'none';
+            if (angryControls) angryControls.style.display = 'none';
         }
     }
 

@@ -40,3 +40,7 @@
 - **Holographic Signs**: Created using `THREE.CanvasTexture` with a transparent background and `THREE.AdditiveBlending` on a `PlaneGeometry`.
   - **Technique**: Draw neon strokes and text on a 2D canvas, use as map for `MeshBasicMaterial`.
   - **Animation**: Randomly modulate `opacity` and `visible` properties in `update(dt)` to simulate glitching.
+
+### 4. Procedural Brick Texture
+* **Technique**: `TextureGenerator.createBrick` generates a brick pattern by looping through rows and columns, drawing offset rectangles.
+* **Detail**: Adding a second pass of random noise (small dark pixels) over the bricks breaks up the "perfect digital" look and adds gritty realism suitable for cottages or old apartments.

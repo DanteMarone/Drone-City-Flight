@@ -222,5 +222,62 @@ export const TextureGenerator = {
 
         textureCache.set(key, tex);
         return tex;
+    },
+
+    createBrick: (options = {}) => {
+        const {
+            color = '#884433', // Reddish brick
+            mortar = '#cccccc',
+            rows = 10,
+            cols = 5,
+            width = 256,
+            height = 256
+        } = options;
+
+        const key = `brick_${color}_${mortar}_${rows}_${cols}`;
+        if (textureCache.has(key)) return textureCache.get(key).clone();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Background (Mortar)
+        ctx.fillStyle = mortar;
+        ctx.fillRect(0, 0, width, height);
+
+        const brickH = height / rows;
+        const brickW = width / cols;
+        const gap = 2; // Mortar gap thickness
+
+        for (let y = 0; y < rows; y++) {
+            const offset = (y % 2 === 0) ? 0 : brickW / 2;
+            for (let x = -1; x <= cols; x++) {
+                // Vary color slightly
+                const shade = (Math.random() - 0.5) * 20;
+                // Parse hex to rgb for shading? Too complex, just use HSL or overlay
+                // Simple overlay
+                ctx.fillStyle = color;
+
+                const bx = x * brickW + offset + gap/2;
+                const by = y * brickH + gap/2;
+                const bw = brickW - gap;
+                const bh = brickH - gap;
+
+                ctx.fillRect(bx, by, bw, bh);
+
+                // Noise overlay
+                ctx.fillStyle = `rgba(0,0,0, ${Math.random() * 0.2})`;
+                ctx.fillRect(bx, by, bw, bh);
+            }
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+
+        textureCache.set(key, tex);
+        return tex;
     }
 };

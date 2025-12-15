@@ -4,6 +4,12 @@ import { EntityRegistry } from './registry.js';
 import { createSedanGeometry, createBicycleMesh, createPickupGeometry } from '../../world/carGeometries.js';
 import { CONFIG } from '../../config.js';
 
+// Scratch vectors for vehicle updates to prevent GC
+const _targetPos = new THREE.Vector3();
+const _localTarget = new THREE.Vector3();
+const _currentLocal = new THREE.Vector3();
+const _dir = new THREE.Vector3();
+
 export class VehicleEntity extends BaseEntity {
     constructor(params) {
         super(params);
@@ -65,41 +71,52 @@ export class VehicleEntity extends BaseEntity {
         const modelGroup = this.mesh.getObjectByName('modelGroup');
         if (!modelGroup) return;
 
-        const path = [this.mesh.position.clone(), ...this.waypoints];
-        if (path.length < 2) return;
+        // Optimized: Avoid creating [mesh.pos, ...waypoints] array every frame
+        const waypoints = this.waypoints;
+        const totalPoints = 1 + waypoints.length; // 0=mesh.pos, 1..N=waypoints
+
+        if (totalPoints < 2) return;
 
         let targetIdx = this.mesh.userData.targetIndex;
         if (targetIdx === undefined) targetIdx = 1;
 
         if (targetIdx < 0) targetIdx = 0;
-        if (targetIdx >= path.length) targetIdx = path.length - 1;
+        if (targetIdx >= totalPoints) targetIdx = totalPoints - 1;
 
-        const targetPos = path[targetIdx];
+        // Get target position without allocation
+        if (targetIdx === 0) {
+            _targetPos.copy(this.mesh.position);
+        } else {
+            // targetIdx 1 corresponds to waypoints[0]
+            _targetPos.copy(waypoints[targetIdx - 1]);
+        }
 
         // Convert Target (World) to Local Space of Vehicle Mesh (Parent)
-        const localTarget = this.mesh.worldToLocal(targetPos.clone());
-        const currentLocal = modelGroup.position.clone();
+        // Optimization: use scratch vectors
+        _localTarget.copy(_targetPos);
+        this.mesh.worldToLocal(_localTarget);
+
+        _currentLocal.copy(modelGroup.position);
 
         const speed = Math.max(0, this.baseSpeed);
-        const dist = currentLocal.distanceTo(localTarget);
+        const dist = _currentLocal.distanceTo(_localTarget);
         const moveAmount = speed * dt;
 
         if (dist > moveAmount) {
-            const dir = localTarget.sub(currentLocal).normalize();
+            // dir = localTarget - currentLocal
+            _dir.subVectors(_localTarget, _currentLocal).normalize();
+
             // Move in Local Space
-            const moveVec = dir.multiplyScalar(moveAmount);
-            modelGroup.position.add(moveVec);
+            modelGroup.position.addScaledVector(_dir, moveAmount);
 
             // Rotation: Look at Target (World)
-            // Three.js Object3D.lookAt(vector) assumes vector is in World Space
-            // and handles parent transforms automatically.
-            modelGroup.lookAt(targetPos);
+            modelGroup.lookAt(_targetPos);
 
         } else {
             // Snap
-            modelGroup.position.copy(localTarget);
+            modelGroup.position.copy(_localTarget);
 
-            if (targetIdx < path.length - 1) {
+            if (targetIdx < totalPoints - 1) {
                 this.mesh.userData.targetIndex++;
             } else {
                 this.mesh.userData.targetIndex = 0;
@@ -212,8 +229,11 @@ export class PickupTruckEntity extends CarEntity {
         const modelGroup = this.mesh.getObjectByName('modelGroup');
         if (!modelGroup) return;
 
-        const path = [this.mesh.position.clone(), ...this.waypoints];
-        if (path.length < 2) return;
+        // Optimized: Avoid creating [mesh.pos, ...waypoints] array every frame
+        const waypoints = this.waypoints;
+        const totalPoints = 1 + waypoints.length;
+
+        if (totalPoints < 2) return;
 
         const currentWait = this.mesh.userData.waitTime ?? this.waitTime;
         this.waitTime = currentWait;
@@ -233,31 +253,39 @@ export class PickupTruckEntity extends CarEntity {
 
         let targetIdx = this.mesh.userData.targetIndex;
         if (targetIdx === undefined) targetIdx = 1;
-        targetIdx = THREE.MathUtils.clamp(targetIdx, 0, path.length - 1);
+        targetIdx = THREE.MathUtils.clamp(targetIdx, 0, totalPoints - 1);
 
-        const targetPos = path[targetIdx];
-        const localTarget = this.mesh.worldToLocal(targetPos.clone());
-        const currentLocal = modelGroup.position.clone();
+        // Get target position without allocation
+        if (targetIdx === 0) {
+            _targetPos.copy(this.mesh.position);
+        } else {
+            _targetPos.copy(waypoints[targetIdx - 1]);
+        }
+
+        // Convert Target (World) to Local Space of Vehicle Mesh (Parent)
+        _localTarget.copy(_targetPos);
+        this.mesh.worldToLocal(_localTarget);
+
+        _currentLocal.copy(modelGroup.position);
 
         const speed = Math.max(0, this.baseSpeed);
-        const dist = currentLocal.distanceTo(localTarget);
+        const dist = _currentLocal.distanceTo(_localTarget);
         const moveAmount = speed * dt;
 
         if (dist > moveAmount) {
-            const dir = localTarget.sub(currentLocal).normalize();
-            const moveVec = dir.multiplyScalar(moveAmount);
-            modelGroup.position.add(moveVec);
-            modelGroup.lookAt(targetPos);
+            _dir.subVectors(_localTarget, _currentLocal).normalize();
+            modelGroup.position.addScaledVector(_dir, moveAmount);
+            modelGroup.lookAt(_targetPos);
         } else {
-            modelGroup.position.copy(localTarget);
+            modelGroup.position.copy(_localTarget);
 
-            const atForwardEnd = targetIdx >= path.length - 1;
+            const atForwardEnd = targetIdx >= totalPoints - 1;
             const atBackwardEnd = targetIdx <= 0;
 
             if (atForwardEnd || atBackwardEnd) {
                 this.direction *= -1;
                 this.waitTimer = Math.max(0, currentWait);
-                const nextIdx = THREE.MathUtils.clamp(targetIdx + this.direction, 0, path.length - 1);
+                const nextIdx = THREE.MathUtils.clamp(targetIdx + this.direction, 0, totalPoints - 1);
                 this.mesh.userData.targetIndex = nextIdx;
             } else {
                 this.mesh.userData.targetIndex = targetIdx + this.direction;

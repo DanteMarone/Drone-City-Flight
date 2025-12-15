@@ -44,6 +44,20 @@ export class BuildUI {
             </label>
 
             <hr style="width:100%">
+            <h3>Environment</h3>
+            <div style="display:flex; flex-direction:column; gap:5px; font-size:0.9em;">
+                <label style="display:flex; justify-content:space-between;">
+                    Wind Speed: <span id="wind-speed-val">0</span>
+                </label>
+                <input type="range" id="dev-wind-speed" min="0" max="50" value="0">
+
+                <label style="display:flex; justify-content:space-between;">
+                    Wind Dir: <span id="wind-dir-val">0°</span>
+                </label>
+                <input type="range" id="dev-wind-dir" min="0" max="360" value="0">
+            </div>
+
+            <hr style="width:100%">
             <h3>Tools</h3>
             <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
                 <input type="checkbox" id="dev-grid-snap"> Grid Snap
@@ -244,6 +258,16 @@ export class BuildUI {
                     Stop Time (s)
                     <input id="cow-stop-time" type="number" min="0.5" step="0.5" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
                 </label>
+
+            <div id="angry-person-controls" class="dev-prop-section" style="display:none;">
+                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                     Throw Interval (s)
+                     <input id="angry-throw-interval" type="number" min="0.1" step="0.1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                 </label>
+                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                     Throw Distance
+                     <input id="angry-throw-dist" type="number" min="1" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                 </label>
             </div>
 
             <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
@@ -295,6 +319,40 @@ export class BuildUI {
                 this.devMode.loadMap(e.target.files[0]);
                 e.target.value = ''; // Reset
             }
+        };
+
+        // Environment
+        const windSpeed = this.dom.querySelector('#dev-wind-speed');
+        const windDir = this.dom.querySelector('#dev-wind-dir');
+        const windSpeedVal = this.dom.querySelector('#wind-speed-val');
+        const windDirVal = this.dom.querySelector('#wind-dir-val');
+
+        const updateWindUI = () => {
+            if (this.devMode.app.world.wind) {
+                windSpeed.value = this.devMode.app.world.wind.speed;
+                windDir.value = this.devMode.app.world.wind.direction;
+                windSpeedVal.textContent = this.devMode.app.world.wind.speed;
+                windDirVal.textContent = this.devMode.app.world.wind.direction + '°';
+            }
+        };
+
+        // Hook into show() to update values when opening
+        const originalShow = this.show.bind(this);
+        this.show = () => {
+            originalShow();
+            updateWindUI();
+        };
+
+        windSpeed.oninput = (e) => {
+            const val = parseInt(e.target.value);
+            this.devMode.app.world.wind.speed = val;
+            windSpeedVal.textContent = val;
+        };
+
+        windDir.oninput = (e) => {
+            const val = parseInt(e.target.value);
+            this.devMode.app.world.wind.direction = val;
+            windDirVal.textContent = val + '°';
         };
 
         // Tools
@@ -508,6 +566,59 @@ export class BuildUI {
         bindCowInput('#cow-move-time', 'moveDuration', 'Move Time');
         bindCowInput('#cow-stop-time', 'stopDuration', 'Stop Time');
 
+        // Angry Person Bindings
+        const angryIntervalInput = this.propPanel.querySelector('#angry-throw-interval');
+        const angryDistInput = this.propPanel.querySelector('#angry-throw-dist');
+
+        const bindAngryInput = (input, key, label) => {
+            let startVal = null;
+            input.onfocus = () => {
+                if (this.devMode.selectedObjects.length === 1 && this.devMode.selectedObjects[0].userData.type === 'angryPerson') {
+                    const sel = this.devMode.selectedObjects[0];
+                    startVal = sel.userData.params?.[key] ?? (key === 'throwInterval' ? 3.0 : 10);
+                }
+            };
+            input.onchange = (e) => {
+                const val = parseFloat(e.target.value);
+                if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
+                const sel = this.devMode.selectedObjects[0];
+                if (sel.userData.type !== 'angryPerson') return;
+
+                const before = startVal ?? sel.userData.params?.[key] ?? (key === 'throwInterval' ? 3.0 : 10);
+                const next = val;
+
+                if (!sel.userData.params) sel.userData.params = {};
+                sel.userData.params[key] = next;
+
+                // Update Entity instance too if possible (for runtime update without reload)
+                // DevMode usually stores params in userData, but Entity instance reads from this.params.
+                // We must sync them.
+                // 'sel' is the Mesh. The Entity logic might hold a reference or read from mesh.userData if written that way.
+                // BaseEntity constructor: this.params = params. this.mesh.userData.params = this.params.
+                // So updating mesh.userData.params is modifying the shared object if it's the same reference.
+                // If not, we might need to find the entity instance.
+                // The current architecture seems to rely on userData for serialization.
+                // Runtime update: BaseEntity doesn't automatically re-read userData.params every frame unless coded to.
+                // AngryPersonEntity.update reads this.params.
+                // Since this.mesh.userData.params === this.params (reference), updating userData.params works instantly.
+
+                this.updateProperties(sel);
+
+                this.devMode.history.push(new PropertyChangeCommand(
+                    this.devMode,
+                    sel.userData.uuid,
+                    key,
+                    before,
+                    next,
+                    label
+                ));
+                startVal = null;
+            };
+        };
+
+        if (angryIntervalInput) bindAngryInput(angryIntervalInput, 'throwInterval', 'Update throw interval');
+        if (angryDistInput) bindAngryInput(angryDistInput, 'firingRange', 'Update firing range');
+
     }
 
     show() {
@@ -567,10 +678,11 @@ export class BuildUI {
         setVal('sy', object.scale.y);
         setVal('sz', object.scale.z);
 
-        // Car Controls
+        // Controls
         const carControls = this.propPanel.querySelector('#car-controls');
         const pickupControls = this.propPanel.querySelector('#pickup-controls');
         const cowControls = this.propPanel.querySelector('#cow-controls');
+        const angryControls = this.propPanel.querySelector('#angry-person-controls');
 
         // Show specific controls only if SINGLE selection and correct type
         if (this.devMode.selectedObjects.length === 1) {
@@ -578,6 +690,11 @@ export class BuildUI {
             const type = sel.userData.type;
 
             // -- Vehicles --
+            // Reset all special controls
+            carControls.style.display = 'none';
+            pickupControls.style.display = 'none';
+            if (angryControls) angryControls.style.display = 'none';
+
             if (['car', 'bicycle', 'pickupTruck'].includes(type)) {
                 carControls.style.display = 'flex';
                 cowControls.style.display = 'none';
@@ -590,8 +707,6 @@ export class BuildUI {
                         const wait = sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 10;
                         waitInput.value = wait;
                     }
-                } else {
-                    pickupControls.style.display = 'none';
                 }
             }
             // -- Cow --
@@ -610,16 +725,28 @@ export class BuildUI {
                 setInput('#cow-move-time', p.moveDuration ?? sel.userData.moveDuration ?? 3);
                 setInput('#cow-stop-time', p.stopDuration ?? sel.userData.stopDuration ?? 4);
             }
-            else {
-                carControls.style.display = 'none';
-                pickupControls.style.display = 'none';
-                cowControls.style.display = 'none';
+            } else if (type === 'angryPerson') {
+                if (angryControls) {
+                    angryControls.style.display = 'flex';
+                    const intervalInput = this.propPanel.querySelector('#angry-throw-interval');
+                    const distInput = this.propPanel.querySelector('#angry-throw-dist');
+
+                    const params = sel.userData.params || {};
+                    if (intervalInput && document.activeElement !== intervalInput) {
+                        intervalInput.value = params.throwInterval !== undefined ? params.throwInterval : 3.0;
+                    }
+                    if (distInput && document.activeElement !== distInput) {
+                        distInput.value = params.firingRange !== undefined ? params.firingRange : 10;
+                    }
+                }
             }
         } else {
             // Hide for multi-select
             carControls.style.display = 'none';
             pickupControls.style.display = 'none';
+            cowControls.style.display = 'none';
             if (cowControls) cowControls.style.display = 'none';
+            if (angryControls) angryControls.style.display = 'none';
         }
     }
 

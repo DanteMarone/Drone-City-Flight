@@ -24,9 +24,9 @@ export class MenuSystem {
 
                 <hr>
                 <button id="btn-dev">DEVELOPER MODE</button>
-                <label class="btn-like">
+                <label class="btn-like" tabindex="0" role="button" aria-label="Load Custom Map">
                     LOAD CUSTOM MAP
-                    <input type="file" id="btn-load-map" accept=".json" class="visually-hidden">
+                    <input type="file" id="btn-load-map" accept=".json" class="visually-hidden" tabindex="-1">
                 </label>
                 <hr>
 
@@ -75,6 +75,15 @@ export class MenuSystem {
             if (this.app.devMode) this.app.devMode.enable();
         };
 
+        // Accessibility: Allow keyboard activation for file input label
+        const loadLabel = this.dom.loadMap.parentElement;
+        loadLabel.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.dom.loadMap.click();
+            }
+        };
+
         this.dom.loadMap.onchange = (e) => {
             if (e.target.files.length > 0) {
                 const file = e.target.files[0];
@@ -116,11 +125,25 @@ export class MenuSystem {
         this.visible = true;
         this.dom.menu.classList.remove('hidden');
         this.app.paused = true; // Pause Loop
+
+        // Trap Focus
+        this.lastFocused = document.activeElement;
+        // Small timeout to ensure DOM is ready/visible
+        setTimeout(() => {
+            this.dom.resume.focus();
+        }, 50);
     }
 
     hide() {
         this.visible = false;
         this.dom.menu.classList.add('hidden');
         this.app.paused = false;
+
+        // Restore Focus
+        if (this.lastFocused && document.body.contains(this.lastFocused)) {
+            this.lastFocused.focus();
+        } else {
+            document.activeElement.blur();
+        }
     }
 }

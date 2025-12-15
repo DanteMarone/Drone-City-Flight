@@ -24,6 +24,20 @@ export class Drone {
         this._buildDroneMesh();
 
         this.scene.add(this.mesh);
+
+        // Whiteout Overlay
+        this.whiteoutOverlay = document.createElement('div');
+        this.whiteoutOverlay.style.position = 'fixed';
+        this.whiteoutOverlay.style.top = '0';
+        this.whiteoutOverlay.style.left = '0';
+        this.whiteoutOverlay.style.width = '100%';
+        this.whiteoutOverlay.style.height = '100%';
+        this.whiteoutOverlay.style.backgroundColor = 'white';
+        this.whiteoutOverlay.style.pointerEvents = 'none';
+        this.whiteoutOverlay.style.zIndex = '9999';
+        this.whiteoutOverlay.style.opacity = '0';
+        this.whiteoutOverlay.style.transition = 'opacity 0.1s linear'; // Smooth transition
+        document.body.appendChild(this.whiteoutOverlay);
     }
 
     _buildDroneMesh() {
@@ -136,6 +150,62 @@ export class Drone {
     update(dt, input) {
         this._updatePhysics(dt, input);
         this._updateVisuals(dt, input);
+        this._updateAltitudeEffects();
+    }
+
+    resetAltitudeEffects() {
+        this.whiteoutOverlay.style.opacity = '0';
+        if (this.scene.fog) {
+            this.scene.fog.density = 0;
+        }
+    }
+
+    _updateAltitudeEffects() {
+        // Check if Dev Mode is active (assuming global app reference or passed in constructor)
+        // Since constructor only got 'scene', we might need 'app' or check global.
+        // The memory says 'window.app' is available.
+        if (window.app && window.app.devMode && window.app.devMode.enabled) {
+            this.resetAltitudeEffects();
+            return;
+        }
+
+        const maxAlt = CONFIG.DRONE.MAX_ALTITUDE;
+        const startAlt = maxAlt - 20; // Start effect 20m before max
+        const currentAlt = this.position.y;
+
+        // Clamp Altitude
+        if (currentAlt > maxAlt) {
+            this.position.y = maxAlt;
+            this.velocity.y = Math.min(0, this.velocity.y); // Stop upward velocity
+            this.mesh.position.y = maxAlt;
+        }
+
+        // Calculate Effect Intensity (0.0 to 1.0)
+        let intensity = 0;
+        if (currentAlt > startAlt) {
+            intensity = (currentAlt - startAlt) / (maxAlt - startAlt);
+            intensity = Math.min(Math.max(intensity, 0), 1);
+        }
+
+        // Apply to Overlay
+        this.whiteoutOverlay.style.opacity = intensity.toString();
+
+        // Apply to Fog (Create if missing)
+        // We use FogExp2 for realistic distance falloff
+        if (intensity > 0) {
+            if (!this.scene.fog) {
+                this.scene.fog = new THREE.FogExp2(0xffffff, 0);
+            }
+            // Density range: 0 to 0.05 (adjust as needed for "thick")
+            // 0.05 is quite thick
+            const maxDensity = 0.1;
+            this.scene.fog.density = intensity * maxDensity;
+            this.scene.fog.color.setHex(0xffffff); // Ensure white
+        } else {
+            if (this.scene.fog) {
+                this.scene.fog.density = 0;
+            }
+        }
     }
 
     _updatePhysics(dt, input) {
@@ -152,6 +222,25 @@ export class Drone {
 
         // Apply to velocity
         this.velocity.add(accel.clone().multiplyScalar(dt));
+
+        // Wind Force
+        if (window.app && window.app.world && window.app.world.wind) {
+            const wind = window.app.world.wind;
+            if (wind.speed > 0) {
+                // Convert degrees to radians
+                const rad = wind.direction * (Math.PI / 180);
+
+                // Calculate direction (0 = North/-Z, 90 = East/+X)
+                // Using sin for X and -cos for Z aligns with compass 0 at North
+                const windDir = new THREE.Vector3(Math.sin(rad), 0, -Math.cos(rad));
+
+                // Force calculation:
+                // We add a small acceleration per frame.
+                // Factor 2.0 ensures 10 speed feels significant but not overwhelming against drag.
+                const windForce = windDir.multiplyScalar(wind.speed * 2.0 * dt);
+                this.velocity.add(windForce);
+            }
+        }
 
         // Drag
         const hVel = new THREE.Vector3(this.velocity.x, 0, this.velocity.z);

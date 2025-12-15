@@ -14,6 +14,12 @@ export class InteractionManager {
         this.draggedType = null;
         this.active = false;
 
+        this.roadPlacement = {
+            active: false,
+            startPoint: null,
+            entity: null
+        };
+
         this._onMouseDown = this._onMouseDown.bind(this);
         this._onMouseMove = this._onMouseMove.bind(this);
         this._onMouseUp = this._onMouseUp.bind(this);
@@ -89,6 +95,15 @@ export class InteractionManager {
         if (!this.active) return;
         if (e.button !== 0) return;
 
+        if (this.roadPlacement.active) {
+            const point = this._getIntersect(e);
+            if (point) {
+                this._updateRoadPlacement(point);
+                this._finalizeRoadPlacement();
+            }
+            return;
+        }
+
         if (e.target !== this.app.renderer.domElement) return;
         if (this.devMode.gizmo && this.devMode.gizmo.control.axis !== null) return;
 
@@ -157,6 +172,14 @@ export class InteractionManager {
     _onMouseMove(e) {
         if (!this.active) return;
 
+        if (this.roadPlacement.active) {
+            const point = this._getIntersect(e);
+            if (point) {
+                this._updateRoadPlacement(point);
+            }
+            return;
+        }
+
         if (this.isDragging && this.dragTarget) {
             const rect = this.app.container.getBoundingClientRect();
             const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
@@ -212,6 +235,72 @@ export class InteractionManager {
             this.dragTarget = null;
         }
     }
+
+    startRoadPlacement(point) {
+        const start = point.clone();
+        this.roadPlacement.startPoint = start;
+        this.roadPlacement.active = true;
+
+        const entity = this.factory.createObject('road', { x: start.x, z: start.z, length: 1 });
+        if (entity && entity.mesh) {
+            entity.mesh.material.transparent = true;
+            entity.mesh.material.opacity = 0.7;
+        } else {
+            this.roadPlacement.active = false;
+            return;
+        }
+
+        this.roadPlacement.entity = entity;
+    }
+
+    _updateRoadPlacement(point) {
+        if (!this.roadPlacement.active || !this.roadPlacement.entity) return;
+
+        const snappedPoint = (this.devMode.grid && this.devMode.grid.enabled) ? this.devMode.grid.snap(point) : point;
+
+        const delta = new THREE.Vector3().subVectors(snappedPoint, this.roadPlacement.startPoint);
+        const length = Math.max(1, Math.sqrt(delta.x * delta.x + delta.z * delta.z));
+        const angle = Math.atan2(delta.x, delta.z);
+        const midPoint = new THREE.Vector3(
+            this.roadPlacement.startPoint.x + delta.x * 0.5,
+            this.roadPlacement.startPoint.y,
+            this.roadPlacement.startPoint.z + delta.z * 0.5
+        );
+
+        const entity = this.roadPlacement.entity;
+        entity.updateDimensions({ length });
+        entity.mesh.position.set(midPoint.x, midPoint.y, midPoint.z);
+        entity.mesh.rotation.y = angle;
+        entity.params.rotY = angle;
+        entity.mesh.userData.params = entity.params;
+    }
+
+    _finalizeRoadPlacement() {
+        if (!this.roadPlacement.entity) {
+            this.roadPlacement.active = false;
+            return;
+        }
+
+        const entity = this.roadPlacement.entity;
+        if (entity.mesh) {
+            entity.mesh.material.transparent = false;
+            entity.mesh.material.opacity = 1;
+        }
+
+        this.app.world.addEntity(entity);
+
+        if (this.app.colliderSystem) {
+            this.app.colliderSystem.addStatic([entity]);
+        }
+
+        this.devMode.selectObject(entity.mesh);
+
+        this.roadPlacement = {
+            active: false,
+            startPoint: null,
+            entity: null
+        };
+    }
 }
 
 export function setupDragDrop(interaction, container) {
@@ -234,6 +323,8 @@ export function setupDragDrop(interaction, container) {
             if (type === 'ring') {
                 interaction.app.rings.spawnRingAt(point);
                 // Rings handle their own registration internally in RingManager
+            } else if (type === 'road') {
+                interaction.startRoadPlacement(point);
             } else {
                 // Use ObjectFactory (which delegates to EntityRegistry)
                 const entity = interaction.factory.createObject(type, { x: point.x, z: point.z });

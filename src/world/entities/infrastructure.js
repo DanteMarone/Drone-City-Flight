@@ -12,10 +12,10 @@ export class RoadEntity extends BaseEntity {
     static get displayName() { return 'Road'; }
 
     createMesh(params) {
-        const w = params.width || 10;
-        const l = params.length || 10;
-        this.params.width = w;
-        this.params.length = l;
+        const width = params.width || 10;
+        const length = params.length || 10;
+        this.params.width = width;
+        this.params.length = length;
 
         const mat = new THREE.MeshStandardMaterial({
             map: TextureGenerator.createAsphalt(),
@@ -23,14 +23,39 @@ export class RoadEntity extends BaseEntity {
             color: 0x555555
         });
 
-        // Use BufferGeometry rotation/translation to persist through BaseEntity.init's transform override
-        const geo = new THREE.PlaneGeometry(w, l);
-        geo.rotateX(-Math.PI / 2);
-        geo.translate(0, 0.05, 0); // Lift up slightly
+        this._applyRoadTiling(mat, width, length);
 
+        const geo = this._buildGeometry(width, length);
         const mesh = new THREE.Mesh(geo, mat);
         mesh.receiveShadow = true;
         return mesh;
+    }
+
+    updateDimensions(width, length) {
+        if (!this.mesh) return;
+        this.params.width = width;
+        this.params.length = length;
+
+        const geo = this._buildGeometry(width, length);
+        this.mesh.geometry.dispose();
+        this.mesh.geometry = geo;
+        this._applyRoadTiling(this.mesh.material, width, length);
+    }
+
+    _buildGeometry(width, length) {
+        const geo = new THREE.PlaneGeometry(width, length);
+        geo.rotateX(-Math.PI / 2);
+        geo.translate(0, 0.05, 0); // Lift up slightly
+        return geo;
+    }
+
+    _applyRoadTiling(material, width, length) {
+        if (!material || !material.map) return;
+        const tileSize = 2; // Repeat every 2 units to avoid stretching artifacts
+        material.map.repeat.set(width / tileSize, length / tileSize);
+        material.map.wrapS = THREE.RepeatWrapping;
+        material.map.wrapT = THREE.RepeatWrapping;
+        material.map.needsUpdate = true;
     }
 
     createCollider() {

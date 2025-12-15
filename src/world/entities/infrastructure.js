@@ -17,8 +17,13 @@ export class RoadEntity extends BaseEntity {
         this.params.width = w;
         this.params.length = l;
 
+        const asphalt = TextureGenerator.createAsphalt();
+        const repeatScale = 4;
+        asphalt.repeat.set(w / repeatScale, l / repeatScale);
+        asphalt.needsUpdate = true;
+
         const mat = new THREE.MeshStandardMaterial({
-            map: TextureGenerator.createAsphalt(),
+            map: asphalt,
             roughness: 0.9,
             color: 0x555555
         });

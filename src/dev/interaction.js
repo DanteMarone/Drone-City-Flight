@@ -12,6 +12,7 @@ export class InteractionManager {
         this.factory = new ObjectFactory(app.renderer.scene);
 
         this.draggedType = null;
+        this.roadPlacementStart = null;
         this.active = false;
 
         this._onMouseDown = this._onMouseDown.bind(this);
@@ -44,6 +45,9 @@ export class InteractionManager {
 
     onDragStart(type) {
         this.draggedType = type;
+        if (type === 'road') {
+            this.roadPlacementStart = null;
+        }
     }
 
     _getIntersect(e) {
@@ -217,16 +221,37 @@ export class InteractionManager {
 export function setupDragDrop(interaction, container) {
     document.body.addEventListener('dragover', (e) => {
         e.preventDefault();
+
+        const type = e.dataTransfer?.getData('type') || interaction.draggedType;
+        if (type === 'road' && !interaction.roadPlacementStart) {
+            let startPoint = interaction._getIntersect(e);
+            if (startPoint && interaction.devMode.grid && interaction.devMode.grid.enabled) {
+                startPoint = interaction.devMode.grid.snap(startPoint);
+            }
+            if (startPoint) {
+                interaction.roadPlacementStart = startPoint.clone();
+            }
+        }
     });
 
     document.body.addEventListener('drop', (e) => {
         e.preventDefault();
-        const type = e.dataTransfer.getData('type');
+        const type = e.dataTransfer.getData('type') || interaction.draggedType;
         let point = interaction._getIntersect(e);
 
         if (type && point) {
             if (interaction.devMode.grid && interaction.devMode.grid.enabled) {
                 point = interaction.devMode.grid.snap(point);
+            }
+
+            let roadLength = null;
+            let roadRotation = null;
+            if (type === 'road' && interaction.roadPlacementStart) {
+                const direction = new THREE.Vector3().subVectors(point, interaction.roadPlacementStart);
+                roadLength = Math.max(direction.length(), 1);
+                const midPoint = interaction.roadPlacementStart.clone().add(point).multiplyScalar(0.5);
+                roadRotation = Math.atan2(direction.x, direction.z);
+                point = midPoint;
             }
 
             console.log(`Dropping ${type} at`, point);
@@ -236,7 +261,14 @@ export function setupDragDrop(interaction, container) {
                 // Rings handle their own registration internally in RingManager
             } else {
                 // Use ObjectFactory (which delegates to EntityRegistry)
-                const entity = interaction.factory.createObject(type, { x: point.x, z: point.z });
+                const params = { x: point.x, z: point.z };
+
+                if (type === 'road') {
+                    if (roadLength !== null) params.length = roadLength;
+                    if (roadRotation !== null) params.rotY = roadRotation;
+                }
+
+                const entity = interaction.factory.createObject(type, params);
 
                 if (entity && entity.mesh) {
                     // Centralized Registration
@@ -264,5 +296,10 @@ export function setupDragDrop(interaction, container) {
                 }
             }
         }
+        interaction.roadPlacementStart = null;
+    });
+
+    document.body.addEventListener('dragend', () => {
+        interaction.roadPlacementStart = null;
     });
 }

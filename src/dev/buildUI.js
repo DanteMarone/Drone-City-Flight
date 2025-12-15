@@ -44,6 +44,20 @@ export class BuildUI {
             </label>
 
             <hr style="width:100%">
+            <h3>Environment</h3>
+            <div style="display:flex; flex-direction:column; gap:5px; font-size:0.9em;">
+                <label style="display:flex; justify-content:space-between;">
+                    Wind Speed: <span id="wind-speed-val">0</span>
+                </label>
+                <input type="range" id="dev-wind-speed" min="0" max="50" value="0">
+
+                <label style="display:flex; justify-content:space-between;">
+                    Wind Dir: <span id="wind-dir-val">0°</span>
+                </label>
+                <input type="range" id="dev-wind-dir" min="0" max="360" value="0">
+            </div>
+
+            <hr style="width:100%">
             <h3>Tools</h3>
             <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
                 <input type="checkbox" id="dev-grid-snap"> Grid Snap
@@ -291,6 +305,40 @@ export class BuildUI {
                 this.devMode.loadMap(e.target.files[0]);
                 e.target.value = ''; // Reset
             }
+        };
+
+        // Environment
+        const windSpeed = this.dom.querySelector('#dev-wind-speed');
+        const windDir = this.dom.querySelector('#dev-wind-dir');
+        const windSpeedVal = this.dom.querySelector('#wind-speed-val');
+        const windDirVal = this.dom.querySelector('#wind-dir-val');
+
+        const updateWindUI = () => {
+            if (this.devMode.app.world.wind) {
+                windSpeed.value = this.devMode.app.world.wind.speed;
+                windDir.value = this.devMode.app.world.wind.direction;
+                windSpeedVal.textContent = this.devMode.app.world.wind.speed;
+                windDirVal.textContent = this.devMode.app.world.wind.direction + '°';
+            }
+        };
+
+        // Hook into show() to update values when opening
+        const originalShow = this.show.bind(this);
+        this.show = () => {
+            originalShow();
+            updateWindUI();
+        };
+
+        windSpeed.oninput = (e) => {
+            const val = parseInt(e.target.value);
+            this.devMode.app.world.wind.speed = val;
+            windSpeedVal.textContent = val;
+        };
+
+        windDir.oninput = (e) => {
+            const val = parseInt(e.target.value);
+            this.devMode.app.world.wind.direction = val;
+            windDirVal.textContent = val + '°';
         };
 
         // Tools

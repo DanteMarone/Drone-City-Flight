@@ -1,5 +1,6 @@
 // src/world/world.js
 import * as THREE from 'three';
+import { CONFIG } from '../config.js';
 import { DistrictGenerator } from './generation.js';
 import { ObjectFactory } from './factory.js';
 import { BirdSystem } from './birdSystem.js';
@@ -13,6 +14,8 @@ export class World {
         // this.colliders now holds BaseEntity instances (which match {mesh, box} interface)
         this.colliders = [];
         this.ground = null;
+
+        this.wind = { ...CONFIG.WORLD.WIND };
 
         this._initGround();
         this._generateWorld();
@@ -78,6 +81,12 @@ export class World {
     loadMap(mapData) {
         this.clear();
 
+        if (mapData.wind) {
+            this.wind = { ...mapData.wind };
+        } else {
+            this.wind = { ...CONFIG.WORLD.WIND };
+        }
+
         // We don't strictly need factory here if we use Registry,
         // but factory adds to scene.
         // Let's use Registry and manually add to scene/world to be explicit.
@@ -140,6 +149,10 @@ export class World {
                 console.warn("Non-entity found in colliders during export", entity);
             }
         });
-        return { version: 1, objects };
+        return {
+            version: 1,
+            wind: { ...this.wind },
+            objects
+        };
     }
 }

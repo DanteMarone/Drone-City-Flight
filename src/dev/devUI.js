@@ -5,13 +5,13 @@ export class DevUI {
     constructor(devMode) {
         this.devMode = devMode;
         this.dom = null;
+        this.propPanel = null;
         this._init();
     }
 
     _init() {
         const div = document.createElement('div');
         div.id = 'dev-ui';
-        // Increased width to 300px
         div.style.cssText = `
             position: absolute;
             top: 0;
@@ -59,44 +59,7 @@ export class DevUI {
                 <button id="dev-duplicate" style="flex:1; font-size:0.8em;">Duplicate</button>
             </div>
 
-            <div id="prop-panel" style="display:none; flex-direction:column; gap:5px; background:#222; padding:5px; border:1px solid #444; margin-top:5px;">
-                <h4 style="margin:0">Properties</h4>
-                <div style="font-size:0.8em; color:#aaa;" id="prop-id"></div>
-
-                <div style="display:flex; gap:2px; align-items: center;">
-                    <label style="width:20px">X</label> <input id="prop-x" type="number" step="1" style="flex:1">
-                    <label style="width:20px">Y</label> <input id="prop-y" type="number" step="1" style="flex:1">
-                    <label style="width:20px">Z</label> <input id="prop-z" type="number" step="1" style="flex:1">
-                </div>
-                <div style="display:flex; gap:2px; align-items: center;">
-                    <label style="width:20px">RX</label> <input id="prop-rx" type="number" step="1" style="flex:1">
-                    <label style="width:20px">RY</label> <input id="prop-ry" type="number" step="1" style="flex:1">
-                    <label style="width:20px">RZ</label> <input id="prop-rz" type="number" step="1" style="flex:1">
-                </div>
-
-                <div style="display:flex; gap:2px; align-items: center;">
-                    <label style="width:20px">SX</label> <input id="prop-sx" type="number" step="0.1" style="flex:1">
-                    <label style="width:20px">SY</label> <input id="prop-sy" type="number" step="0.1" style="flex:1">
-                    <label style="width:20px">SZ</label> <input id="prop-sz" type="number" step="0.1" style="flex:1">
-                </div>
-                <div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
-                    <input type="checkbox" id="prop-scale-lock" checked> <span style="font-size:0.8em">Lock Aspect Ratio</span>
-                </div>
-
-                <div id="car-controls" style="display:none; flex-direction:column; gap:5px; margin-top:5px;">
-                     <button id="btn-add-waypoint">Add Waypoint</button>
-                     <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
-                     <button id="btn-remove-waypoint">Remove Last Waypoint</button>
-                     <div id="pickup-controls" style="display:none; flex-direction:column; gap:5px;">
-                        <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
-                            Wait Time (s)
-                            <input id="pickup-wait-time" type="number" min="0" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
-                        </label>
-                     </div>
-                </div>
-
-                <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
-            </div>
+            <!-- Properties flyout is created separately via _createPropertyPanel() -->
 
             <hr style="width:100%">
             <h3>Objects</h3>
@@ -143,13 +106,121 @@ export class DevUI {
                 padding: 2px;
                 min-width: 60px; /* Ensure wide enough */
             }
+
+            /* Properties Flyout */
+            .dev-prop-flyout {
+                position: fixed;
+                top: 20px;
+                right: 0;
+                bottom: 20px;
+                width: 320px;
+                background: rgba(0, 0, 0, 0.9);
+                color: white;
+                display: flex;
+                flex-direction: column;
+                gap: 10px;
+                padding: 14px;
+                border-left: 1px solid #444;
+                box-shadow: -4px 0 12px rgba(0,0,0,0.5);
+                transform: translateX(100%);
+                transition: transform 0.25s ease-in-out, opacity 0.25s ease-in-out;
+                opacity: 0;
+                pointer-events: none;
+                z-index: 1500;
+            }
+
+            .dev-prop-flyout.open {
+                transform: translateX(0);
+                opacity: 1;
+                pointer-events: auto;
+            }
+
+            .dev-prop-flyout h4 {
+                margin: 0;
+            }
+
+            .dev-prop-grid {
+                display: flex;
+                gap: 2px;
+                align-items: center;
+            }
+
+            .dev-prop-section {
+                background: #222;
+                border: 1px solid #444;
+                padding: 8px;
+                display: flex;
+                flex-direction: column;
+                gap: 6px;
+            }
+
+            .dev-prop-label {
+                width: 22px;
+            }
+
+            .dev-prop-note {
+                font-size: 0.8em;
+                color: #aaa;
+            }
         `;
         document.head.appendChild(style);
 
         document.body.appendChild(div);
         this.dom = div;
+        this.propPanel = this._createPropertyPanel();
 
         this._bindEvents();
+    }
+
+    _createPropertyPanel() {
+        const flyout = document.createElement('div');
+        flyout.id = 'prop-panel';
+        flyout.className = 'dev-prop-flyout';
+        flyout.setAttribute('aria-hidden', 'true');
+
+        flyout.innerHTML = `
+            <h4>Properties</h4>
+            <div class="dev-prop-note" id="prop-id"></div>
+
+            <div class="dev-prop-section">
+                <div class="dev-prop-grid">
+                    <label class="dev-prop-label">X</label> <input id="prop-x" type="number" step="1" style="flex:1">
+                    <label class="dev-prop-label">Y</label> <input id="prop-y" type="number" step="1" style="flex:1">
+                    <label class="dev-prop-label">Z</label> <input id="prop-z" type="number" step="1" style="flex:1">
+                </div>
+                <div class="dev-prop-grid">
+                    <label class="dev-prop-label">RX</label> <input id="prop-rx" type="number" step="1" style="flex:1">
+                    <label class="dev-prop-label">RY</label> <input id="prop-ry" type="number" step="1" style="flex:1">
+                    <label class="dev-prop-label">RZ</label> <input id="prop-rz" type="number" step="1" style="flex:1">
+                </div>
+
+                <div class="dev-prop-grid">
+                    <label class="dev-prop-label">SX</label> <input id="prop-sx" type="number" step="0.1" style="flex:1">
+                    <label class="dev-prop-label">SY</label> <input id="prop-sy" type="number" step="0.1" style="flex:1">
+                    <label class="dev-prop-label">SZ</label> <input id="prop-sz" type="number" step="0.1" style="flex:1">
+                </div>
+                <div style="display:flex; align-items:center; gap:5px;">
+                    <input type="checkbox" id="prop-scale-lock" checked> <span style="font-size:0.85em">Lock Aspect Ratio</span>
+                </div>
+            </div>
+
+            <div id="car-controls" class="dev-prop-section" style="display:none;">
+                 <button id="btn-add-waypoint">Add Waypoint</button>
+                 <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
+                 <button id="btn-remove-waypoint">Remove Last Waypoint</button>
+                 <div id="pickup-controls" style="display:none; flex-direction:column; gap:5px;">
+                    <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                        Wait Time (s)
+                        <input id="pickup-wait-time" type="number" min="0" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                    </label>
+                 </div>
+            </div>
+
+            <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
+        `;
+
+        document.body.appendChild(flyout);
+        return flyout;
     }
 
     _bindEvents() {
@@ -197,7 +268,7 @@ export class DevUI {
         const toRad = (deg) => deg * (Math.PI / 180);
 
         ['x', 'y', 'z', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz'].forEach(axis => {
-             const input = this.dom.querySelector(`#prop-${axis}`);
+             const input = this.propPanel.querySelector(`#prop-${axis}`);
              if (input) {
                  input.onchange = (e) => {
                      const val = parseFloat(e.target.value);
@@ -220,7 +291,7 @@ export class DevUI {
 
                          // Scale
                          if (['sx', 'sy', 'sz'].includes(axis)) {
-                             const lock = this.dom.querySelector('#prop-scale-lock').checked;
+                             const lock = this.propPanel.querySelector('#prop-scale-lock').checked;
                              const ratio = val / (axis === 'sx' ? proxy.scale.x : axis === 'sy' ? proxy.scale.y : proxy.scale.z);
 
                              if (lock) {
@@ -251,19 +322,19 @@ export class DevUI {
              }
         });
 
-        this.dom.querySelector('#dev-delete').onclick = () => {
+        this.propPanel.querySelector('#dev-delete').onclick = () => {
             this.devMode.deleteSelected();
         };
 
-        this.dom.querySelector('#btn-add-waypoint').onclick = () => {
+        this.propPanel.querySelector('#btn-add-waypoint').onclick = () => {
             if (this.devMode.addWaypointToSelected) this.devMode.addWaypointToSelected();
         };
 
-        this.dom.querySelector('#btn-remove-waypoint').onclick = () => {
+        this.propPanel.querySelector('#btn-remove-waypoint').onclick = () => {
             if (this.devMode.removeWaypointFromSelected) this.devMode.removeWaypointFromSelected();
         };
 
-        const pickupWaitInput = this.dom.querySelector('#pickup-wait-time');
+        const pickupWaitInput = this.propPanel.querySelector('#pickup-wait-time');
         if (pickupWaitInput) {
             pickupWaitInput.onchange = (e) => {
                 const val = parseFloat(e.target.value);
@@ -301,9 +372,7 @@ export class DevUI {
     }
 
     showProperties(object) {
-        const panel = this.dom.querySelector('#prop-panel');
-        const info = this.dom.querySelector('#prop-id');
-        panel.style.display = 'flex';
+        const info = this.propPanel.querySelector('#prop-id');
 
         // Use selected objects array to determine title
         const count = this.devMode.selectedObjects.length;
@@ -316,12 +385,15 @@ export class DevUI {
         }
 
         this.updateProperties(object);
+
+        this.propPanel.classList.add('open');
+        this.propPanel.setAttribute('aria-hidden', 'false');
     }
 
     updateProperties(object) {
         if (!object) return;
         const setVal = (id, val) => {
-            const el = this.dom.querySelector(`#prop-${id}`);
+            const el = this.propPanel.querySelector(`#prop-${id}`);
             if (el && document.activeElement !== el) {
                 el.value = val.toFixed(2);
             }
@@ -344,8 +416,8 @@ export class DevUI {
         setVal('sz', object.scale.z);
 
         // Car Controls
-        const carControls = this.dom.querySelector('#car-controls');
-        const pickupControls = this.dom.querySelector('#pickup-controls');
+        const carControls = this.propPanel.querySelector('#car-controls');
+        const pickupControls = this.propPanel.querySelector('#pickup-controls');
 
         // Show specific controls only if SINGLE selection and correct type
         if (this.devMode.selectedObjects.length === 1) {
@@ -356,7 +428,7 @@ export class DevUI {
 
                 if (sel.userData.type === 'pickupTruck') {
                     pickupControls.style.display = 'flex';
-                    const waitInput = this.dom.querySelector('#pickup-wait-time');
+                    const waitInput = this.propPanel.querySelector('#pickup-wait-time');
                     if (waitInput && document.activeElement !== waitInput) {
                         const wait = sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 10;
                         waitInput.value = wait;
@@ -376,7 +448,7 @@ export class DevUI {
     }
 
     _updateWaypointList(car) {
-        const container = this.dom.querySelector('#waypoint-list');
+        const container = this.propPanel.querySelector('#waypoint-list');
         container.innerHTML = ''; // Clear
 
         if (!car.userData.waypoints) return;
@@ -422,6 +494,7 @@ export class DevUI {
     }
 
     hideProperties() {
-        this.dom.querySelector('#prop-panel').style.display = 'none';
+        this.propPanel.classList.remove('open');
+        this.propPanel.setAttribute('aria-hidden', 'true');
     }
 }

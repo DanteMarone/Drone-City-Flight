@@ -107,13 +107,17 @@ export class World {
                     // BaseEntity init sets position from params.
                     // Should be correct.
                     // But rotation?
-                    if (obj.rotation) {
-                        entity.mesh.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z);
-                    }
+                if (obj.rotation) {
+                    entity.mesh.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z);
+                }
 
-                    // Recompute box in case rotation changed it
-                    if (entity.box) {
-                         entity.box.setFromObject(entity.mesh);
+                if (obj.scale) {
+                    entity.mesh.scale.set(obj.scale.x, obj.scale.y, obj.scale.z);
+                }
+
+                // Recompute box in case rotation changed it
+                if (entity.box) {
+                     entity.box.setFromObject(entity.mesh);
                          // Handle house roof extension if needed?
                          // BaseEntity.createCollider handles it based on mesh state.
                          // But for HouseEntity, createCollider logic is specific.

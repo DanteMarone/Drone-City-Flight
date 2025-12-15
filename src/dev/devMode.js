@@ -5,6 +5,7 @@ import { DevUI } from './devUI.js';
 import { InteractionManager, setupDragDrop } from './interaction.js';
 import { GridSystem } from './grid.js';
 import { GizmoManager } from './gizmo.js';
+import { EntityRegistry } from '../world/entities/index.js';
 
 export class DevMode {
     constructor(app) {
@@ -12,6 +13,7 @@ export class DevMode {
         this.enabled = false;
 
         this.selectedObjects = []; // Replaces single selectedObject
+        this.clipboard = null;
 
         // Controllers
         this.cameraController = new DevCameraController(app.renderer.camera, app.container);
@@ -31,6 +33,8 @@ export class DevMode {
                 this.toggle();
             }
         });
+
+        window.addEventListener('keydown', (e) => this._handleShortcuts(e));
     }
 
     toggle() {
@@ -291,6 +295,144 @@ export class DevMode {
                 this.ui.showProperties(this.selectedObjects[0]);
             }
         }
+    }
+
+    _handleShortcuts(e) {
+        if (!this.enabled) return;
+        if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
+        if (e.ctrlKey) {
+            if (e.code === 'KeyC') {
+                e.preventDefault();
+                this.copySelected();
+            } else if (e.code === 'KeyV') {
+                e.preventDefault();
+                this.pasteClipboard();
+            } else if (e.code === 'KeyD') {
+                e.preventDefault();
+                this.duplicateSelected();
+            }
+        }
+    }
+
+    _deepClone(data) {
+        if (!data) return data;
+        if (typeof structuredClone === 'function') {
+            return structuredClone(data);
+        }
+        return JSON.parse(JSON.stringify(data));
+    }
+
+    _findEntityByMesh(mesh) {
+        if (!this.app?.world?.colliders) return null;
+        return this.app.world.colliders.find((entity) => entity.mesh === mesh) || null;
+    }
+
+    _serializeMesh(mesh) {
+        if (!mesh) return null;
+
+        const entity = this._findEntityByMesh(mesh);
+        if (entity?.serialize) {
+            return this._deepClone(entity.serialize());
+        }
+
+        if (mesh.userData?.type === 'ring') {
+            return {
+                type: 'ring',
+                position: { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z },
+                rotation: { x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z },
+                scale: { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z }
+            };
+        }
+
+        if (mesh.userData?.type) {
+            const params = this._deepClone(mesh.userData.params || {});
+            return {
+                type: mesh.userData.type,
+                params,
+                position: { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z },
+                rotation: { x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z },
+                scale: { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z }
+            };
+        }
+
+        return null;
+    }
+
+    copySelected() {
+        if (!this.selectedObjects.length) return false;
+        const target = this.selectedObjects[0];
+        const data = this._serializeMesh(target);
+        if (!data) return false;
+        this.clipboard = data;
+        return true;
+    }
+
+    _instantiateFromClipboard(data) {
+        if (!data) return null;
+        if (data.type === 'ring' && this.app?.rings) {
+            const position = data.position || { x: 0, y: 0, z: 0 };
+            const rotation = data.rotation || { x: 0, y: 0, z: 0 };
+            this.app.rings.spawnRingAt(position, rotation);
+            const spawned = this.app.rings.rings[this.app.rings.rings.length - 1];
+            if (spawned?.mesh && data.scale) {
+                spawned.mesh.scale.set(data.scale.x, data.scale.y, data.scale.z);
+            }
+            return spawned?.mesh || null;
+        }
+
+        const params = this._deepClone(data.params || {});
+        if (data.position) {
+            params.x = data.position.x;
+            params.y = data.position.y;
+            params.z = data.position.z;
+        }
+        if (data.rotation) {
+            params.rotX = data.rotation.x;
+            params.rotY = data.rotation.y;
+            params.rotZ = data.rotation.z;
+        }
+
+        const entity = EntityRegistry.create(data.type, params);
+        if (!entity || !entity.mesh) return null;
+
+        if (data.scale) {
+            entity.mesh.scale.set(data.scale.x, data.scale.y, data.scale.z);
+            if (entity.box) {
+                entity.box.setFromObject(entity.mesh);
+            }
+        }
+
+        this.app.renderer.scene.add(entity.mesh);
+        this.app.world.addEntity(entity);
+        if (this.app.colliderSystem) {
+            this.app.colliderSystem.addStatic([entity]);
+        }
+
+        if (entity.mesh.userData?.waypointGroup && this.enabled) {
+            const wg = entity.mesh.userData.waypointGroup;
+            wg.visible = true;
+            if (wg.parent !== this.app.renderer.scene) {
+                this.app.renderer.scene.add(wg);
+            }
+        }
+
+        return entity.mesh;
+    }
+
+    pasteClipboard() {
+        if (!this.clipboard) return null;
+        const mesh = this._instantiateFromClipboard(this._deepClone(this.clipboard));
+        if (mesh) {
+            this.selectObject(mesh);
+        }
+        return mesh;
+    }
+
+    duplicateSelected() {
+        const copied = this.copySelected();
+        if (!copied) return null;
+        return this.pasteClipboard();
     }
 
     deleteSelected() {

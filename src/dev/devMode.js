@@ -152,7 +152,7 @@ export class DevMode {
                          this._updateCarLine(vehicle);
                     }
                 }
-            } else if (['car', 'bicycle', 'pickupTruck'].includes(sel.userData.type)) {
+            } else if (sel.userData.isVehicle) {
                 this._updateCarLine(sel);
             }
         });
@@ -210,7 +210,7 @@ export class DevMode {
                     this._updateCarLine(vehicle);
                     toUpdate.add(vehicle);
                 }
-            } else if (['car', 'bicycle', 'pickupTruck'].includes(obj.userData?.type)) {
+            } else if (obj.userData?.isVehicle) {
                 this._updateCarLine(obj);
                 toUpdate.add(obj);
             } else {
@@ -303,7 +303,7 @@ export class DevMode {
         // But UI logic should probably handle the button visibility.
 
         // Let's apply to ALL selected cars.
-        const cars = this.selectedObjects.filter(o => ['car', 'bicycle', 'pickupTruck'].includes(o.userData.type));
+        const cars = this.selectedObjects.filter(o => o.userData.isVehicle);
         if (cars.length === 0) return;
 
         const beforeStates = cars.map(cloneWaypointState);
@@ -342,7 +342,7 @@ export class DevMode {
     }
 
     removeWaypointFromSelected() {
-        const cars = this.selectedObjects.filter(o => ['car', 'bicycle', 'pickupTruck'].includes(o.userData.type));
+        const cars = this.selectedObjects.filter(o => o.userData.isVehicle);
 
         const beforeStates = cars.map(cloneWaypointState);
         let changed = false;

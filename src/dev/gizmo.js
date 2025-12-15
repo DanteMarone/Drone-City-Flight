@@ -50,7 +50,7 @@ export class GizmoManager {
                     // Update Physics Bodies for all selected
                     this.selectedObjects.forEach(obj => {
                         let target = obj;
-                        if (target.userData.type === 'waypoint' && ['car', 'pickupTruck'].includes(target.parent?.parent?.userData.type)) {
+                        if (target.userData.type === 'waypoint' && target.parent?.parent?.userData?.isVehicle) {
                             target = target.parent.parent;
                         }
                         this.interaction.app.colliderSystem.updateBody(target);

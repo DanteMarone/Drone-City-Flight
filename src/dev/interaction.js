@@ -204,7 +204,7 @@ export class InteractionManager {
              if (this.devMode.selectedObjects.length > 0 && this.app.colliderSystem) {
                 this.devMode.selectedObjects.forEach(obj => {
                     let target = obj;
-                    if (target.userData.type === 'waypoint' && ['car', 'pickupTruck'].includes(target.parent?.parent?.userData.type)) {
+                    if (target.userData.type === 'waypoint' && target.parent?.parent?.userData?.isVehicle) {
                         target = target.parent.parent;
                     }
                     if (this.app.colliderSystem.updateBody) {
@@ -265,8 +265,8 @@ export function setupDragDrop(interaction, container) {
 
                     interaction.devMode._recordCreation([entity.mesh], 'Create object');
 
-                    // Special Visuals Check
-                    if (['car', 'bicycle', 'pickupTruck'].includes(type) && interaction.devMode.enabled) {
+                    // Special Visuals Check: Generic isVehicle
+                    if (entity.mesh.userData.isVehicle && interaction.devMode.enabled) {
                         // Use the new standard: userData.waypointGroup
                         const wg = entity.mesh.userData.waypointGroup;
                         if (wg) {

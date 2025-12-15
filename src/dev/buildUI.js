@@ -104,16 +104,16 @@ export class BuildUI {
             /* Properties Flyout */
             .dev-prop-flyout {
                 position: fixed;
-                top: 20px;
+                top: 0;
                 right: 0;
-                bottom: 20px;
-                width: 320px;
+                bottom: 0;
+                width: 350px;
                 background: rgba(0, 0, 0, 0.9);
                 color: white;
                 display: flex;
                 flex-direction: column;
                 gap: 10px;
-                padding: 14px;
+                padding: 14px 14px 20px 14px;
                 border-left: 1px solid #444;
                 box-shadow: -4px 0 12px rgba(0,0,0,0.5);
                 transform: translateX(100%);
@@ -121,6 +121,8 @@ export class BuildUI {
                 opacity: 0;
                 pointer-events: none;
                 z-index: 1500;
+                overflow-y: auto;
+                max-height: 100vh;
             }
 
             .dev-prop-flyout.open {
@@ -135,8 +137,24 @@ export class BuildUI {
 
             .dev-prop-grid {
                 display: flex;
-                gap: 2px;
+                flex-wrap: wrap;
+                gap: 5px;
                 align-items: center;
+            }
+
+            .dev-prop-pair {
+                display: flex;
+                align-items: center;
+                gap: 2px;
+                flex: 1 0 auto; /* Allow growing but set base */
+            }
+
+            .dev-prop-input {
+                width: 70px;
+                background: #111;
+                color: white;
+                border: 1px solid #444;
+                padding: 2px;
             }
 
             .dev-prop-section {
@@ -150,6 +168,8 @@ export class BuildUI {
 
             .dev-prop-label {
                 width: 22px;
+                font-size: 0.9em;
+                color: #ccc;
             }
 
             .dev-prop-note {
@@ -179,20 +199,20 @@ export class BuildUI {
 
             <div class="dev-prop-section">
                 <div class="dev-prop-grid">
-                    <label class="dev-prop-label">X</label> <input id="prop-x" type="number" step="1" style="flex:1">
-                    <label class="dev-prop-label">Y</label> <input id="prop-y" type="number" step="1" style="flex:1">
-                    <label class="dev-prop-label">Z</label> <input id="prop-z" type="number" step="1" style="flex:1">
+                    <div class="dev-prop-pair"><label class="dev-prop-label">X</label> <input id="prop-x" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label">Y</label> <input id="prop-y" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label">Z</label> <input id="prop-z" class="dev-prop-input" type="number" step="1"></div>
                 </div>
                 <div class="dev-prop-grid">
-                    <label class="dev-prop-label">RX</label> <input id="prop-rx" type="number" step="1" style="flex:1">
-                    <label class="dev-prop-label">RY</label> <input id="prop-ry" type="number" step="1" style="flex:1">
-                    <label class="dev-prop-label">RZ</label> <input id="prop-rz" type="number" step="1" style="flex:1">
+                    <div class="dev-prop-pair"><label class="dev-prop-label">RX</label> <input id="prop-rx" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label">RY</label> <input id="prop-ry" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label">RZ</label> <input id="prop-rz" class="dev-prop-input" type="number" step="1"></div>
                 </div>
 
                 <div class="dev-prop-grid">
-                    <label class="dev-prop-label">SX</label> <input id="prop-sx" type="number" step="0.1" style="flex:1">
-                    <label class="dev-prop-label">SY</label> <input id="prop-sy" type="number" step="0.1" style="flex:1">
-                    <label class="dev-prop-label">SZ</label> <input id="prop-sz" type="number" step="0.1" style="flex:1">
+                    <div class="dev-prop-pair"><label class="dev-prop-label">SX</label> <input id="prop-sx" class="dev-prop-input" type="number" step="0.1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label">SY</label> <input id="prop-sy" class="dev-prop-input" type="number" step="0.1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label">SZ</label> <input id="prop-sz" class="dev-prop-input" type="number" step="0.1"></div>
                 </div>
                 <div style="display:flex; align-items:center; gap:5px;">
                     <input type="checkbox" id="prop-scale-lock" checked> <span style="font-size:0.85em">Lock Aspect Ratio</span>

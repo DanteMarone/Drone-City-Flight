@@ -59,6 +59,8 @@ export class DevUI {
                 <button id="dev-duplicate" style="flex:1; font-size:0.8em;">Duplicate</button>
             </div>
 
+            <!-- Properties flyout is created separately via _createPropertyPanel() -->
+
             <hr style="width:100%">
             <h3>Objects</h3>
             <div class="palette">

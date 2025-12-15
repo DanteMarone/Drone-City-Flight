@@ -6,6 +6,7 @@ export class BaseEntity {
         this.type = 'base';
         this.mesh = null;
         this.box = null;
+        this.uuid = params.uuid || THREE.MathUtils.generateUUID();
 
         // Ensure params has position/rotation if provided
         this.position = new THREE.Vector3(params.x || 0, params.y || 0, params.z || 0);
@@ -20,6 +21,7 @@ export class BaseEntity {
         this.mesh = this.createMesh(this.params);
         if (this.mesh) {
             this.mesh.userData.type = this.type;
+            this.mesh.userData.uuid = this.uuid;
             this.mesh.userData.params = this.params;
 
             // Apply Transform
@@ -74,6 +76,7 @@ export class BaseEntity {
 
         // Update params from userData if they were modified (e.g. via DevMode)
         const currentParams = this.mesh.userData.params || this.params;
+        currentParams.uuid = this.mesh.userData.uuid; // Ensure UUID is saved
 
         return {
             type: this.type,

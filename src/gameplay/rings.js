@@ -3,9 +3,10 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
 export class RingManager {
-    constructor(scene, drone) {
+    constructor(scene, drone, colliderSystem) {
         this.scene = scene;
         this.drone = drone;
+        this.colliderSystem = colliderSystem;
         this.rings = [];
         this.collectedCount = 0;
 
@@ -102,15 +103,38 @@ export class RingManager {
     }
 
     spawnRing() {
-        // Random pos
-        // Range: +/- 200 (District bounds)
-        // Height: 5 - 40
-        const x = (Math.random() - 0.5) * 400;
-        const z = (Math.random() - 0.5) * 400;
-        const y = 5 + Math.random() * 35;
+        // Attempt to find a valid position
+        let x, y, z;
+        let valid = false;
+        const ringRadius = 2.0; // Slightly larger than 1.7 (1.5+0.2)
 
-        // TODO: Validity check (raycast or check static colliders)
-        // For now, raw random.
+        for (let i = 0; i < 10; i++) {
+            // Range: +/- 200 (District bounds)
+            // Height: 5 - 40
+            x = (Math.random() - 0.5) * 400;
+            z = (Math.random() - 0.5) * 400;
+            y = 5 + Math.random() * 35;
+
+            if (this.colliderSystem) {
+                const pos = new THREE.Vector3(x, y, z);
+                const hits = this.colliderSystem.checkCollisions(pos, ringRadius);
+                // checkCollisions returns hits including ground if y < radius.
+                // At min height 5, y > radius (2), so ground hit shouldn't happen unless terrain is high?
+                // But checkCollisions only checks infinite plane at y=0.
+                if (hits.length === 0) {
+                    valid = true;
+                    break;
+                }
+            } else {
+                // No collider system (e.g. init or tests), assume valid
+                valid = true;
+                break;
+            }
+        }
+
+        if (!valid) {
+            console.warn("RingManager: Could not find valid spawn position after 10 attempts. Spawning at last generated pos.");
+        }
 
         const mesh = new THREE.Mesh(this.geo, this.mat);
         mesh.position.set(x, y, z);

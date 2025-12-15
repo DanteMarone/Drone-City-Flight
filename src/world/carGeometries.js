@@ -136,6 +136,60 @@ export function createPickupGeometry() {
     };
 }
 
+export function createDeliveryVanGeometry() {
+    const bodyParts = [];
+    const detailParts = [];
+
+    // 1. Main Chassis
+    const chassis = new THREE.BoxGeometry(2.2, 0.6, 5.5);
+    chassis.translate(0, 0.6, 0);
+    bodyParts.push(chassis);
+
+    // 2. Cab (Front)
+    // Slightly narrower than cargo, positioned at front
+    const cab = new THREE.BoxGeometry(2.1, 1.2, 1.6);
+    cab.translate(0, 1.3, 1.85); // Front is +Z
+    bodyParts.push(cab);
+
+    // 3. Cargo Box (Rear)
+    // Taller and wider
+    const cargo = new THREE.BoxGeometry(2.3, 2.0, 3.8);
+    cargo.translate(0, 1.6, -0.85);
+    bodyParts.push(cargo);
+
+    // 4. Wheels
+    const wheelGeo = new THREE.CylinderGeometry(0.45, 0.45, 0.45, 16);
+    wheelGeo.rotateZ(Math.PI / 2);
+    const wX = 0.95, wY = 0.45, wZ = 1.6;
+
+    const fl = wheelGeo.clone(); fl.translate(wX, wY, 1.8); detailParts.push(fl);
+    const fr = wheelGeo.clone(); fr.translate(-wX, wY, 1.8); detailParts.push(fr);
+    const bl = wheelGeo.clone(); bl.translate(wX, wY, -1.8); detailParts.push(bl);
+    const br = wheelGeo.clone(); br.translate(-wX, wY, -1.8); detailParts.push(br);
+
+    // 5. Details
+    // Windshield (Large vertical)
+    const windshield = new THREE.BoxGeometry(1.9, 0.8, 0.1);
+    windshield.rotateX(-Math.PI / 12); // Slight slope
+    windshield.translate(0, 1.4, 2.62);
+    detailParts.push(windshield);
+
+    // Grill
+    const grill = new THREE.BoxGeometry(1.6, 0.4, 0.1);
+    grill.translate(0, 0.8, 2.65);
+    detailParts.push(grill);
+
+    // Rear Door Seam (Visual only)
+    const rearSeam = new THREE.BoxGeometry(0.05, 1.8, 0.1);
+    rearSeam.translate(0, 1.6, -2.76);
+    detailParts.push(rearSeam);
+
+    return {
+        body: mergeGeometries(bodyParts),
+        details: mergeGeometries(detailParts)
+    };
+}
+
 export function createBicycleMesh() {
     const group = new THREE.Group();
 

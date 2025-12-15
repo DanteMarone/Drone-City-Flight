@@ -79,7 +79,8 @@ export class BaseEntity {
             type: this.type,
             params: currentParams,
             position: { x: this.mesh.position.x, y: this.mesh.position.y, z: this.mesh.position.z },
-            rotation: { x: this.mesh.rotation.x, y: this.mesh.rotation.y, z: this.mesh.rotation.z }
+            rotation: { x: this.mesh.rotation.x, y: this.mesh.rotation.y, z: this.mesh.rotation.z },
+            scale: { x: this.mesh.scale.x, y: this.mesh.scale.y, z: this.mesh.scale.z }
         };
     }
 

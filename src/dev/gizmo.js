@@ -1,12 +1,14 @@
 import * as THREE from 'three';
 import { TransformControls } from 'three/addons/controls/TransformControls.js';
+import { TransformCommand } from './history.js';
 
 export class GizmoManager {
-    constructor(scene, camera, renderer, interactionManager) {
+    constructor(scene, camera, renderer, interactionManager, devMode) {
         this.scene = scene;
         this.camera = camera;
         this.renderer = renderer;
         this.interaction = interactionManager;
+        this.devMode = devMode;
 
         // Group Proxy (Centroid)
         const proxyGeo = new THREE.SphereGeometry(0.5, 16, 16);
@@ -41,6 +43,7 @@ export class GizmoManager {
             if (event.value) {
                 // Drag Started
                 this.captureOffsets();
+                this.dragStartStates = this.devMode?.captureTransforms(this.selectedObjects) || null;
             } else {
                 // Drag Ended
                 if (this.selectedObjects.length > 0 && this.interaction.app.colliderSystem) {
@@ -53,6 +56,12 @@ export class GizmoManager {
                         this.interaction.app.colliderSystem.updateBody(target);
                     });
                 }
+
+                const endStates = this.devMode?.captureTransforms(this.selectedObjects) || null;
+                if (this.dragStartStates && endStates && this.devMode?._transformsChanged(this.dragStartStates, endStates)) {
+                    this.devMode.history.push(new TransformCommand(this.devMode, this.dragStartStates, endStates, 'Transform objects'));
+                }
+                this.dragStartStates = null;
             }
         });
 
@@ -71,6 +80,7 @@ export class GizmoManager {
         this.selectedObjects = [];
         this.offsets = []; // Stores { position, quaternion, scale } relative to proxy inverse
         this.offsetY = 5;
+        this.dragStartStates = null;
     }
 
     attach(objects) {

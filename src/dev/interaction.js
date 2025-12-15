@@ -1,6 +1,7 @@
 // src/dev/interaction.js
 import * as THREE from 'three';
 import { ObjectFactory } from '../world/factory.js';
+import { TransformCommand } from './history.js';
 
 export class InteractionManager {
     constructor(app, devMode) {
@@ -13,6 +14,7 @@ export class InteractionManager {
 
         this.draggedType = null;
         this.active = false;
+        this.dragStartStates = null;
 
         this._onMouseDown = this._onMouseDown.bind(this);
         this._onMouseMove = this._onMouseMove.bind(this);
@@ -122,6 +124,7 @@ export class InteractionManager {
         // Drag Logic setup
         if (this.devMode.selectedObjects.length > 0) {
             this.isDragging = true;
+            this.dragStartStates = this.devMode.captureTransforms(this.devMode.selectedObjects);
 
             // If we clicked on an object that is part of the selection, we want to move the GROUP.
             // If the hit object is in selectedObjects, we are good.
@@ -150,6 +153,7 @@ export class InteractionManager {
                 }
             } else {
                 this.isDragging = false;
+                this.dragStartStates = null;
             }
         }
     }
@@ -209,6 +213,11 @@ export class InteractionManager {
                 });
             }
 
+            const endStates = this.devMode.captureTransforms(this.devMode.selectedObjects);
+            if (this.dragStartStates && this.devMode._transformsChanged(this.dragStartStates, endStates)) {
+                this.devMode.history.push(new TransformCommand(this.devMode, this.dragStartStates, endStates, 'Move objects'));
+            }
+            this.dragStartStates = null;
             this.dragTarget = null;
         }
     }
@@ -234,6 +243,10 @@ export function setupDragDrop(interaction, container) {
             if (type === 'ring') {
                 interaction.app.rings.spawnRingAt(point);
                 // Rings handle their own registration internally in RingManager
+                const spawned = interaction.app.rings.rings?.[interaction.app.rings.rings.length - 1];
+                if (spawned?.mesh) {
+                    interaction.devMode._recordCreation([spawned.mesh], 'Create ring');
+                }
             } else {
                 // Use ObjectFactory (which delegates to EntityRegistry)
                 const entity = interaction.factory.createObject(type, { x: point.x, z: point.z });
@@ -249,6 +262,8 @@ export function setupDragDrop(interaction, container) {
 
                     // Select it (Clear previous, select new)
                     interaction.devMode.selectObject(entity.mesh);
+
+                    interaction.devMode._recordCreation([entity.mesh], 'Create object');
 
                     // Special Visuals Check
                     if (['car', 'bicycle', 'pickupTruck'].includes(type) && interaction.devMode.enabled) {

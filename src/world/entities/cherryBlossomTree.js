@@ -97,19 +97,6 @@ export class CherryBlossomTreeEntity extends BaseEntity {
         petal.rotation.set(Math.random(), Math.random(), Math.random());
     }
 
-    createCollider() {
-        // Trunk collider
-        const trunkH = 2.2;
-        const trunkR = 0.4;
-        const scale = this.mesh.scale.y || 1;
-        const w = trunkR * 2.5 * scale;
-        const h = trunkH * scale;
-
-        const min = new THREE.Vector3(-w/2, 0, -w/2);
-        const max = new THREE.Vector3(w/2, h, w/2);
-        return new THREE.Box3(min, max);
-    }
-
     update(dt) {
         this.time += dt;
 

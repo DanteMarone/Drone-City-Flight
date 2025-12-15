@@ -7,6 +7,8 @@ export class ColliderSystem {
     constructor() {
         this.spatialHash = new SpatialHash(CONFIG.WORLD.CHUNK_SIZE);
         this.staticColliders = [];
+        this._tempBox = new THREE.Box3();
+        this._tempSphere = new THREE.Sphere();
     }
 
     addStatic(colliders) {
@@ -62,7 +64,7 @@ export class ColliderSystem {
             nearby = nearby.concat(dynamicColliders);
         }
 
-        // Narrowphase: Sphere vs AABB
+        // Narrowphase: Sphere vs Geometry
         const hits = [];
         const droneSphere = new THREE.Sphere(dronePos, radius);
 
@@ -108,20 +110,14 @@ export class ColliderSystem {
                  }
 
             } else if (other.box && other.box.intersectsSphere(droneSphere)) {
-                // Detailed hit info
-                // Clamp center to box to find closest point
-                const closestPoint = new THREE.Vector3().copy(dronePos).clamp(other.box.min, other.box.max);
-                const normal = new THREE.Vector3().subVectors(dronePos, closestPoint).normalize();
-
-                // Penetration depth
-                const dist = dronePos.distanceTo(closestPoint);
-                const penetration = radius - dist;
-
-                hits.push({
-                    object: other,
-                    normal: normal,
-                    penetration: penetration
-                });
+                // Medium Phase: Check if the main AABB is hit
+                // Now Narrow Phase: Check individual meshes inside the group
+                if (other.mesh) {
+                    this._checkMeshRecursively(other.mesh, droneSphere, hits, other);
+                } else {
+                    // Fallback for simple objects without a mesh reference (shouldn't happen for entities)
+                    this._addBoxHit(other.box, droneSphere, other, hits);
+                }
             }
         }
 
@@ -135,5 +131,75 @@ export class ColliderSystem {
         }
 
         return hits;
+    }
+
+    _checkMeshRecursively(object, sphere, hits, rootEntity) {
+        // If it's a Mesh (and visible), check its bounding box
+        if (object.isMesh && object.visible) {
+             // We need the world bounding box of this specific mesh
+             // Optimization: Instead of full setFromObject (which traverses children),
+             // for a leaf mesh we can just transform its geometry box.
+             // But setFromObject is robust.
+
+             // Note: setFromObject on a Mesh calculates box of that mesh.
+             // If we are iterating, we don't want to re-traverse children if we are already traversing.
+             // Standard traverse goes to children.
+
+             // Let's rely on Box3.setFromObject for now, but apply it to the single object.
+             // However, `setFromObject` expands by children. If we use `traverse`, we hit children anyway.
+             // So we should strictly check the geometry of the current mesh.
+
+             // Calculate World Box for this Mesh Only
+             if (object.geometry) {
+                 if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+
+                 this._tempBox.copy(object.geometry.boundingBox);
+                 this._tempBox.applyMatrix4(object.matrixWorld);
+
+                 if (this._tempBox.intersectsSphere(sphere)) {
+                     this._addBoxHit(this._tempBox, sphere, rootEntity, hits);
+                 }
+             }
+        }
+
+        // Recursively check children
+        if (object.children && object.children.length > 0) {
+            for (let i = 0; i < object.children.length; i++) {
+                this._checkMeshRecursively(object.children[i], sphere, hits, rootEntity);
+            }
+        }
+    }
+
+    _addBoxHit(box, sphere, object, hits) {
+        // Clamp center to box to find closest point
+        const closestPoint = new THREE.Vector3().copy(sphere.center).clamp(box.min, box.max);
+
+        // Calculate distance
+        const dist = sphere.center.distanceTo(closestPoint);
+        const penetration = sphere.radius - dist;
+
+        if (penetration > 0) {
+            const normal = new THREE.Vector3().subVectors(sphere.center, closestPoint).normalize();
+
+            // Avoid duplicate hits on the same object?
+            // Or maybe keep them and let the physics solver handle multiple constraints?
+            // Usually we want the deepest penetration.
+
+            // Check if we already have a hit for this object
+            const existingHit = hits.find(h => h.object === object);
+            if (existingHit) {
+                // If this new hit is deeper, replace it
+                if (penetration > existingHit.penetration) {
+                    existingHit.penetration = penetration;
+                    existingHit.normal = normal;
+                }
+            } else {
+                hits.push({
+                    object: object,
+                    normal: normal,
+                    penetration: penetration
+                });
+            }
+        }
     }
 }

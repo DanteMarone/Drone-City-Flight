@@ -26,22 +26,6 @@ class ParkEntity extends BaseEntity {
         return mesh;
     }
 
-    // Default box collider for the ground area
-    createCollider() {
-        if (!this.mesh) return null;
-        this.mesh.updateMatrixWorld(true);
-        // Create a box that covers the footprint but has some height
-        const box = new THREE.Box3();
-        // Since the mesh origin is center bottom usually, but plane is at 0...
-        // We will compute from mesh.
-        box.setFromObject(this.mesh);
-
-        // Ensure the box has some height for physics if it's just a plane
-        if (box.max.y - box.min.y < 0.1) {
-            box.max.y += 0.5;
-        }
-        return box;
-    }
 }
 
 // -----------------------------------------------------------------------------

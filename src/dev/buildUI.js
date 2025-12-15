@@ -466,8 +466,8 @@ export class BuildUI {
         if (pickupWaitInput) {
             let waitStart = null;
             pickupWaitInput.onfocus = () => {
-                if (this.devMode.selectedObjects.length === 1 && this.devMode.selectedObjects[0].userData.type === 'pickupTruck') {
-                    const sel = this.devMode.selectedObjects[0];
+                const sel = this.devMode.selectedObjects[0];
+                if (this.devMode.selectedObjects.length === 1 && sel.userData.isVehicle) {
                     waitStart = sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 0;
                 }
             };
@@ -476,7 +476,7 @@ export class BuildUI {
                 if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
 
                 const sel = this.devMode.selectedObjects[0];
-                if (sel.userData.type !== 'pickupTruck') return;
+                if (!sel.userData.isVehicle) return;
 
                 const before = waitStart ?? sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 0;
                 const next = Math.max(0, val);
@@ -523,18 +523,6 @@ export class BuildUI {
 
                 if (!sel.userData.params) sel.userData.params = {};
                 sel.userData.params[key] = next;
-
-                // Update Entity instance too if possible (for runtime update without reload)
-                // DevMode usually stores params in userData, but Entity instance reads from this.params.
-                // We must sync them.
-                // 'sel' is the Mesh. The Entity logic might hold a reference or read from mesh.userData if written that way.
-                // BaseEntity constructor: this.params = params. this.mesh.userData.params = this.params.
-                // So updating mesh.userData.params is modifying the shared object if it's the same reference.
-                // If not, we might need to find the entity instance.
-                // The current architecture seems to rely on userData for serialization.
-                // Runtime update: BaseEntity doesn't automatically re-read userData.params every frame unless coded to.
-                // AngryPersonEntity.update reads this.params.
-                // Since this.mesh.userData.params === this.params (reference), updating userData.params works instantly.
 
                 this.updateProperties(sel);
 
@@ -627,11 +615,14 @@ export class BuildUI {
             pickupControls.style.display = 'none';
             if (angryControls) angryControls.style.display = 'none';
 
-            if (['car', 'bicycle', 'pickupTruck'].includes(type)) {
+            if (sel.userData.isVehicle) {
                 carControls.style.display = 'flex';
                 this._updateWaypointList(sel);
 
-                if (type === 'pickupTruck') {
+                // Show Wait Time controls if the vehicle supports it
+                const hasWaitTime = sel.userData.waitTime !== undefined || (sel.userData.params && sel.userData.params.waitTime !== undefined);
+
+                if (hasWaitTime) {
                     pickupControls.style.display = 'flex';
                     const waitInput = this.propPanel.querySelector('#pickup-wait-time');
                     if (waitInput && document.activeElement !== waitInput) {

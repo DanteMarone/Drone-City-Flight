@@ -64,6 +64,19 @@ export class DeliveryVanEntity extends VehicleEntity {
 
         return group;
     }
+
+    postInit() {
+        super.postInit();
+        if (this.mesh) {
+            this.mesh.userData.waitTime = this.waitTime;
+        }
+    }
+
+    serialize() {
+        const data = super.serialize();
+        data.params.waitTime = this.mesh?.userData?.waitTime ?? this.waitTime;
+        return data;
+    }
 }
 
 EntityRegistry.register('deliveryVan', DeliveryVanEntity);

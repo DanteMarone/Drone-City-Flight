@@ -53,6 +53,12 @@ export class DevUI {
                 <button id="dev-mode-rot" style="flex:1; font-size:0.8em;">Rotate</button>
             </div>
 
+            <div style="display:flex; gap:5px; margin-top:5px;">
+                <button id="dev-copy" style="flex:1; font-size:0.8em;">Copy</button>
+                <button id="dev-paste" style="flex:1; font-size:0.8em;">Paste</button>
+                <button id="dev-duplicate" style="flex:1; font-size:0.8em;">Duplicate</button>
+            </div>
+
             <hr style="width:100%">
             <h3>Objects</h3>
             <div class="palette">
@@ -242,6 +248,18 @@ export class DevUI {
         };
         this.dom.querySelector('#dev-mode-rot').onclick = () => {
             this.devMode.gizmo.control.setMode('rotate');
+        };
+
+        this.dom.querySelector('#dev-copy').onclick = () => {
+            if (this.devMode.copySelected) this.devMode.copySelected();
+        };
+
+        this.dom.querySelector('#dev-paste').onclick = () => {
+            if (this.devMode.pasteClipboard) this.devMode.pasteClipboard();
+        };
+
+        this.dom.querySelector('#dev-duplicate').onclick = () => {
+            if (this.devMode.duplicateSelected) this.devMode.duplicateSelected();
         };
 
         // Properties Input Bindings

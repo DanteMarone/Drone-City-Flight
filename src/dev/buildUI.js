@@ -1,7 +1,8 @@
-// src/dev/devUI.js
+// src/dev/buildUI.js
 import * as THREE from 'three';
+import { EntityRegistry } from '../world/entities/index.js';
 
-export class DevUI {
+export class BuildUI {
     constructor(devMode) {
         this.devMode = devMode;
         this.dom = null;
@@ -63,20 +64,7 @@ export class DevUI {
 
             <hr style="width:100%">
             <h3>Objects</h3>
-            <div class="palette">
-                <div class="palette-item" draggable="true" data-type="skyscraper">Skyscraper</div>
-                <div class="palette-item" draggable="true" data-type="shop">Shop</div>
-                <div class="palette-item" draggable="true" data-type="house">House</div>
-                <div class="palette-item" draggable="true" data-type="road">Road</div>
-                <div class="palette-item" draggable="true" data-type="ring">Ring</div>
-                <div class="palette-item" draggable="true" data-type="river">River</div>
-                <div class="palette-item" draggable="true" data-type="car">Car</div>
-                <div class="palette-item" draggable="true" data-type="pickupTruck">Pickup Truck</div>
-                <div class="palette-item" draggable="true" data-type="bicycle">Bicycle</div>
-                <div class="palette-item" draggable="true" data-type="orangeTree">Orange Tree</div>
-                <div class="palette-item" draggable="true" data-type="bird">Bird</div>
-                <div class="palette-item" draggable="true" data-type="bush">Bush</div>
-            </div>
+            <div class="palette"></div>
         `;
 
         // CSS for palette items
@@ -169,6 +157,7 @@ export class DevUI {
         this.dom = div;
         this.propPanel = this._createPropertyPanel();
 
+        this._buildPalette();
         this._bindEvents();
     }
 
@@ -221,6 +210,39 @@ export class DevUI {
 
         document.body.appendChild(flyout);
         return flyout;
+    }
+
+    _formatDisplayName(type, classRef) {
+        if (classRef?.displayName) return classRef.displayName;
+
+        const spaced = type.replace(/([A-Z])/g, ' $1');
+        return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+    }
+
+    _buildPalette() {
+        const palette = this.dom.querySelector('.palette');
+        if (!palette) return;
+
+        palette.innerHTML = '';
+
+        const entries = Array.from(EntityRegistry.registry.entries());
+        entries
+            .map(([type, classRef]) => ({ type, name: this._formatDisplayName(type, classRef) }))
+            .sort((a, b) => a.name.localeCompare(b.name))
+            .forEach(({ type, name }) => {
+                const item = document.createElement('div');
+                item.className = 'palette-item';
+                item.draggable = true;
+                item.dataset.type = type;
+                item.textContent = name;
+
+                item.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('type', type);
+                    this.devMode.interaction.onDragStart(type);
+                });
+
+                palette.appendChild(item);
+            });
     }
 
     _bindEvents() {
@@ -348,14 +370,6 @@ export class DevUI {
             };
         }
 
-        // Drag Start
-        const items = this.dom.querySelectorAll('.palette-item');
-        items.forEach(item => {
-            item.addEventListener('dragstart', (e) => {
-                e.dataTransfer.setData('type', item.dataset.type);
-                this.devMode.interaction.onDragStart(item.dataset.type);
-            });
-        });
     }
 
     show() {

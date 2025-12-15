@@ -1,8 +1,7 @@
-// Export all for convenience
-export * from './base.js';
-export * from './registry.js';
-export * from './buildings.js';
-export * from './vehicles.js';
-export * from './creatures.js';
-export * from './nature.js';
-export * from './infrastructure.js';
+export { BaseEntity } from './base.js';
+export { EntityRegistry } from './registry.js';
+
+// Eagerly load all entity modules to trigger their registrations.
+// Vite will execute each module once, ensuring EntityRegistry is populated
+// without manual imports.
+import.meta.glob('./*.js', { eager: true });

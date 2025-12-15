@@ -132,6 +132,8 @@ export class CarEntity extends VehicleEntity {
         this.baseSpeed = (CONFIG.DRONE.MAX_SPEED || 18.0) - 0.5;
     }
 
+    static get displayName() { return 'Car'; }
+
     createMesh(params) {
         const geoData = createSedanGeometry();
 
@@ -167,6 +169,8 @@ export class PickupTruckEntity extends CarEntity {
         this.waitTimer = 0;
         this.direction = 1; // 1 forward, -1 backward
     }
+
+    static get displayName() { return 'Pickup Truck'; }
 
     createMesh(params) {
         const geoData = createPickupGeometry();
@@ -280,6 +284,8 @@ export class BicycleEntity extends VehicleEntity {
         this.type = 'bicycle';
         this.baseSpeed = (CONFIG.DRONE.MAX_SPEED || 18.0) / 2;
     }
+
+    static get displayName() { return 'Bicycle'; }
 
     createMesh(params) {
         const partsGroup = createBicycleMesh();

@@ -19,6 +19,8 @@ export class SkyscraperEntity extends BaseEntity {
         this.type = 'skyscraper';
     }
 
+    static get displayName() { return 'Skyscraper'; }
+
     createMesh(params) {
         const h = params.height || (30 + Math.random() * 70);
         const w = params.width || 20;
@@ -90,6 +92,8 @@ export class ShopEntity extends BaseEntity {
         this.type = 'shop';
     }
 
+    static get displayName() { return 'Shop'; }
+
     createMesh(params) {
         const wBase = params.width || 20;
         const h = params.height || (8 + Math.random() * 6);
@@ -141,6 +145,8 @@ export class HouseEntity extends BaseEntity {
         super(params);
         this.type = 'house';
     }
+
+    static get displayName() { return 'House'; }
 
     createMesh(params) {
         const w = params.width || 15;

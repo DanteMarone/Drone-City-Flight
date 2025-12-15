@@ -1,7 +1,7 @@
 // src/dev/devMode.js
 import * as THREE from 'three';
 import { DevCameraController } from './devCamera.js';
-import { DevUI } from './devUI.js';
+import { BuildUI } from './buildUI.js';
 import { InteractionManager, setupDragDrop } from './interaction.js';
 import { GridSystem } from './grid.js';
 import { GizmoManager } from './gizmo.js';
@@ -17,7 +17,7 @@ export class DevMode {
 
         // Controllers
         this.cameraController = new DevCameraController(app.renderer.camera, app.container);
-        this.ui = new DevUI(this);
+        this.ui = new BuildUI(this);
         this.interaction = new InteractionManager(this.app, this);
 
         // New Systems

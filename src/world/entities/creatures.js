@@ -10,6 +10,8 @@ export class BirdEntity extends BaseEntity {
         if (params.y === undefined) this.position.y = 5;
     }
 
+    static get displayName() { return 'Bird'; }
+
     createMesh(params) {
         const group = new THREE.Group();
         group.userData.startPos = this.position.clone();

@@ -9,6 +9,8 @@ export class RoadEntity extends BaseEntity {
         this.type = 'road';
     }
 
+    static get displayName() { return 'Road'; }
+
     createMesh(params) {
         const w = params.width || 10;
         const l = params.length || 10;
@@ -41,6 +43,8 @@ export class RiverEntity extends BaseEntity {
         super(params);
         this.type = 'river';
     }
+
+    static get displayName() { return 'River'; }
 
     createMesh(params) {
         const w = params.width || 50;

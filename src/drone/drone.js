@@ -223,6 +223,25 @@ export class Drone {
         // Apply to velocity
         this.velocity.add(accel.clone().multiplyScalar(dt));
 
+        // Wind Force
+        if (window.app && window.app.world && window.app.world.wind) {
+            const wind = window.app.world.wind;
+            if (wind.speed > 0) {
+                // Convert degrees to radians
+                const rad = wind.direction * (Math.PI / 180);
+
+                // Calculate direction (0 = North/-Z, 90 = East/+X)
+                // Using sin for X and -cos for Z aligns with compass 0 at North
+                const windDir = new THREE.Vector3(Math.sin(rad), 0, -Math.cos(rad));
+
+                // Force calculation:
+                // We add a small acceleration per frame.
+                // Factor 2.0 ensures 10 speed feels significant but not overwhelming against drag.
+                const windForce = windDir.multiplyScalar(wind.speed * 2.0 * dt);
+                this.velocity.add(windForce);
+            }
+        }
+
         // Drag
         const hVel = new THREE.Vector3(this.velocity.x, 0, this.velocity.z);
         const vVel = new THREE.Vector3(0, this.velocity.y, 0);

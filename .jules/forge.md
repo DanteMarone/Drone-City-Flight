@@ -30,6 +30,8 @@
   - **Animation**: Logic in `update(dt)` rotates the assembly layer, keeping the base static.
 - **Industrial HVAC**: Created using `BoxGeometry` (Housing) + `CylinderGeometry` (Recess) + Rotated `BoxGeometry` blades.
   - **Animation**: Rotates the blade group on the Y-axis.
+- **Generic NPC**: Created using `CylinderGeometry` (Legs, Torso) + `SphereGeometry` (Head) within a `THREE.Group`.
+  - **Texture**: `CanvasTexture` on the head sphere enables procedural facial expressions without external assets.
 
 ### Procedural Patterns
 - **Holographic Signs**: Created using `THREE.CanvasTexture` with a transparent background and `THREE.AdditiveBlending` on a `PlaneGeometry`.

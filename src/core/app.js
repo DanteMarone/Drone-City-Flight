@@ -170,9 +170,12 @@ export class App {
 
                     // Local bounds: X:[-4,4], Z:[-4,4]
                     if (Math.abs(localPos.x) < 3.8 && Math.abs(localPos.z) < 3.8) {
-                        const legHeightOnPad = localPos.y - 0.15;
-                        // Target Y is 0.5. Allow tolerance for bounces (0.2 - 0.8)
-                        if (legHeightOnPad > 0.3 && legHeightOnPad < 0.8) {
+                        // Vertical Check:
+                        // Pad Surface is at Local Y = 0.5.
+                        // Drone Physics Radius is 0.5.
+                        // Ideally, Drone Center sits at Y = 1.0 (0.5 + 0.5).
+                        // Allow generous window [0.5, 1.5] to handle penetration (held down) or bounces.
+                        if (localPos.y > 0.5 && localPos.y < 1.5) {
                             this.battery.add(CONFIG.BATTERY.RECHARGE_RATE * dt);
                         }
                     }

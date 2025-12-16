@@ -43,36 +43,20 @@ export class CloudSystem {
 
             windVec.set(wx, 0, wz).normalize();
 
-            // Speed scaling.
-            // Base cloud speed logic was (2 + rand*5).
-            // Let's say wind speed 0 means just random drift?
-            // Or wind speed effectively overrides the magnitude.
-            // Requirement: "Clouds should move in same direction that the wind is blowing in."
-            // Requirement: "Wind Speed is 0-100".
-            // If wind speed is 0, they shouldn't move? Or move very slowly?
-            // Let's use wind speed directly. 1 unit of wind speed = 1 unit/sec?
-            // Existing logic had ~2-7 units/sec.
-            // If user sets 50, that's fast. 100 is very fast.
-            // Let's use windConfig.speed directly but modulated by the cloud's inherent "mass" or randomness.
+            // Speed scaling is now decoupled from wind speed as per user feedback.
         }
 
         // Update clouds
         for (let i = this.clouds.length - 1; i >= 0; i--) {
             const cloud = this.clouds[i];
 
-            // Calculate instantaneous velocity
-            let speed = 0;
-            if (windConfig) {
-                // Use global wind speed + slight random variance per cloud stored in cloud.speedVariance
-                // If cloud doesn't have speedVariance, add it.
-                const variance = cloud.speedVariance || 1.0;
-                speed = windConfig.speed * variance;
-
-                // If wind speed is 0, maybe minimal drift?
-                if (speed < 0.1) speed = 0.5;
-            } else {
-                speed = 2.0; // Fallback
+            // Use stored inherent speed, independent of wind speed setting
+            // Fallback for older clouds or initialization
+            if (!cloud.speed) {
+                 cloud.speed = 2 + Math.random() * 5;
             }
+
+            const speed = cloud.speed;
 
             // Move
             cloud.mesh.position.addScaledVector(windVec, speed * dt);
@@ -125,9 +109,8 @@ export class CloudSystem {
         const scale = 1 + Math.random() * 2;
         mesh.scale.set(scale, scale, scale);
 
-        // Velocity is now dynamic based on wind, but we store a variance factor
-        // so clouds don't all move at identical speed
-        const speedVariance = 0.8 + Math.random() * 0.4; // 0.8x to 1.2x of wind speed
+        // Velocity is now dynamic based on wind direction, but speed is inherent
+        const speed = 2 + Math.random() * 5;
 
         this.scene.add(mesh);
 
@@ -135,7 +118,7 @@ export class CloudSystem {
 
         this.clouds.push({
             mesh: mesh,
-            speedVariance: speedVariance,
+            speed: speed,
             life: life,
             maxLife: life,
             targetOpacity: targetOpacity

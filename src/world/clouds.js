@@ -15,7 +15,7 @@ export class CloudSystem {
         this.spawnInterval = 2.0; // Seconds between potential spawns
     }
 
-    update(dt, playerPosition, camera) {
+    update(dt, playerPosition, camera, windConfig) {
         this.spawnTimer += dt;
         if (this.spawnTimer > this.spawnInterval) {
             this.spawnTimer = 0;
@@ -24,12 +24,58 @@ export class CloudSystem {
             }
         }
 
+        // Calculate Wind Velocity Vector
+        // Standard wind: 0 degrees = Blows North (towards -Z) or from North?
+        // Let's assume 0 deg = +Z direction for simplicity, or match standard compass.
+        // Trig standard: 0 = +X. Compass: 0 = North (-Z).
+        // Let's use standard trig for now: angle in degrees.
+        // Actually, let's map it: speed is magnitude.
+
+        let windVec = new THREE.Vector3(1, 0, 0); // Default fallback
+        if (windConfig) {
+            // Convert deg to rad
+            const rad = windConfig.direction * (Math.PI / 180);
+            // Calculate direction.
+            // If 0 is North (-Z), 90 is East (+X), 180 is South (+Z), 270 is West (-X).
+            // x = sin(rad), z = -cos(rad) gives 0 -> (0, -1) North.
+            const wx = Math.sin(rad);
+            const wz = -Math.cos(rad);
+
+            windVec.set(wx, 0, wz).normalize();
+
+            // Speed scaling.
+            // Base cloud speed logic was (2 + rand*5).
+            // Let's say wind speed 0 means just random drift?
+            // Or wind speed effectively overrides the magnitude.
+            // Requirement: "Clouds should move in same direction that the wind is blowing in."
+            // Requirement: "Wind Speed is 0-100".
+            // If wind speed is 0, they shouldn't move? Or move very slowly?
+            // Let's use wind speed directly. 1 unit of wind speed = 1 unit/sec?
+            // Existing logic had ~2-7 units/sec.
+            // If user sets 50, that's fast. 100 is very fast.
+            // Let's use windConfig.speed directly but modulated by the cloud's inherent "mass" or randomness.
+        }
+
         // Update clouds
         for (let i = this.clouds.length - 1; i >= 0; i--) {
             const cloud = this.clouds[i];
 
-            // Move - Optimized to avoid allocation
-            cloud.mesh.position.addScaledVector(cloud.velocity, dt);
+            // Calculate instantaneous velocity
+            let speed = 0;
+            if (windConfig) {
+                // Use global wind speed + slight random variance per cloud stored in cloud.speedVariance
+                // If cloud doesn't have speedVariance, add it.
+                const variance = cloud.speedVariance || 1.0;
+                speed = windConfig.speed * variance;
+
+                // If wind speed is 0, maybe minimal drift?
+                if (speed < 0.1) speed = 0.5;
+            } else {
+                speed = 2.0; // Fallback
+            }
+
+            // Move
+            cloud.mesh.position.addScaledVector(windVec, speed * dt);
 
             // Billboard
             cloud.mesh.lookAt(camera.position);
@@ -79,14 +125,9 @@ export class CloudSystem {
         const scale = 1 + Math.random() * 2;
         mesh.scale.set(scale, scale, scale);
 
-        // Velocity: Drift slowly
-        const speed = 2 + Math.random() * 5;
-        // Direction: maybe all clouds move roughly same way (wind) or random?
-        // Let's do random drift for now, or fixed wind.
-        // "Fly high above the player" suggests maybe moving relative to player?
-        // "Slowly fly high above". I'll implement a global wind direction.
-        const windDir = new THREE.Vector3(1, 0, 0.5).normalize();
-        const velocity = windDir.multiplyScalar(speed);
+        // Velocity is now dynamic based on wind, but we store a variance factor
+        // so clouds don't all move at identical speed
+        const speedVariance = 0.8 + Math.random() * 0.4; // 0.8x to 1.2x of wind speed
 
         this.scene.add(mesh);
 
@@ -94,7 +135,7 @@ export class CloudSystem {
 
         this.clouds.push({
             mesh: mesh,
-            velocity: velocity,
+            speedVariance: speedVariance,
             life: life,
             maxLife: life,
             targetOpacity: targetOpacity

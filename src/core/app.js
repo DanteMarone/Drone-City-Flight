@@ -194,7 +194,7 @@ export class App {
         }
 
         if (this.cloudSystem) {
-            this.cloudSystem.update(dt, this.drone.position, this.renderer.camera);
+            this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind);
         }
 
         this.input.resetFrame();

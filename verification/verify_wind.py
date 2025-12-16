@@ -1,48 +1,55 @@
-from playwright.sync_api import sync_playwright, expect
+from playwright.sync_api import sync_playwright
 
-def run():
+def verify_wind_inputs():
     with sync_playwright() as p:
         browser = p.chromium.launch(headless=True)
         page = browser.new_page()
 
-        # Load the built application (served via some server or file protocol if possible,
-        # but here we rely on the dev server or just assuming build output exists)
-        # Since I cannot start a server in background easily without it blocking or needing cleanup,
-        # I will try to use the dist/index.html directly if possible, or assume a server is running.
-        # Actually, the instructions say "execute this command... background process".
-        # But I haven't started one yet.
-        # I will use 'python3 -m http.server 3000 --directory dist' in background.
-
-        page.goto("http://localhost:3000")
-
-        # Wait for app to load (checking for canvas or specific UI)
-        page.wait_for_selector("canvas", timeout=10000)
+        # Navigate to app
+        page.goto("http://localhost:5173/")
 
         # Enable Dev Mode
-        # The app exposes window.app.devMode.enable()
+        # We need to simulate the key press or execute the JS
+        # DevMode toggles with backtick ` or F1 probably?
+        # Actually checking inputs... Config usually says Backquote.
+        # Let's enable it via JS to be sure.
         page.evaluate("window.app.devMode.enable()")
 
-        # Wait for Dev UI to appear
+        # Wait for UI
         page.wait_for_selector("#dev-ui", state="visible")
 
-        # Check for Wind controls
-        wind_speed_input = page.locator("#dev-wind-speed")
-        wind_dir_input = page.locator("#dev-wind-dir")
+        # Verify Wind Inputs exist and are type number
+        speed_input = page.locator("#dev-wind-speed")
+        dir_input = page.locator("#dev-wind-dir")
 
-        expect(wind_speed_input).to_be_visible()
-        expect(wind_dir_input).to_be_visible()
+        # Verify attributes
+        assert speed_input.get_attribute("type") == "number"
+        assert speed_input.get_attribute("min") == "0"
+        assert speed_input.get_attribute("max") == "100"
 
-        # Adjust Wind Speed
-        wind_speed_input.fill("20")
-        # Trigger input event if needed, but fill usually does change.
-        # Range inputs might need specialized handling or evaluation.
-        page.evaluate("document.querySelector('#dev-wind-speed').value = 20")
-        page.evaluate("document.querySelector('#dev-wind-speed').dispatchEvent(new Event('input'))")
+        assert dir_input.get_attribute("type") == "number"
+        assert dir_input.get_attribute("min") == "0"
+        assert dir_input.get_attribute("max") == "360"
 
-        # Take screenshot of the UI showing Wind controls
-        page.screenshot(path="verification/wind_ui.png")
+        # Change values and verify state update
+        speed_input.fill("50")
+        dir_input.fill("180")
+
+        # Trigger change event just in case fill doesn't (it usually does for 'input' event, but 'change' might need blur)
+        speed_input.blur()
+        dir_input.blur()
+
+        # Verify in app state
+        wind_state = page.evaluate("window.app.world.wind")
+        print(f"Wind State: {wind_state}")
+
+        assert wind_state['speed'] == 50
+        assert wind_state['direction'] == 180
+
+        # Screenshot
+        page.screenshot(path="verification/wind_verification.png")
 
         browser.close()
 
 if __name__ == "__main__":
-    run()
+    verify_wind_inputs()

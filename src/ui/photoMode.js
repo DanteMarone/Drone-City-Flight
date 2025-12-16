@@ -127,7 +127,8 @@ export class PhotoMode {
         // Setup Camera
         const cam = this.app.renderer.camera;
         this.cameraPos.copy(cam.position);
-        this.cameraRot.copy(cam.rotation);
+        this.cameraRot.setFromQuaternion(cam.quaternion, 'YXZ');
+        this.cameraRot.z = 0; // Force level horizon
         this.originalFov = cam.fov;
         this.fov = this.originalFov;
 

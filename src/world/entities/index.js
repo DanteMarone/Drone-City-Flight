@@ -10,6 +10,7 @@ export { LandingPadEntity } from './landingPad.js';
 export { RadarDishEntity } from './radarDish.js';
 export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commercial.js';
 export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
+export { PigeonEntity } from './pigeon.js';
 
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated

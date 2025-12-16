@@ -59,7 +59,7 @@ export class World {
         this.colliders.push(entity);
 
         // Logic specific to types
-        if (entity.type === 'bird' && this.birdSystem) {
+        if ((entity.type === 'bird' || entity.type === 'pigeon') && this.birdSystem) {
             this.birdSystem.add(entity.mesh);
         }
     }

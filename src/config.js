@@ -63,6 +63,15 @@ export const CONFIG = {
         COLLISION_RADIUS: 1.0
     },
 
+    // Pigeons
+    PIGEON: {
+        SPEED: 10.0,
+        STARTLE_RANGE: 25.0,
+        FLEE_DISTANCE: 35.0,
+        ASCENT_HEIGHT: 4.0,
+        AVOID_STEP: 3.0
+    },
+
     // Camera
     CAMERA: {
         FOV: 75,

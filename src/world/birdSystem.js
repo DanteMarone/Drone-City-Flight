@@ -5,11 +5,15 @@ export class BirdSystem {
     constructor(scene) {
         this.scene = scene;
         this.birds = [];
+        this.pigeons = [];
         this.drone = null;
 
         // Vectors for reuse
         this._vecToDrone = new THREE.Vector3();
         this._vecToStart = new THREE.Vector3();
+        this._vecToTarget = new THREE.Vector3();
+
+        this._raycaster = new THREE.Raycaster();
     }
 
     setDrone(drone) {
@@ -22,35 +26,52 @@ export class BirdSystem {
             birdMesh.userData.startPos = birdMesh.position.clone();
         }
 
+        const isPigeon = birdMesh.userData.birdType === 'pigeon';
+
         const bird = {
             mesh: birdMesh,
-            state: 'IDLE', // IDLE, CHASE, RETURN
+            state: isPigeon ? 'CALM' : 'IDLE', // Pigeons use CALM/FLEE_* states
             wings: birdMesh.userData.wings,
-            animTime: Math.random() * 10
+            animTime: Math.random() * 10,
+            fleeTarget: null,
+            apexTarget: null,
+            cruiseTarget: null,
+            landingTarget: null
         };
 
-        this.birds.push(bird);
+        if (isPigeon) {
+            this.pigeons.push(bird);
+        } else {
+            this.birds.push(bird);
+        }
     }
 
     remove(birdMesh) {
         const idx = this.birds.findIndex(b => b.mesh === birdMesh);
-        if (idx !== -1) {
-            this.birds.splice(idx, 1);
-        }
+        if (idx !== -1) this.birds.splice(idx, 1);
+
+        const pIdx = this.pigeons.findIndex(b => b.mesh === birdMesh);
+        if (pIdx !== -1) this.pigeons.splice(pIdx, 1);
     }
 
     clear() {
         this.birds = [];
+        this.pigeons = [];
     }
 
     update(dt) {
         if (!this.drone) return;
 
         const dronePos = this.drone.mesh.position;
-        const conf = CONFIG.BIRD;
+        const birdConf = CONFIG.BIRD;
+        const pigeonConf = CONFIG.PIGEON;
 
         for (const bird of this.birds) {
-            this._updateBird(bird, dt, dronePos, conf);
+            this._updateBird(bird, dt, dronePos, birdConf);
+        }
+
+        for (const pigeon of this.pigeons) {
+            this._updatePigeon(pigeon, dt, dronePos, pigeonConf);
         }
     }
 
@@ -94,11 +115,7 @@ export class BirdSystem {
         } else if (bird.state === 'RETURN') {
             target = startPos;
         } else {
-            // IDLE: Bob around start pos
-            // We can just hover or slowly circle.
-            // Let's just hover for now to keep it simple as requested "back and forth bounce"
-            // Actually the "bounce" request was for animation.
-            // Let's make IDLE just hover at start.
+            // IDLE: hover at start
             target = startPos;
             speed = 2.0; // Slow return/idle adjustment
         }
@@ -108,7 +125,6 @@ export class BirdSystem {
 
         // Face target
         if (bird.state !== 'IDLE' || distToStart > 0.1) {
-            // Smooth rotation? Or instant lookAt. Instant is fine for birds usually.
             mesh.lookAt(target);
         }
 
@@ -120,46 +136,116 @@ export class BirdSystem {
         // Animation (Bounce / Flap)
         bird.animTime += dt * 10; // Flap speed
         if (bird.wings) {
-            // Rotate wings? Or Scale Y?
-            // Wings are boxes. Rotating around Z (forward) or X (pitch)?
-            // Wings are children.
-            // Flap: Rotate around Z.
-            // But wings is a single mesh. We can scale Y to simulate flapping if pivot is center.
-            // Or just translate Y.
-            // Simplest: Scale Y of the wings mesh
-            // (assuming centered pivot, which they are).
-            // Original: 1.2, 0.05, 0.4.
-            // Flap: scale.y between 0.2 and 1.0?
-            // No, that changes thickness.
-            // User asked for "back and forth bounce".
-            // "Give the bird a constant animation so it looks like it's flapping back and forth even when it's motionless."
-
-            // Let's oscillate the entire bird Y slightly?
-            // And maybe rotate wings local Z?
-            // Let's oscillate wings Scale Y from 1 to 5 (making them thick/thin)? No.
-            // Let's just oscillate the wings mesh position Y relative to body.
             bird.wings.position.y = 0.1 + Math.sin(bird.animTime) * 0.05;
         }
 
-        // Bobbing whole bird (Bounce)
-        // mesh.position.y += Math.sin(bird.animTime * 0.5) * 0.01;
-        // Be careful not to fight physics movement.
-        // If moving, movement overrides.
-
         // Collision & Attack
         if (bird.state === 'CHASE' && distToDrone < conf.COLLISION_RADIUS) {
-            // Attack!
-            // Assuming drone has battery manager
             if (this.drone.battery) {
-                // Drain battery
-                // drain is rate * dt
-                // current is property.
-                // We don't have a public 'drain' method that accepts amount,
-                // but we can modify current directly or add a method.
-                // BatteryManager has `current` property.
                 this.drone.battery.current -= CONFIG.BATTERY.DRAIN_COLLISION * dt;
                 if (this.drone.battery.current < 0) this.drone.battery.current = 0;
             }
         }
+    }
+
+    _updatePigeon(bird, dt, dronePos, conf) {
+        const mesh = bird.mesh;
+        const startPos = mesh.userData.startPos;
+
+        const distToDrone = mesh.position.distanceTo(dronePos);
+        const distToStart = mesh.position.distanceTo(startPos);
+
+        if (bird.state === 'CALM' && distToDrone < conf.STARTLE_RANGE) {
+            this._startlePigeon(bird, dronePos, conf);
+        }
+
+        let target = startPos;
+        let speed = conf.SPEED;
+
+        if (bird.state === 'CALM') {
+            speed = distToStart > 1.0 ? conf.SPEED * 0.6 : conf.SPEED * 0.3;
+        } else if (bird.state === 'FLEE_ASCEND') {
+            target = bird.apexTarget;
+            if (mesh.position.distanceTo(target) < 0.25) {
+                bird.state = 'FLEE_CRUISE';
+            }
+        } else if (bird.state === 'FLEE_CRUISE') {
+            target = bird.cruiseTarget;
+            if (mesh.position.distanceTo(target) < 0.35) {
+                bird.state = 'FLEE_DESCEND';
+            }
+        } else if (bird.state === 'FLEE_DESCEND') {
+            target = bird.landingTarget;
+            if (mesh.position.distanceTo(target) < 0.35) {
+                mesh.userData.startPos = bird.landingTarget.clone();
+                bird.state = 'CALM';
+            }
+        }
+
+        this._moveTowards(mesh, target, speed, dt);
+
+        if (bird.wings) {
+            bird.animTime += dt * 9;
+            bird.wings.position.y = 0.08 + Math.sin(bird.animTime) * 0.04;
+        }
+    }
+
+    _startlePigeon(bird, dronePos, conf) {
+        const mesh = bird.mesh;
+        const startPos = mesh.userData.startPos;
+        const awayDir = this._vecToDrone.subVectors(mesh.position, dronePos);
+        if (awayDir.lengthSq() === 0) awayDir.set(1, 0, 0);
+        awayDir.normalize();
+
+        const baseTarget = startPos.clone().addScaledVector(awayDir, conf.FLEE_DISTANCE);
+        baseTarget.y = Math.max(baseTarget.y, 0.5);
+
+        const clearTarget = this._findClearTarget(mesh.position, baseTarget, conf, mesh);
+        const apexHeight = Math.max(mesh.position.y + conf.ASCENT_HEIGHT, clearTarget.y + conf.ASCENT_HEIGHT * 0.5);
+
+        bird.apexTarget = new THREE.Vector3(mesh.position.x, apexHeight, mesh.position.z);
+        bird.cruiseTarget = new THREE.Vector3(clearTarget.x, apexHeight, clearTarget.z);
+        bird.landingTarget = new THREE.Vector3(clearTarget.x, clearTarget.y, clearTarget.z);
+        bird.state = 'FLEE_ASCEND';
+    }
+
+    _findClearTarget(start, desired, conf, ignoreMesh) {
+        let target = desired.clone();
+
+        for (let i = 0; i < 3; i++) {
+            this._vecToTarget.subVectors(target, start);
+            const dist = this._vecToTarget.length();
+            if (dist < 0.001) return target.clone();
+
+            this._vecToTarget.normalize();
+            this._raycaster.set(start, this._vecToTarget);
+            const hits = this._raycaster.intersectObjects(this.scene.children, true);
+            const hit = hits.find(h => !this._isIgnoredObject(h.object, ignoreMesh) && h.distance < dist);
+
+            if (!hit) return target;
+
+            target = target.clone();
+            target.y += conf.AVOID_STEP;
+        }
+
+        return target;
+    }
+
+    _isIgnoredObject(object, ignoreMesh) {
+        if (!ignoreMesh) return false;
+        if (object === ignoreMesh) return true;
+        return ignoreMesh.children?.includes(object);
+    }
+
+    _moveTowards(mesh, target, speed, dt) {
+        if (!target) return;
+        const distance = mesh.position.distanceTo(target);
+        if (distance < 0.05) return;
+
+        const dir = this._vecToTarget.subVectors(target, mesh.position).normalize();
+        mesh.lookAt(target);
+
+        const step = speed * dt;
+        mesh.position.addScaledVector(dir, Math.min(step, distance));
     }
 }

@@ -30,6 +30,7 @@ export class ObjectFactory {
     createBicycle(params) { return this.createObject('bicycle', params); }
     createOrangeTree(params) { return this.createObject('orangeTree', params); }
     createBird(params) { return this.createObject('bird', params); }
+    createPigeon(params) { return this.createObject('pigeon', params); }
     createBush(params) { return this.createObject('bush', params); }
     createCar(params) { return this.createObject('car', params); }
     createRiver(params) { return this.createObject('river', params); }

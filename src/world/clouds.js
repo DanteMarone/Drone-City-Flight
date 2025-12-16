@@ -15,7 +15,7 @@ export class CloudSystem {
         this.spawnInterval = 2.0; // Seconds between potential spawns
     }
 
-    update(dt, playerPosition, camera) {
+    update(dt, playerPosition, camera, windConfig) {
         this.spawnTimer += dt;
         if (this.spawnTimer > this.spawnInterval) {
             this.spawnTimer = 0;
@@ -24,12 +24,42 @@ export class CloudSystem {
             }
         }
 
+        // Calculate Wind Velocity Vector
+        // Standard wind: 0 degrees = Blows North (towards -Z) or from North?
+        // Let's assume 0 deg = +Z direction for simplicity, or match standard compass.
+        // Trig standard: 0 = +X. Compass: 0 = North (-Z).
+        // Let's use standard trig for now: angle in degrees.
+        // Actually, let's map it: speed is magnitude.
+
+        let windVec = new THREE.Vector3(1, 0, 0); // Default fallback
+        if (windConfig) {
+            // Convert deg to rad
+            const rad = windConfig.direction * (Math.PI / 180);
+            // Calculate direction.
+            // If 0 is North (-Z), 90 is East (+X), 180 is South (+Z), 270 is West (-X).
+            // x = sin(rad), z = -cos(rad) gives 0 -> (0, -1) North.
+            const wx = Math.sin(rad);
+            const wz = -Math.cos(rad);
+
+            windVec.set(wx, 0, wz).normalize();
+
+            // Speed scaling is now decoupled from wind speed as per user feedback.
+        }
+
         // Update clouds
         for (let i = this.clouds.length - 1; i >= 0; i--) {
             const cloud = this.clouds[i];
 
-            // Move - Optimized to avoid allocation
-            cloud.mesh.position.addScaledVector(cloud.velocity, dt);
+            // Use stored inherent speed, independent of wind speed setting
+            // Fallback for older clouds or initialization
+            if (!cloud.speed) {
+                 cloud.speed = 2 + Math.random() * 5;
+            }
+
+            const speed = cloud.speed;
+
+            // Move
+            cloud.mesh.position.addScaledVector(windVec, speed * dt);
 
             // Billboard
             cloud.mesh.lookAt(camera.position);
@@ -79,14 +109,8 @@ export class CloudSystem {
         const scale = 1 + Math.random() * 2;
         mesh.scale.set(scale, scale, scale);
 
-        // Velocity: Drift slowly
+        // Velocity is now dynamic based on wind direction, but speed is inherent
         const speed = 2 + Math.random() * 5;
-        // Direction: maybe all clouds move roughly same way (wind) or random?
-        // Let's do random drift for now, or fixed wind.
-        // "Fly high above the player" suggests maybe moving relative to player?
-        // "Slowly fly high above". I'll implement a global wind direction.
-        const windDir = new THREE.Vector3(1, 0, 0.5).normalize();
-        const velocity = windDir.multiplyScalar(speed);
 
         this.scene.add(mesh);
 
@@ -94,7 +118,7 @@ export class CloudSystem {
 
         this.clouds.push({
             mesh: mesh,
-            velocity: velocity,
+            speed: speed,
             life: life,
             maxLife: life,
             targetOpacity: targetOpacity

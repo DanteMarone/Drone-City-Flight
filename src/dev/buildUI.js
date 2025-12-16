@@ -47,14 +47,14 @@ export class BuildUI {
             <h3>Environment</h3>
             <div style="display:flex; flex-direction:column; gap:5px; font-size:0.9em;">
                 <label style="display:flex; justify-content:space-between;">
-                    Wind Speed: <span id="wind-speed-val">0</span>
+                    Wind Speed
                 </label>
-                <input type="range" id="dev-wind-speed" min="0" max="50" value="0">
+                <input type="number" id="dev-wind-speed" min="0" max="100" value="0">
 
                 <label style="display:flex; justify-content:space-between;">
-                    Wind Dir: <span id="wind-dir-val">0°</span>
+                    Wind Dir
                 </label>
-                <input type="range" id="dev-wind-dir" min="0" max="360" value="0">
+                <input type="number" id="dev-wind-dir" min="0" max="360" value="0">
             </div>
 
             <hr style="width:100%">
@@ -310,15 +310,11 @@ export class BuildUI {
         // Environment
         const windSpeed = this.dom.querySelector('#dev-wind-speed');
         const windDir = this.dom.querySelector('#dev-wind-dir');
-        const windSpeedVal = this.dom.querySelector('#wind-speed-val');
-        const windDirVal = this.dom.querySelector('#wind-dir-val');
 
         const updateWindUI = () => {
             if (this.devMode.app.world.wind) {
                 windSpeed.value = this.devMode.app.world.wind.speed;
                 windDir.value = this.devMode.app.world.wind.direction;
-                windSpeedVal.textContent = this.devMode.app.world.wind.speed;
-                windDirVal.textContent = this.devMode.app.world.wind.direction + '°';
             }
         };
 
@@ -330,15 +326,23 @@ export class BuildUI {
         };
 
         windSpeed.oninput = (e) => {
-            const val = parseInt(e.target.value);
+            let val = parseInt(e.target.value);
+            if (isNaN(val)) return;
+            // Clamp
+            if (val < 0) val = 0;
+            if (val > 100) val = 100;
+
             this.devMode.app.world.wind.speed = val;
-            windSpeedVal.textContent = val;
         };
 
         windDir.oninput = (e) => {
-            const val = parseInt(e.target.value);
+            let val = parseInt(e.target.value);
+            if (isNaN(val)) return;
+             // Clamp
+            if (val < 0) val = 0;
+            if (val > 360) val = 360;
+
             this.devMode.app.world.wind.direction = val;
-            windDirVal.textContent = val + '°';
         };
 
         // Tools

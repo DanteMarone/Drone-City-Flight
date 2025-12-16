@@ -178,6 +178,26 @@ export class App {
                 this.particles.emit(this.drone.position, 20, 0xffff00);
             }
 
+            // Landing Pad Recharge Logic
+            // Relaxed check: Prioritize height over strict velocity to handle micro-bounces
+            this.world.colliders.forEach(entity => {
+                if (entity.type === 'landingPad' && entity.mesh) {
+                    const localPos = this.drone.position.clone();
+                    entity.mesh.worldToLocal(localPos);
+
+                    // Local bounds: X:[-4,4], Z:[-4,4]
+                    if (Math.abs(localPos.x) < 3.8 && Math.abs(localPos.z) < 3.8) {
+                        // Vertical Check:
+                        // Pad Surface is at Local Y = 0.5.
+                        // Drone Physics Radius is 0.5.
+                        // Ideally, Drone Center sits at Y = 1.0 (0.5 + 0.5).
+                        // Allow generous window [0.5, 1.5] to handle penetration (held down) or bounces.
+                        if (localPos.y > 0.5 && localPos.y < 1.5) {
+                            this.battery.add(CONFIG.BATTERY.RECHARGE_RATE * dt);
+                        }
+                    }
+                }
+            });
             const speed = this.drone.velocity.length();
             this.audio.update(speed);
 

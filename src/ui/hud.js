@@ -28,11 +28,11 @@ export class HUD {
             </div>
 
             <div class="hud-bottom-center">
-                 <div class="battery-label">BATTERY</div>
-                 <div class="battery-bar-bg">
+                 <div class="battery-label" id="batt-label">BATTERY</div>
+                 <div class="battery-bar-bg" role="progressbar" aria-labelledby="batt-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="hud-batt-bg">
                      <div class="battery-bar-fill" id="hud-batt-fill"></div>
                  </div>
-                 <div class="battery-text" id="hud-batt-text">100%</div>
+                 <div class="battery-text" id="hud-batt-text" aria-hidden="true">100%</div>
             </div>
 
             <div class="hud-center-message" id="hud-msg"></div>
@@ -45,6 +45,7 @@ export class HUD {
         this.elements.alt = container.querySelector('#hud-alt');
         this.elements.spd = container.querySelector('#hud-spd');
         this.elements.rings = container.querySelector('#hud-rings');
+        this.elements.battBg = container.querySelector('#hud-batt-bg');
         this.elements.battFill = container.querySelector('#hud-batt-fill');
         this.elements.battText = container.querySelector('#hud-batt-text');
         this.elements.msg = container.querySelector('#hud-msg');
@@ -62,8 +63,11 @@ export class HUD {
 
         if (data.battery !== undefined) {
             const pct = Math.max(0, Math.min(100, data.battery));
+            const pctInt = pct.toFixed(0);
             this.elements.battFill.style.width = `${pct}%`;
-            this.elements.battText.innerText = `${pct.toFixed(0)}%`;
+            this.elements.battText.innerText = `${pctInt}%`;
+            this.elements.battBg.setAttribute('aria-valuenow', pctInt);
+            this.elements.battBg.setAttribute('aria-valuetext', `${pctInt}%`);
 
             // Color feedback
             if (pct < 20) this.elements.battFill.style.backgroundColor = '#ff2222';

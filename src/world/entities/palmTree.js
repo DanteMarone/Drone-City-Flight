@@ -102,18 +102,6 @@ export class PalmTreeEntity extends BaseEntity {
         return group;
     }
 
-    createCollider() {
-        const trunkH = 4.5;
-        const trunkR = 0.25;
-        const scale = this.mesh.scale.y || 1;
-        const w = trunkR * 3 * scale; // Slightly wider than visual
-        const h = trunkH * scale;
-
-        const min = new THREE.Vector3(-w/2, 0, -w/2);
-        const max = new THREE.Vector3(w/2, h, w/2);
-        return new THREE.Box3(min, max);
-    }
-
     update(dt) {
         this.time += dt;
 

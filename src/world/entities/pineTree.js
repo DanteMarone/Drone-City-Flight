@@ -69,27 +69,6 @@ export class PineTreeEntity extends BaseEntity {
         return group;
     }
 
-    /**
-     * Define collision volume.
-     * We explicitly define a box around the trunk to allow passing under the branches.
-     */
-    createCollider() {
-        const trunkH = 2.0;
-        const trunkR = 0.25;
-        const scale = this.mesh.scale.y; // Assuming uniform scale from createMesh
-
-        // Box centered at origin (relative to entity position)
-        // Trunk starts at y=0 to y=2.0 (scaled)
-
-        const width = trunkR * 2 * scale;
-        const height = trunkH * scale;
-
-        // Center of the trunk is at y = height/2 relative to the base
-        const min = new THREE.Vector3(-width/2, 0, -width/2);
-        const max = new THREE.Vector3(width/2, height, width/2);
-
-        return new THREE.Box3(min, max);
-    }
 }
 
 EntityRegistry.register('pineTree', PineTreeEntity);

@@ -98,18 +98,6 @@ export class WillowTreeEntity extends BaseEntity {
         return group;
     }
 
-    createCollider() {
-        const trunkH = 1.5;
-        const trunkR = 0.6;
-        const scale = this.mesh.scale.y || 1;
-        const w = trunkR * 2 * scale;
-        const h = trunkH * scale;
-
-        const min = new THREE.Vector3(-w/2, 0, -w/2);
-        const max = new THREE.Vector3(w/2, h, w/2);
-        return new THREE.Box3(min, max);
-    }
-
     update(dt) {
         this.time += dt;
 

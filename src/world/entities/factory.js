@@ -170,24 +170,6 @@ export class FactoryEntity extends BaseEntity {
         }
     }
 
-    createCollider() {
-        if (!this.mesh) return null;
-        // Box collision for the main building is sufficient
-        // The stacks are on the side, maybe extend the box slightly or ignore them
-        // Main building is centered at 0, h/2, 0 with size w, h, d
-        const w = this.params.width;
-        const h = this.params.height;
-        const d = this.params.depth;
-
-        const box = new THREE.Box3();
-        box.min.set(-w/2, 0, -d/2);
-        box.max.set(w/2, h, d/2);
-
-        // Expand Z to cover stacks partially?
-        // Stacks are at z = d/2 + stackRadius.
-        // Let's just cover the main block for simplicity.
-        return box;
-    }
 }
 
 EntityRegistry.register('factory', FactoryEntity);

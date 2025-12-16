@@ -76,20 +76,6 @@ export class OakTreeEntity extends BaseEntity {
         return group;
     }
 
-    createCollider() {
-        // Collide only with the trunk for better gameplay flow
-        const trunkH = 2.5;
-        const trunkR = 0.5; // Base radius
-        const scale = this.mesh.scale.y;
-
-        const width = trunkR * 2 * scale;
-        const height = trunkH * scale;
-
-        const min = new THREE.Vector3(-width/2, 0, -width/2);
-        const max = new THREE.Vector3(width/2, height, width/2);
-
-        return new THREE.Box3(min, max);
-    }
 }
 
 EntityRegistry.register('oakTree', OakTreeEntity);

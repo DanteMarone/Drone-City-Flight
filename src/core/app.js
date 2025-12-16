@@ -162,37 +162,23 @@ export class App {
             }
 
             // Landing Pad Recharge Logic
-            const speed = this.drone.velocity.length();
-            if (speed < 0.5) { // Must be nearly stationary
-                this.world.colliders.forEach(entity => {
-                    if (entity.type === 'landingPad' && entity.mesh) {
-                        // Check bounds
-                        // Pad is 8x8.
-                        // Y check: Top of pad is roughly mesh.position.y + 0.5
-                        // Drone legs are drone.position.y - 0.15
-                        const padPos = entity.mesh.position;
-                        // Since mesh might be rotated, we should use local coordinates if possible,
-                        // but for now, assuming pads are mostly level or we can check world distance.
+            // Relaxed check: Prioritize height over strict velocity to handle micro-bounces
+            this.world.colliders.forEach(entity => {
+                if (entity.type === 'landingPad' && entity.mesh) {
+                    const localPos = this.drone.position.clone();
+                    entity.mesh.worldToLocal(localPos);
 
-                        // Strict check using local coordinates to handle rotation
-                        const localPos = this.drone.position.clone();
-                        entity.mesh.worldToLocal(localPos);
-
-                        // Local bounds: X:[-4,4], Z:[-4,4], Y: Top is 0.5.
-                        // Drone legs at -0.15 relative to drone center.
-                        // So if drone is on pad, localPos.y - 0.15 should be approx 0.5.
-                        // Allowing tolerance.
-
-                        if (Math.abs(localPos.x) < 3.8 && Math.abs(localPos.z) < 3.8) {
-                            const legHeightOnPad = localPos.y - 0.15;
-                            // Check if resting on top (0.5)
-                            if (Math.abs(legHeightOnPad - 0.5) < 0.5) {
-                                this.battery.add(CONFIG.BATTERY.RECHARGE_RATE * dt);
-                            }
+                    // Local bounds: X:[-4,4], Z:[-4,4]
+                    if (Math.abs(localPos.x) < 3.8 && Math.abs(localPos.z) < 3.8) {
+                        const legHeightOnPad = localPos.y - 0.15;
+                        // Target Y is 0.5. Allow tolerance for bounces (0.2 - 0.8)
+                        if (legHeightOnPad > 0.3 && legHeightOnPad < 0.8) {
+                            this.battery.add(CONFIG.BATTERY.RECHARGE_RATE * dt);
                         }
                     }
-                });
-            }
+                }
+            });
+            const speed = this.drone.velocity.length();
             this.audio.update(speed);
 
             const alt = this.drone.position.y;

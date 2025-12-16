@@ -23,6 +23,7 @@ export class MenuSystem {
                 <button id="btn-reset">RESET DRONE</button>
 
                 <hr>
+                <button id="btn-photo">PHOTO MODE</button>
                 <button id="btn-dev">DEVELOPER MODE</button>
                 <label class="btn-like" tabindex="0" role="button" aria-label="Load Custom Map">
                     LOAD CUSTOM MAP
@@ -50,6 +51,7 @@ export class MenuSystem {
             menu: menu,
             resume: menu.querySelector('#btn-resume'),
             reset: menu.querySelector('#btn-reset'),
+            photo: menu.querySelector('#btn-photo'),
             dev: menu.querySelector('#btn-dev'),
             loadMap: menu.querySelector('#btn-load-map'),
             bloom: menu.querySelector('#opt-bloom'),
@@ -67,6 +69,11 @@ export class MenuSystem {
         this.dom.reset.onclick = () => {
             this.app._resetGame();
             this.hide();
+        };
+
+        this.dom.photo.onclick = () => {
+            this.hide();
+            if (this.app.photoMode) this.app.photoMode.enable();
         };
 
         this.dom.dev.onclick = () => {

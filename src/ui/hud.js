@@ -41,12 +41,18 @@ export class HUD {
         layer.appendChild(container);
 
         // Cache elements
+        this.elements.container = container;
         this.elements.alt = container.querySelector('#hud-alt');
         this.elements.spd = container.querySelector('#hud-spd');
         this.elements.rings = container.querySelector('#hud-rings');
         this.elements.battFill = container.querySelector('#hud-batt-fill');
         this.elements.battText = container.querySelector('#hud-batt-text');
         this.elements.msg = container.querySelector('#hud-msg');
+    }
+
+    setVisible(visible) {
+        if (visible) this.elements.container.classList.remove('hidden');
+        else this.elements.container.classList.add('hidden');
     }
 
     update(data) {

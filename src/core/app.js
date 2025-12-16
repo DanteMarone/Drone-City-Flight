@@ -20,6 +20,7 @@ import { CONFIG } from '../config.js';
 import { DevMode } from '../dev/devMode.js';
 import { Skybox } from '../world/skybox.js';
 import { CloudSystem } from '../world/clouds.js';
+import { PhotoMode } from '../ui/photoMode.js';
 
 export class App {
     constructor() {
@@ -70,6 +71,7 @@ export class App {
         });
 
         this.devMode = new DevMode(this);
+        this.photoMode = new PhotoMode(this);
 
         this.running = true;
         this.animate = this.animate.bind(this);
@@ -95,6 +97,13 @@ export class App {
     }
 
     update(dt) {
+        // Photo Mode Handling
+        if (this.photoMode && this.photoMode.enabled) {
+            this.photoMode.update(dt);
+            this.input.resetFrame();
+            return;
+        }
+
         // Dev Mode Handling
         if (this.devMode && this.devMode.enabled) {
             this.devMode.update(dt);

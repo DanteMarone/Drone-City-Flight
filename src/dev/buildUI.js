@@ -1,5 +1,6 @@
 // src/dev/buildUI.js
 import * as THREE from 'three';
+import { CONFIG } from '../config.js';
 import { EntityRegistry } from '../world/entities/index.js';
 import { TransformCommand, PropertyChangeCommand, WaypointCommand, cloneWaypointState } from './history.js';
 
@@ -253,6 +254,17 @@ export class BuildUI {
                  <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
                      Throw Distance
                      <input id="angry-throw-dist" type="number" min="1" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                 </label>
+            </div>
+
+            <div id="pigeon-controls" class="dev-prop-section" style="display:none;">
+                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                     Panic Range
+                     <input id="pigeon-startle-range" type="number" min="0" step="0.5" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                 </label>
+                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                     Flee Distance
+                     <input id="pigeon-flee-distance" type="number" min="0" step="0.5" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
                  </label>
             </div>
 
@@ -541,6 +553,48 @@ export class BuildUI {
         if (angryIntervalInput) bindAngryInput(angryIntervalInput, 'throwInterval', 'Update throw interval');
         if (angryDistInput) bindAngryInput(angryDistInput, 'firingRange', 'Update firing range');
 
+        // Pigeon Bindings
+        const startleRangeInput = this.propPanel.querySelector('#pigeon-startle-range');
+        const fleeDistanceInput = this.propPanel.querySelector('#pigeon-flee-distance');
+
+        const bindPigeonInput = (input, key, label, defaultVal) => {
+            let startVal = null;
+            input.onfocus = () => {
+                if (this.devMode.selectedObjects.length === 1 && this.devMode.selectedObjects[0].userData.type === 'pigeon') {
+                    const sel = this.devMode.selectedObjects[0];
+                    const params = sel.userData.params || {};
+                    startVal = params[key] ?? defaultVal;
+                }
+            };
+
+            input.onchange = (e) => {
+                const val = parseFloat(e.target.value);
+                if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
+                const sel = this.devMode.selectedObjects[0];
+                if (sel.userData.type !== 'pigeon') return;
+
+                const params = sel.userData.params || (sel.userData.params = {});
+                const before = startVal ?? params[key] ?? defaultVal;
+                const next = Math.max(0, val);
+
+                params[key] = next;
+                this.updateProperties(sel);
+
+                this.devMode.history.push(new PropertyChangeCommand(
+                    this.devMode,
+                    sel.userData.uuid,
+                    key,
+                    before,
+                    next,
+                    label
+                ));
+                startVal = null;
+            };
+        };
+
+        if (startleRangeInput) bindPigeonInput(startleRangeInput, 'startleRange', 'Update pigeon panic range', CONFIG.PIGEON.STARTLE_RANGE);
+        if (fleeDistanceInput) bindPigeonInput(fleeDistanceInput, 'fleeDistance', 'Update pigeon flee distance', CONFIG.PIGEON.FLEE_DISTANCE);
+
     }
 
     show() {
@@ -604,6 +658,7 @@ export class BuildUI {
         const carControls = this.propPanel.querySelector('#car-controls');
         const pickupControls = this.propPanel.querySelector('#pickup-controls');
         const angryControls = this.propPanel.querySelector('#angry-person-controls');
+        const pigeonControls = this.propPanel.querySelector('#pigeon-controls');
 
         // Show specific controls only if SINGLE selection and correct type
         if (this.devMode.selectedObjects.length === 1) {
@@ -614,6 +669,7 @@ export class BuildUI {
             carControls.style.display = 'none';
             pickupControls.style.display = 'none';
             if (angryControls) angryControls.style.display = 'none';
+            if (pigeonControls) pigeonControls.style.display = 'none';
 
             if (sel.userData.isVehicle) {
                 carControls.style.display = 'flex';
@@ -644,12 +700,31 @@ export class BuildUI {
                         distInput.value = params.firingRange !== undefined ? params.firingRange : 10;
                     }
                 }
+            } else if (type === 'pigeon') {
+                if (pigeonControls) {
+                    pigeonControls.style.display = 'flex';
+
+                    const startleInput = this.propPanel.querySelector('#pigeon-startle-range');
+                    const fleeInput = this.propPanel.querySelector('#pigeon-flee-distance');
+                    const params = sel.userData.params || {};
+
+                    if (startleInput && document.activeElement !== startleInput) {
+                        const val = params.startleRange ?? CONFIG.PIGEON.STARTLE_RANGE;
+                        startleInput.value = val;
+                    }
+
+                    if (fleeInput && document.activeElement !== fleeInput) {
+                        const val = params.fleeDistance ?? CONFIG.PIGEON.FLEE_DISTANCE;
+                        fleeInput.value = val;
+                    }
+                }
             }
         } else {
             // Hide for multi-select (per user requirement to hide incompatible options)
             carControls.style.display = 'none';
             pickupControls.style.display = 'none';
             if (angryControls) angryControls.style.display = 'none';
+            if (pigeonControls) pigeonControls.style.display = 'none';
         }
     }
 

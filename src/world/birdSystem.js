@@ -14,6 +14,7 @@ export class BirdSystem {
         this._vecToTarget = new THREE.Vector3();
 
         this._raycaster = new THREE.Raycaster();
+        this._downVector = new THREE.Vector3(0, -1, 0);
     }
 
     setDrone(drone) {
@@ -152,11 +153,19 @@ export class BirdSystem {
         const mesh = bird.mesh;
         const startPos = mesh.userData.startPos;
 
+        const params = mesh.userData.params || {};
+        const startleRange = params.startleRange ?? conf.STARTLE_RANGE;
+        const fleeDistance = params.fleeDistance ?? conf.FLEE_DISTANCE;
+
         const distToDrone = mesh.position.distanceTo(dronePos);
         const distToStart = mesh.position.distanceTo(startPos);
 
-        if (bird.state === 'CALM' && distToDrone < conf.STARTLE_RANGE) {
-            this._startlePigeon(bird, dronePos, conf);
+        if (bird.state === 'CALM' && distToDrone < startleRange) {
+            this._startlePigeon(bird, dronePos, {
+                ...conf,
+                STARTLE_RANGE: startleRange,
+                FLEE_DISTANCE: fleeDistance
+            });
         }
 
         let target = startPos;
@@ -176,13 +185,13 @@ export class BirdSystem {
             }
         } else if (bird.state === 'FLEE_DESCEND') {
             target = bird.landingTarget;
-            if (mesh.position.distanceTo(target) < 0.35) {
+            if (mesh.position.distanceTo(target) < 0.35 || this._isOnSurface(mesh, conf, mesh)) {
                 mesh.userData.startPos = bird.landingTarget.clone();
                 bird.state = 'CALM';
             }
         }
 
-        this._moveTowards(mesh, target, speed, dt);
+        this._moveTowards(mesh, target, speed, dt, mesh);
 
         if (bird.wings) {
             bird.animTime += dt * 9;
@@ -203,10 +212,31 @@ export class BirdSystem {
         const clearTarget = this._findClearTarget(mesh.position, baseTarget, conf, mesh);
         const apexHeight = Math.max(mesh.position.y + conf.ASCENT_HEIGHT, clearTarget.y + conf.ASCENT_HEIGHT * 0.5);
 
+        const cruise = new THREE.Vector3(clearTarget.x, apexHeight, clearTarget.z);
+        const landing = this._findLandingPoint(cruise, conf, mesh);
+
         bird.apexTarget = new THREE.Vector3(mesh.position.x, apexHeight, mesh.position.z);
-        bird.cruiseTarget = new THREE.Vector3(clearTarget.x, apexHeight, clearTarget.z);
-        bird.landingTarget = new THREE.Vector3(clearTarget.x, clearTarget.y, clearTarget.z);
+        bird.cruiseTarget = cruise;
+        bird.landingTarget = landing;
         bird.state = 'FLEE_ASCEND';
+    }
+
+    _findLandingPoint(fromPosition, conf, ignoreMesh) {
+        const origin = new THREE.Vector3(fromPosition.x, fromPosition.y + conf.ASCENT_HEIGHT, fromPosition.z);
+        this._raycaster.set(origin, this._downVector);
+        this._raycaster.far = conf.ASCENT_HEIGHT * 2 + 50;
+
+        const hits = this._raycaster.intersectObjects(this.scene.children, true);
+        const hit = hits.find(h => !this._isIgnoredObject(h.object, ignoreMesh));
+
+        if (hit) {
+            return hit.point.clone();
+        }
+
+        // Fallback to ground level if nothing is hit
+        const fallback = fromPosition.clone();
+        fallback.y = Math.max(0, fromPosition.y - conf.ASCENT_HEIGHT);
+        return fallback;
     }
 
     _findClearTarget(start, desired, conf, ignoreMesh) {
@@ -237,7 +267,7 @@ export class BirdSystem {
         return ignoreMesh.children?.includes(object);
     }
 
-    _moveTowards(mesh, target, speed, dt) {
+    _moveTowards(mesh, target, speed, dt, ignoreMesh) {
         if (!target) return;
         const distance = mesh.position.distanceTo(target);
         if (distance < 0.05) return;
@@ -246,6 +276,33 @@ export class BirdSystem {
         mesh.lookAt(target);
 
         const step = speed * dt;
-        mesh.position.addScaledVector(dir, Math.min(step, distance));
+        const maxStep = Math.min(step, distance);
+
+        this._raycaster.set(mesh.position, dir);
+        this._raycaster.far = maxStep + 0.1;
+
+        const hits = this._raycaster.intersectObjects(this.scene.children, true);
+        const hit = hits.find(h => !this._isIgnoredObject(h.object, ignoreMesh));
+
+        if (hit && hit.distance <= maxStep) {
+            const cushion = 0.05;
+            const travel = Math.max(0, hit.distance - cushion);
+            mesh.position.addScaledVector(dir, travel);
+            return;
+        }
+
+        mesh.position.addScaledVector(dir, maxStep);
+    }
+
+    _isOnSurface(mesh, conf, ignoreMesh) {
+        const origin = mesh.position.clone();
+        origin.y += 0.2;
+        this._raycaster.set(origin, this._downVector);
+        this._raycaster.far = 0.4;
+
+        const hits = this._raycaster.intersectObjects(this.scene.children, true);
+        const hit = hits.find(h => !this._isIgnoredObject(h.object, ignoreMesh));
+
+        return !!hit;
     }
 }

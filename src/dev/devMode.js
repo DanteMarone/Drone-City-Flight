@@ -296,48 +296,81 @@ export class DevMode {
     }
 
     addWaypointToSelected() {
-        // Only works if a single car/bicycle is selected, or we iterate all.
-        // User requirements say "Any options that don't apply to all... should not be displayed"
-        // If multiple cars selected, we could add waypoint to all?
-        // For now, let's limit to single selection for waypoints or just the first valid one.
-        // But UI logic should probably handle the button visibility.
-
-        // Let's apply to ALL selected cars.
+        const waypoints = this.selectedObjects.filter(o => o.userData.type === 'waypoint');
         const cars = this.selectedObjects.filter(o => o.userData.isVehicle);
-        if (cars.length === 0) return;
 
-        const beforeStates = cars.map(cloneWaypointState);
+        // Combine cars and unique cars derived from selected waypoints
+        const targets = new Map();
+
+        cars.forEach(car => targets.set(car.uuid, { car, index: -1 })); // -1 means append
+        waypoints.forEach(wp => {
+            const car = wp.userData.vehicle;
+            if (car) {
+                targets.set(car.uuid, { car, index: wp.userData.index });
+            }
+        });
+
+        if (targets.size === 0) return;
+
+        const carList = Array.from(targets.values()).map(t => t.car);
+        const beforeStates = carList.map(cloneWaypointState);
         let changed = false;
+        let newSelection = [];
 
-        cars.forEach(car => {
-            if (car.userData.waypoints.length >= 5) {
-                console.warn(`Car ${car.id} max waypoints reached.`);
+        targets.forEach(({ car, index }) => {
+            if (car.userData.waypoints.length >= 10) { // Limit reasonable number
+                console.warn(`Car ${car.uuid} max waypoints reached.`);
                 return;
             }
 
             changed = true;
 
-            const visualGroup = car.userData.waypointGroup;
-            if (!visualGroup) return;
+            let insertIndex;
+            let refPos;
 
-            const lastPos = car.userData.waypoints.length > 0
-                ? car.userData.waypoints[car.userData.waypoints.length - 1]
-                : car.position.clone();
+            // If index is -1 (car selected) or last index, append to end
+            // If index is valid and not last, insert after index.
 
-            const newPos = lastPos.clone().add(new THREE.Vector3(10, 0, 0));
-            car.userData.waypoints.push(newPos);
+            const wpCount = car.userData.waypoints.length;
+            const isLast = (index === -1) || (index === wpCount - 1);
+
+            if (isLast) {
+                insertIndex = wpCount;
+                if (wpCount > 0) {
+                    refPos = car.userData.waypoints[wpCount - 1];
+                } else {
+                    refPos = car.position.clone();
+                }
+            } else {
+                insertIndex = index + 1;
+                refPos = car.userData.waypoints[index];
+            }
+
+            const newPos = refPos.clone().add(new THREE.Vector3(10, 0, 0));
+
+            car.userData.waypoints.splice(insertIndex, 0, newPos);
+
             this._syncWaypointVisuals(car);
             if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
+
+            // Find the new waypoint orb to select it
+            if (car.userData.waypointGroup) {
+                const orb = car.userData.waypointGroup.children.find(c =>
+                    c.userData.type === 'waypoint' && c.userData.index === insertIndex
+                );
+                if (orb) newSelection.push(orb);
+            }
         });
 
-        // Refresh properties if only 1 is selected (showing detailed view)
-        if (this.selectedObjects.length === 1) {
-            this.ui.updateProperties(this.selectedObjects[0]);
-        }
-
         if (changed) {
-            const afterStates = cars.map(cloneWaypointState);
+            const afterStates = carList.map(cloneWaypointState);
             this.history.push(new WaypointCommand(this, beforeStates, afterStates, 'Add waypoint'));
+
+            if (newSelection.length > 0) {
+                this.selectObjects(newSelection);
+            } else if (this.selectedObjects.length === 1) {
+                this.ui.updateProperties(this.selectedObjects[0]);
+            }
         }
     }
 

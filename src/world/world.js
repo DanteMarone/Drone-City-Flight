@@ -3,13 +3,17 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { ObjectFactory } from './factory.js';
 import { BirdSystem } from './birdSystem.js';
+import { LightSystem } from './lightSystem.js';
 import { EntityRegistry } from './entities/index.js';
+import { TimeCycle } from './timeCycle.js';
 
 export class World {
     constructor(scene) {
         this.scene = scene;
         this.birdSystem = new BirdSystem(scene);
+        this.lightSystem = new LightSystem(scene);
         this.factory = new ObjectFactory(scene);
+        this.timeCycle = new TimeCycle();
 
         // this.colliders now holds BaseEntity instances (which match {mesh, box} interface)
         this.colliders = [];
@@ -48,8 +52,9 @@ export class World {
         this.addEntity(landmark);
     }
 
-    update(dt) {
+    update(dt, camera) {
         if (this.birdSystem) this.birdSystem.update(dt);
+        if (this.lightSystem) this.lightSystem.update(dt, camera, this.timeCycle);
 
         // Update all entities
         this.colliders.forEach(entity => {
@@ -84,6 +89,7 @@ export class World {
         });
         this.colliders = [];
         if (this.birdSystem) this.birdSystem.clear();
+        if (this.lightSystem) this.lightSystem.clear();
     }
 
     loadMap(mapData) {
@@ -93,6 +99,17 @@ export class World {
             this.wind = { ...mapData.wind };
         } else {
             this.wind = { ...CONFIG.WORLD.WIND };
+        }
+
+        if (mapData.environment) {
+            if (mapData.environment.startTime !== undefined) this.timeCycle.time = mapData.environment.startTime;
+            if (mapData.environment.daySpeed !== undefined) this.timeCycle.speed = mapData.environment.daySpeed;
+            if (mapData.environment.timeLocked !== undefined) this.timeCycle.isLocked = mapData.environment.timeLocked;
+        } else {
+            // Defaults
+            this.timeCycle.time = 12.0;
+            this.timeCycle.speed = 0.0;
+            this.timeCycle.isLocked = false;
         }
 
         // We don't strictly need factory here if we use Registry,
@@ -160,6 +177,11 @@ export class World {
         return {
             version: 1,
             wind: { ...this.wind },
+            environment: {
+                startTime: this.timeCycle.time,
+                daySpeed: this.timeCycle.speed,
+                timeLocked: this.timeCycle.isLocked
+            },
             objects
         };
     }

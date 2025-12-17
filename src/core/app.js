@@ -238,9 +238,27 @@ export class App {
     }
 
     _resetGame() {
-        this.drone.position.set(0, 5, 0);
+        // Check for Player Start points
+        const starts = this.world.colliders.filter(e => e.type === 'playerStart');
+
+        if (starts.length > 0) {
+            const start = starts[Math.floor(Math.random() * starts.length)];
+            // Use the mesh position to ensure we get the world transform
+            this.drone.position.copy(start.mesh.position);
+            this.drone.yaw = start.mesh.rotation.y;
+        } else {
+            this.drone.position.set(0, 5, 0);
+            this.drone.yaw = 0;
+        }
+
         this.drone.velocity.set(0, 0, 0);
-        this.drone.yaw = 0;
+        this.drone.tilt = { pitch: 0, roll: 0 };
+
+        // Sync visual mesh immediately to avoid one-frame jumps
+        this.drone.mesh.position.copy(this.drone.position);
+        this.drone.mesh.rotation.y = this.drone.yaw;
+        this.drone.tiltGroup.rotation.set(0, 0, 0);
+
         this.battery.reset();
         this.rings.reset();
         this.tutorial.reset();
@@ -248,8 +266,8 @@ export class App {
 
     loadMap(data) {
         console.log("Loading Map...", data);
-        // Reset Game State
-        this._resetGame();
+
+        // Load World First (Base/Legacy Objects) so objects exist before reset checks for PlayerStart
 
         // Step 1: Handle History / Hybrid Loading
         // We need to decide which objects from data.objects to load.
@@ -330,6 +348,9 @@ export class App {
         if (this.devMode && this.devMode.enabled) {
             this.devMode.refreshVisibility();
         }
+
+        // Reset Game State AFTER loading objects, so PlayerStart can be found
+        this._resetGame();
     }
 
     animate(timestamp) {

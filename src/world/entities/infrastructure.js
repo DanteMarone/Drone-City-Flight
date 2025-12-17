@@ -10,6 +10,7 @@ export class RoadEntity extends BaseEntity {
     }
 
     static get displayName() { return 'Road'; }
+    static get category() { return 'Infrastructure/Roads'; }
 
     createMesh(params) {
         const w = params.width || 10;
@@ -45,6 +46,7 @@ export class RiverEntity extends BaseEntity {
     }
 
     static get displayName() { return 'River'; }
+    static get category() { return 'Infrastructure/Water'; }
 
     createMesh(params) {
         const w = params.width || 50;
@@ -77,6 +79,7 @@ export class SidewalkEntity extends BaseEntity {
     }
 
     static get displayName() { return 'Sidewalk'; }
+    static get category() { return 'Infrastructure/Roads'; }
 
     createMesh(params) {
         // 1 unit wide, 5 units long

@@ -19,6 +19,7 @@ export class BurgerJointEntity extends BaseEntity {
     }
 
     static get displayName() { return 'Burger Joint'; }
+    static get category() { return 'Buildings/Commercial'; }
 
     createMesh(params) {
         const width = params.width || 12;
@@ -94,6 +95,7 @@ export class OfficeParkEntity extends BaseEntity {
     }
 
     static get displayName() { return 'Office Park'; }
+    static get category() { return 'Buildings/Commercial'; }
 
     createMesh(params) {
         const group = new THREE.Group();
@@ -160,6 +162,7 @@ export class ModernTowerEntity extends BaseEntity {
     }
 
     static get displayName() { return 'Modern Tower'; }
+    static get category() { return 'Buildings/High Density'; }
 
     createMesh(params) {
         const group = new THREE.Group();

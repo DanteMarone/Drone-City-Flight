@@ -150,6 +150,7 @@ export class CarEntity extends VehicleEntity {
     }
 
     static get displayName() { return 'Car'; }
+    static get category() { return 'Vehicles/Land'; }
 
     createMesh(params) {
         const geoData = createSedanGeometry();
@@ -188,6 +189,7 @@ export class PickupTruckEntity extends CarEntity {
     }
 
     static get displayName() { return 'Pickup Truck'; }
+    static get category() { return 'Vehicles/Land'; }
 
     createMesh(params) {
         const geoData = createPickupGeometry();
@@ -314,6 +316,7 @@ export class BicycleEntity extends VehicleEntity {
     }
 
     static get displayName() { return 'Bicycle'; }
+    static get category() { return 'Vehicles/Land'; }
 
     createMesh(params) {
         const partsGroup = createBicycleMesh();

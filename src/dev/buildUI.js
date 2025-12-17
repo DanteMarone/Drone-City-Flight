@@ -98,6 +98,47 @@ export class BuildUI {
                 border: 1px solid #555;
             }
             .palette-item:hover { background: #444; }
+
+            /* Folder Styles */
+            details {
+                margin-bottom: 5px;
+            }
+            summary {
+                background: #222;
+                padding: 8px;
+                cursor: pointer;
+                border: 1px solid #444;
+                user-select: none;
+                font-weight: bold;
+                list-style: none; /* Hide default triangle in some browsers */
+                display: flex;
+                align-items: center;
+                gap: 5px;
+            }
+            summary:hover {
+                background: #333;
+            }
+            /* Custom arrow */
+            summary::before {
+                content: '▶';
+                font-size: 0.8em;
+                display: inline-block;
+                transition: transform 0.2s;
+            }
+            details[open] > summary::before {
+                transform: rotate(90deg);
+            }
+            /* Hide default marker in Safari/Chrome */
+            summary::-webkit-details-marker {
+                display: none;
+            }
+
+            .palette-folder-content {
+                padding-left: 15px;
+                border-left: 2px solid #333;
+                margin-top: 5px;
+            }
+
             .file-btn {
                 background: #444;
                 padding: 5px;
@@ -276,24 +317,93 @@ export class BuildUI {
 
         palette.innerHTML = '';
 
+        // 1. Build Tree
+        const tree = {};
         const entries = Array.from(EntityRegistry.registry.entries());
-        entries
-            .map(([type, classRef]) => ({ type, name: this._formatDisplayName(type, classRef) }))
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .forEach(({ type, name }) => {
-                const item = document.createElement('div');
-                item.className = 'palette-item';
-                item.draggable = true;
-                item.dataset.type = type;
-                item.textContent = name;
 
-                item.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('type', type);
-                    this.devMode.interaction.onDragStart(type);
+        entries.forEach(([type, classRef]) => {
+            const categoryPath = classRef.category || 'Misc';
+            const parts = categoryPath.split('/');
+
+            let currentLevel = tree;
+            parts.forEach((part, index) => {
+                if (!currentLevel[part]) {
+                    currentLevel[part] = {
+                        _isFolder: true,
+                        _name: part,
+                        _children: {},
+                        _items: []
+                    };
+                }
+
+                // If last part, push item
+                if (index === parts.length - 1) {
+                    currentLevel[part]._items.push({
+                        type,
+                        name: this._formatDisplayName(type, classRef),
+                        classRef
+                    });
+                } else {
+                    currentLevel = currentLevel[part]._children;
+                }
+            });
+        });
+
+        // 2. Render Tree Recursive
+        this._renderCategory(tree, palette);
+    }
+
+    _renderCategory(node, container) {
+        // Sort folders and items
+        const folders = Object.keys(node)
+            .filter(key => node[key]._isFolder)
+            .sort();
+
+        // If this is a node with items (leaf folder), render items
+        // Note: Our structure is: keys are folder names.
+        // We are iterating over the KEYS of the passed object 'node'.
+        // Wait, the structure passed to _renderCategory is a map of strings to folder objects.
+
+        // Actually, let's look at the structure again.
+        // tree = { 'Infrastructure': { _isFolder: true, _children: { 'Roads': ... }, _items: [] }, 'Misc': ... }
+
+        // We iterate keys of `node` which are the folder names at this level.
+        Object.keys(node).sort().forEach(key => {
+            const folder = node[key];
+            if (!folder._isFolder) return; // Should not happen given structure
+
+            const details = document.createElement('details');
+            const summary = document.createElement('summary');
+            summary.textContent = folder._name;
+            details.appendChild(summary);
+
+            const content = document.createElement('div');
+            content.className = 'palette-folder-content';
+
+            // Render sub-folders
+            if (Object.keys(folder._children).length > 0) {
+                this._renderCategory(folder._children, content);
+            }
+
+            // Render items in this folder
+            folder._items.sort((a, b) => a.name.localeCompare(b.name)).forEach(item => {
+                const itemEl = document.createElement('div');
+                itemEl.className = 'palette-item';
+                itemEl.draggable = true;
+                itemEl.dataset.type = item.type;
+                itemEl.textContent = item.name;
+
+                itemEl.addEventListener('dragstart', (e) => {
+                    e.dataTransfer.setData('type', item.type);
+                    this.devMode.interaction.onDragStart(item.type);
                 });
 
-                palette.appendChild(item);
+                content.appendChild(itemEl);
             });
+
+            details.appendChild(content);
+            container.appendChild(details);
+        });
     }
 
     _bindEvents() {

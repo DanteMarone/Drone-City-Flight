@@ -91,6 +91,10 @@ export class BaseEntity {
         return this.type || this.name || 'Unknown Object';
     }
 
+    static get category() {
+        return 'Misc';
+    }
+
     static fromSerialized(data) {
         // This will be handled by Registry to instantiate the class
         // and then we call init()

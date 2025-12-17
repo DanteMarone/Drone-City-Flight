@@ -27,6 +27,7 @@ export { MushroomPatchEntity } from './mushroomPatch.js';
 export { RunwayEdgeLightEntity } from './runwayEdgeLight.js';
 export { JetBridgeEntity } from './jetBridge.js';
 export { ConstructionBarrierEntity } from './constructionBarrier.js';
+export { SolarPanelEntity } from './solarPanel.js';
 
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated

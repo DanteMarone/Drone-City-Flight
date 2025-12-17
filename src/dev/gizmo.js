@@ -34,6 +34,7 @@ export class GizmoManager {
 
         // Create Controls
         this.control = new TransformControls(camera, renderer.domElement);
+        this.lastProxyPosition = new THREE.Vector3();
 
         this.control.addEventListener('dragging-changed', (event) => {
             if (this.interaction && this.interaction.devMode && this.interaction.devMode.cameraController) {
@@ -44,6 +45,7 @@ export class GizmoManager {
                 // Drag Started
                 this.captureOffsets();
                 this.dragStartStates = this.devMode?.captureTransforms(this.selectedObjects) || null;
+                this.lastProxyPosition.copy(this.proxy.position);
             } else {
                 // Drag Ended
                 if (this.selectedObjects.length > 0 && this.interaction.app.colliderSystem) {
@@ -69,6 +71,21 @@ export class GizmoManager {
         this.control.addEventListener('change', () => {
              if (this.selectedObjects.length > 0 && this.interaction && this.interaction.devMode) {
                  this.updateObjectsFromProxy(); // Apply gizmo move to objects
+
+                 // Camera Follow Logic (Shift + Drag)
+                 // Check shift key from camera controller (which tracks keys globally)
+                 if (this.devMode.cameraController && this.devMode.cameraController.keys.shift) {
+                     const delta = new THREE.Vector3().subVectors(this.proxy.position, this.lastProxyPosition);
+                     // Only move camera if we have a valid delta (and we are in translation mode, technically)
+                     // But TransformControls handles handles, if rotating, proxy pos might change or not depending on pivot.
+                     // Usually rotation doesn't change position of proxy unless pivoting around something else.
+                     // But proxy IS the pivot here. So position shouldn't change on rotation.
+                     // So this is safe for translation.
+                     if (delta.lengthSq() > 0.000001) {
+                         this.camera.position.add(delta);
+                     }
+                 }
+                 this.lastProxyPosition.copy(this.proxy.position);
 
                  // Update UI properties (showing Proxy properties)
                  this.interaction.devMode.ui.updateProperties(this.proxy);
@@ -107,6 +124,9 @@ export class GizmoManager {
         this.proxy.scale.set(1, 1, 1);    // Reset scale
         this.proxy.updateMatrixWorld();
         this.proxy.visible = true;
+
+        // Initialize lastProxyPosition for potential immediate moves (though dragging-changed handles it mostly)
+        this.lastProxyPosition.copy(this.proxy.position);
 
         // Attach Controls to Proxy
         this.control.attach(this.proxy);

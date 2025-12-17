@@ -12,7 +12,7 @@ export class DevCameraController {
         this.lookSpeed = 0.002;
 
         this.euler = new THREE.Euler(0, 0, 0, 'YXZ');
-        this.keys = { w: false, a: false, s: false, d: false, q: false, e: false };
+        this.keys = { w: false, a: false, s: false, d: false, q: false, e: false, shift: false };
         this.rotationLocked = false;
 
         this._bindEvents();
@@ -38,6 +38,23 @@ export class DevCameraController {
     }
 
     _onKey(e, pressed) {
+        // Always track modifiers if possible, but definitely when enabled
+        // Or check if we should listen even when not enabled?
+        // Gizmo interaction requires devMode enabled, which implies this controller is likely active or at least DevMode is.
+        // But the controller 'enabled' flag toggles when dragging starts (to prevent camera movement).
+        // So we should track keys even if disabled?
+        // The original code returned if !enabled.
+        // However, GizmoManager needs Shift status.
+
+        // Let's allow tracking shift even if disabled, OR rely on the fact that GizmoManager disables this controller
+        // only during drag. So keys might not update if we block here?
+
+        // Better: Update keys state regardless of enabled, but only Apply movement if enabled.
+
+        if (e.key === 'Shift') {
+            this.keys.shift = pressed;
+        }
+
         if (!this.enabled) return;
         switch(e.key.toLowerCase()) {
             case 'w': this.keys.w = pressed; break;
@@ -92,7 +109,13 @@ export class DevCameraController {
         if (this.keys.e) move.y += 1;
         if (this.keys.q) move.y -= 1;
 
-        move.normalize().multiplyScalar(this.speed * dt);
+        // Apply speed multiplier (sprint)
+        let currentSpeed = this.speed;
+        if (this.keys.shift) {
+             currentSpeed *= 2.5;
+        }
+
+        move.normalize().multiplyScalar(currentSpeed * dt);
 
         // Apply rotation to move vector (except Y usually? No, free fly means relative to cam)
         move.applyQuaternion(this.camera.quaternion);

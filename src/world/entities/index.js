@@ -3,6 +3,7 @@ export { EntityRegistry } from './registry.js';
 
 // Explicitly export new entities to ensure visibility and registration
 export { DeliveryVanEntity } from './deliveryVan.js';
+export { SkyGardenTowerEntity } from './skyGardenTower.js';
 export { RadioTowerEntity } from './radioTower.js';
 export { NeonSignEntity } from './neonSign.js';
 export { HVACEntity } from './hvac.js';

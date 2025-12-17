@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { ObjectFactory } from './factory.js';
 import { BirdSystem } from './birdSystem.js';
+import { LightSystem } from './lightSystem.js';
 import { EntityRegistry } from './entities/index.js';
 import { TimeCycle } from './timeCycle.js';
 
@@ -10,6 +11,7 @@ export class World {
     constructor(scene) {
         this.scene = scene;
         this.birdSystem = new BirdSystem(scene);
+        this.lightSystem = new LightSystem(scene);
         this.factory = new ObjectFactory(scene);
         this.timeCycle = new TimeCycle();
 
@@ -50,8 +52,9 @@ export class World {
         this.addEntity(landmark);
     }
 
-    update(dt) {
+    update(dt, camera) {
         if (this.birdSystem) this.birdSystem.update(dt);
+        if (this.lightSystem) this.lightSystem.update(dt, camera, this.timeCycle);
 
         // Update all entities
         this.colliders.forEach(entity => {
@@ -86,6 +89,7 @@ export class World {
         });
         this.colliders = [];
         if (this.birdSystem) this.birdSystem.clear();
+        if (this.lightSystem) this.lightSystem.clear();
     }
 
     loadMap(mapData) {

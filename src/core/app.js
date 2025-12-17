@@ -259,15 +259,26 @@ export class App {
     _resetGame() {
         // Check for Player Start points
         const starts = this.world.colliders.filter(e => e.type === 'playerStart');
+        let start = null;
 
         if (starts.length > 0) {
-            const start = starts[Math.floor(Math.random() * starts.length)];
+            start = starts[Math.floor(Math.random() * starts.length)];
             // Use the mesh position to ensure we get the world transform
             this.drone.position.copy(start.mesh.position);
             this.drone.yaw = start.mesh.rotation.y;
         } else {
             this.drone.position.set(0, 5, 0);
             this.drone.yaw = 0;
+        }
+
+        // Configure Battery
+        if (start && start.params) {
+             const max = start.params.batteryMax !== undefined ? start.params.batteryMax : 60;
+             const rate = start.params.drainRate !== undefined ? start.params.drainRate : 1.0;
+             this.battery.configure(max, rate);
+        } else {
+             // Fallback to default
+             this.battery.configure(60, 1.0);
         }
 
         this.drone.velocity.set(0, 0, 0);

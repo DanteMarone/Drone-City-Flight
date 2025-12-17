@@ -46,11 +46,11 @@ export const CONFIG = {
     },
 
     BATTERY: {
-        MAX: 100,
-        DRAIN_MOVE: 2.0,
-        DRAIN_ASCEND: 5.0,
-        DRAIN_DESCEND: 2.0,
-        DRAIN_IDLE: 0.5,
+        MAX: 60,
+        DRAIN_MOVE: 1.0,
+        DRAIN_ASCEND: 1.0,
+        DRAIN_DESCEND: 1.0,
+        DRAIN_IDLE: 0.1,
         REWARD: 15,
         DRAIN_COLLISION: 20.0, // Drain per second when hit by bird
         RECHARGE_RATE: 10.0 // Charge per second on landing pad

@@ -273,6 +273,17 @@ export class BuildUI {
                  </label>
             </div>
 
+            <div id="player-start-controls" class="dev-prop-section" style="display:none;">
+                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                     Battery Max
+                     <input id="ps-battery-max" type="number" min="1" step="5" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                 </label>
+                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
+                     Drain Rate
+                     <input id="ps-drain-rate" type="number" min="0.1" step="0.1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
+                 </label>
+            </div>
+
             <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
         `;
 
@@ -639,6 +650,46 @@ export class BuildUI {
         if (angryIntervalInput) bindAngryInput(angryIntervalInput, 'throwInterval', 'Update throw interval');
         if (angryDistInput) bindAngryInput(angryDistInput, 'firingRange', 'Update firing range');
 
+        // Player Start Bindings
+        const psBatteryMax = this.propPanel.querySelector('#ps-battery-max');
+        const psDrainRate = this.propPanel.querySelector('#ps-drain-rate');
+
+        const bindPlayerStartInput = (input, key, label) => {
+             let startVal = null;
+             input.onfocus = () => {
+                 if (this.devMode.selectedObjects.length === 1 && this.devMode.selectedObjects[0].userData.type === 'playerStart') {
+                     const sel = this.devMode.selectedObjects[0];
+                     startVal = sel.userData.params?.[key] ?? (key === 'batteryMax' ? 60 : 1.0);
+                 }
+             };
+             input.onchange = (e) => {
+                 const val = parseFloat(e.target.value);
+                 if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
+                 const sel = this.devMode.selectedObjects[0];
+                 if (sel.userData.type !== 'playerStart') return;
+
+                 const before = startVal ?? sel.userData.params?.[key] ?? (key === 'batteryMax' ? 60 : 1.0);
+                 const next = val;
+
+                 if (!sel.userData.params) sel.userData.params = {};
+                 sel.userData.params[key] = next;
+
+                 this.updateProperties(sel);
+
+                 this.devMode.history.push(new PropertyChangeCommand(
+                     this.devMode,
+                     sel.userData.uuid,
+                     key,
+                     before,
+                     next,
+                     label
+                 ));
+                 startVal = null;
+             };
+        };
+
+        if (psBatteryMax) bindPlayerStartInput(psBatteryMax, 'batteryMax', 'Update battery max');
+        if (psDrainRate) bindPlayerStartInput(psDrainRate, 'drainRate', 'Update drain rate');
     }
 
     show() {
@@ -702,6 +753,7 @@ export class BuildUI {
         const carControls = this.propPanel.querySelector('#car-controls');
         const pickupControls = this.propPanel.querySelector('#pickup-controls');
         const angryControls = this.propPanel.querySelector('#angry-person-controls');
+        const playerStartControls = this.propPanel.querySelector('#player-start-controls');
 
         // Show specific controls only if SINGLE selection and correct type
         if (this.devMode.selectedObjects.length === 1) {
@@ -712,6 +764,7 @@ export class BuildUI {
             carControls.style.display = 'none';
             pickupControls.style.display = 'none';
             if (angryControls) angryControls.style.display = 'none';
+            if (playerStartControls) playerStartControls.style.display = 'none';
 
             if (sel.userData.isVehicle || type === 'waypoint') {
                 carControls.style.display = 'flex';
@@ -747,12 +800,27 @@ export class BuildUI {
                         distInput.value = params.firingRange !== undefined ? params.firingRange : 10;
                     }
                 }
+            } else if (type === 'playerStart') {
+                if (playerStartControls) {
+                    playerStartControls.style.display = 'flex';
+                    const maxInput = this.propPanel.querySelector('#ps-battery-max');
+                    const drainInput = this.propPanel.querySelector('#ps-drain-rate');
+
+                    const params = sel.userData.params || {};
+                    if (maxInput && document.activeElement !== maxInput) {
+                        maxInput.value = params.batteryMax !== undefined ? params.batteryMax : 60;
+                    }
+                    if (drainInput && document.activeElement !== drainInput) {
+                        drainInput.value = params.drainRate !== undefined ? params.drainRate : 1.0;
+                    }
+                }
             }
         } else {
             // Hide for multi-select (per user requirement to hide incompatible options)
             carControls.style.display = 'none';
             pickupControls.style.display = 'none';
             if (angryControls) angryControls.style.display = 'none';
+            if (playerStartControls) playerStartControls.style.display = 'none';
         }
     }
 

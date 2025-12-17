@@ -8,6 +8,12 @@ export class PlayerStartEntity extends BaseEntity {
         this.type = 'playerStart';
     }
 
+    postInit() {
+        // Set default properties if not present
+        if (this.params.batteryMax === undefined) this.params.batteryMax = 60;
+        if (this.params.drainRate === undefined) this.params.drainRate = 1.0;
+    }
+
     createMesh(params) {
         // Create a visual marker for Dev Mode
         const group = new THREE.Group();

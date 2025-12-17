@@ -31,12 +31,14 @@ export class LightSystem {
      * @param {number} range
      */
     register(position, color, intensity = 1, range = 50) {
-        this.virtualLights.push({
+        const source = {
             pos: position.clone(),
             color: new THREE.Color(color),
             intensity,
             range
-        });
+        };
+        this.virtualLights.push(source);
+        return source;
     }
 
     /**

@@ -100,61 +100,36 @@ export class StreetLightEntity extends BaseEntity {
     postInit() {
         if (window.app && window.app.world && window.app.world.lightSystem) {
             // Register virtual light
-            // We need world position.
             this.mesh.updateMatrixWorld(true);
             const worldPos = this._lightLocalPos.clone().applyMatrix4(this.mesh.matrixWorld);
 
-            this._virtualLight = {
-                pos: worldPos,
-                color: new THREE.Color(0xffe9a3),
-                intensity: 1.4,
-                range: 18,
-                parentMesh: this.mesh // To track movement if any (though street lights are static usually)
-            };
+            // Now register returns the source object reference
+            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xffe9a3, 1.4, 18);
 
-            // We push to the system's array directly or use a register method that returns the object?
-            // The current register method does not return the object.
-            // We should modify LightSystem to return the object, or just push manually if we had access.
-            // But we don't want to break encapsulation too much.
-            // Let's assume we can modify the object if we keep a reference to what we passed,
-            // BUT register() clones the position and creates a new object.
-
-            // We need to modify LightSystem to return the created virtual light object.
-            // For now, let's just accept static intensity or update it if we can.
-            // The requirement says "source object: ...".
-            // I'll assume I can pass the object reference if I modify register, or just duplicate the object creation logic here.
-
-            // Actually, let's use the register method but we need the reference to update intensity.
-            // I'll update LightSystem.js to return the created source.
-
-            // Wait, I haven't modified LightSystem.js to return it yet.
-            // I'll do that first or just access the last element? No, race condition.
-            // I'll just skip dynamic intensity on the *light source* for now to keep it simple,
-            // OR I will assume I can update the material glow, and the light system handles the rest.
-            // The requirement says "Update Real Light colors/intensities to match the source."
-            // If I want the light to flicker, the source.intensity must flicker.
-
-            // For now, I will just register it as a static light in postInit.
-            // The material flicker will still happen (visuals).
-            // The actual light flicker might be less noticeable or acceptable to be static.
-
-            window.app.world.lightSystem.register(worldPos, 0xffe9a3, 1.4, 18);
-
-            // To support flickering light, we'd need to keep a ref.
-            // Let's stick to static light for optimization for now, preserving visual flicker on mesh.
+            // Attach parent mesh for moving light support
+            if (this._virtualLight) {
+                this._virtualLight.parentMesh = this.mesh;
+            }
         }
     }
 
     update(dt) {
         this._time += dt;
-        if (this._glowMaterial) {
-            const pulse = 0.15 * Math.sin(this._time * 2.5 + (this.params.seed || 0));
-            const flicker = 0.05 * Math.sin(this._time * 17.0);
-            const intensity = 0.7 + pulse + flicker;
-            this._glowMaterial.emissiveIntensity = THREE.MathUtils.clamp(intensity, 0.4, 1.1);
+        // Calculate flicker
+        const pulse = 0.15 * Math.sin(this._time * 2.5 + (this.params.seed || 0));
+        const flicker = 0.05 * Math.sin(this._time * 17.0);
+        const dynamicIntensityMod = pulse + flicker;
 
-            // If we had the virtual light ref, we would update it here.
-            // this._virtualLight.intensity = ...
+        if (this._glowMaterial) {
+            const intensity = 0.7 + dynamicIntensityMod;
+            this._glowMaterial.emissiveIntensity = THREE.MathUtils.clamp(intensity, 0.4, 1.1);
+        }
+
+        // Update virtual light intensity if registered
+        if (this._virtualLight) {
+             const baseIntensity = 1.4;
+             // Apply flicker to the light source too
+             this._virtualLight.intensity = THREE.MathUtils.clamp(baseIntensity + dynamicIntensityMod * 2, 0.8, 1.8);
         }
     }
 }

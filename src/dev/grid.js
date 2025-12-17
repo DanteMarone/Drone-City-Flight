@@ -8,18 +8,57 @@ export class GridSystem {
         this.size = this.divisions * this.cellSize;
         this.enabled = true;
 
+        this.colors = {
+            axis: new THREE.Color(0xff0000),
+            tenUnit: new THREE.Color(0xadd8e6),
+            fiveUnit: new THREE.Color(0xffffff),
+            base: new THREE.Color(0x444444)
+        };
+
         this.helper = this._createHelper();
         this.helper.visible = false;
         scene.add(this.helper);
     }
 
     _createHelper() {
-        // GridHelper(size, divisions)
-        // We want lines every 1 unit.
-        // size = 1000, divisions = 1000 -> 1 unit per cell.
-        const helper = new THREE.GridHelper(this.size, this.divisions, 0x888888, 0x222222);
+        const helper = new THREE.LineSegments(
+            this._buildGridGeometry(),
+            new THREE.LineBasicMaterial({ vertexColors: true, transparent: true, opacity: 0.9 })
+        );
         helper.position.y = 0.1;
         return helper;
+    }
+
+    _buildGridGeometry() {
+        const halfSize = this.size / 2;
+        const step = this.cellSize;
+        const vertices = [];
+        const colors = [];
+
+        for (let i = -halfSize; i <= halfSize; i += step) {
+            const color = this._getLineColor(i);
+            this._addLine(vertices, colors, -halfSize, 0, i, halfSize, 0, i, color);
+            this._addLine(vertices, colors, i, 0, -halfSize, i, 0, halfSize, color);
+        }
+
+        const geometry = new THREE.BufferGeometry();
+        geometry.setAttribute('position', new THREE.Float32BufferAttribute(vertices, 3));
+        geometry.setAttribute('color', new THREE.Float32BufferAttribute(colors, 3));
+        geometry.computeBoundingSphere();
+        return geometry;
+    }
+
+    _addLine(vertices, colors, x1, y1, z1, x2, y2, z2, color) {
+        vertices.push(x1, y1, z1, x2, y2, z2);
+        colors.push(color.r, color.g, color.b, color.r, color.g, color.b);
+    }
+
+    _getLineColor(position) {
+        const rounded = Math.round(position);
+        if (rounded === 0) return this.colors.axis;
+        if (rounded % 10 === 0) return this.colors.tenUnit;
+        if (rounded % 5 === 0) return this.colors.fiveUnit;
+        return this.colors.base;
     }
 
     setEnabled(enabled) {

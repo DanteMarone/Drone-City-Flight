@@ -241,7 +241,18 @@ export class InteractionManager {
         if (!this.activePlacement || !this.ghostMesh) return;
 
         const anchor = this.activePlacement.anchor;
-        const diff = new THREE.Vector3().subVectors(currentPoint, anchor);
+        let diff = new THREE.Vector3().subVectors(currentPoint, anchor);
+
+        // Grid Snap Logic: Strict Alignment
+        if (this.devMode.grid && this.devMode.grid.enabled) {
+            // Determine dominant axis
+            if (Math.abs(diff.x) >= Math.abs(diff.z)) {
+                diff.z = 0; // Lock to X
+            } else {
+                diff.x = 0; // Lock to Z
+            }
+            // diff length is automatically integer-ish because anchor and currentPoint are snapped.
+        }
 
         let angle = 0;
         if (diff.lengthSq() > 0.01) {
@@ -249,9 +260,9 @@ export class InteractionManager {
         }
 
         const len = Math.max(1, diff.length());
-        const mid = new THREE.Vector3().addVectors(anchor, currentPoint).multiplyScalar(0.5);
+        const finalPos = new THREE.Vector3().addVectors(anchor, diff.clone().multiplyScalar(0.5));
 
-        this.ghostMesh.position.copy(mid);
+        this.ghostMesh.position.copy(finalPos);
         this.ghostMesh.rotation.y = angle;
         this.ghostMesh.scale.z = len;
     }
@@ -323,7 +334,9 @@ export class InteractionManager {
 
         this.activePlacement = null;
         this._destroyGhost();
-        // Remain in placement mode (create new ghost on next move)
+
+        // Deselect tool
+        this.devMode.setPlacementMode(null);
     }
 
     _createGhost(type) {

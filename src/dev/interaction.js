@@ -256,12 +256,29 @@ export class InteractionManager {
             diff.z = Math.round(diff.z);
         }
 
+        let len = diff.length();
+
+        // Road Specific: Enforce whole unit length
+        if (this.activePlacement.type === 'road') {
+            len = Math.round(len);
+            if (len < 1) len = 1;
+
+            // Adjust diff to match snapped length while preserving direction
+            if (diff.lengthSq() > 0.001) {
+                diff.normalize().multiplyScalar(len);
+            } else {
+                // Default direction if length was zero
+                diff.set(0, 0, len);
+            }
+        } else {
+            len = Math.max(1, len);
+        }
+
         let angle = 0;
         if (diff.lengthSq() > 0.01) {
             angle = Math.atan2(diff.x, diff.z);
         }
 
-        const len = Math.max(1, diff.length());
         const finalPos = new THREE.Vector3().addVectors(anchor, diff.clone().multiplyScalar(0.5));
 
         this.ghostMesh.position.copy(finalPos);

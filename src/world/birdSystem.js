@@ -24,9 +24,11 @@ export class BirdSystem {
 
         const bird = {
             mesh: birdMesh,
-            state: 'IDLE', // IDLE, CHASE, RETURN
+            state: 'PATROL', // PATROL, CHASE, RETURN
             wings: birdMesh.userData.wings,
-            animTime: Math.random() * 10
+            animTime: Math.random() * 10,
+            currentWaypointIndex: 0,
+            resumePos: new THREE.Vector3()
         };
 
         this.birds.push(bird);
@@ -57,58 +59,64 @@ export class BirdSystem {
     _updateBird(bird, dt, dronePos, conf) {
         const mesh = bird.mesh;
         const startPos = mesh.userData.startPos;
+        const waypoints = mesh.userData.waypoints;
 
         // Distances
         const distToDrone = mesh.position.distanceTo(dronePos);
         const distToStart = mesh.position.distanceTo(startPos);
 
         // State Transition Logic
-        if (bird.state === 'IDLE') {
+        if (bird.state === 'PATROL') {
             if (distToDrone < conf.CHASE_RADIUS) {
                 bird.state = 'CHASE';
-            } else {
-                // Return if drifted (sanity check)
-                if (distToStart > 5) bird.state = 'RETURN';
+                bird.resumePos.copy(mesh.position);
             }
         } else if (bird.state === 'CHASE') {
-            if (distToStart > conf.RETURN_RADIUS) {
+            // "When the player exits range of the bird" (Range = CHASE_RADIUS)
+            if (distToDrone > conf.CHASE_RADIUS) {
                 bird.state = 'RETURN';
             }
-            // Logic for "catching"
-            // If very close, maybe just stay there attacking?
-            // Spec says "if caught... rapidly consumes battery".
-            // It doesn't say "stop chasing".
-            // So if > 50m from start, return. Else chase.
         } else if (bird.state === 'RETURN') {
-            if (distToStart < 1.0) {
-                bird.state = 'IDLE';
+            if (mesh.position.distanceTo(bird.resumePos) < 1.0) {
+                bird.state = 'PATROL';
+                // Snap to exact pos
+                mesh.position.copy(bird.resumePos);
             }
         }
 
         // Movement Logic
-        let target = null;
+        // Use class member vector as temp target
+        const target = this._vecToStart;
         let speed = conf.SPEED;
 
         if (bird.state === 'CHASE') {
-            target = dronePos;
+            target.copy(dronePos);
         } else if (bird.state === 'RETURN') {
-            target = startPos;
+            target.copy(bird.resumePos);
         } else {
-            // IDLE: Bob around start pos
-            // We can just hover or slowly circle.
-            // Let's just hover for now to keep it simple as requested "back and forth bounce"
-            // Actually the "bounce" request was for animation.
-            // Let's make IDLE just hover at start.
-            target = startPos;
-            speed = 2.0; // Slow return/idle adjustment
+            // PATROL
+            if (waypoints && waypoints.length > 0) {
+                const wp = waypoints[bird.currentWaypointIndex];
+                target.set(wp.x, wp.y, wp.z);
+
+                if (mesh.position.distanceTo(target) < 1.0) {
+                    bird.currentWaypointIndex = (bird.currentWaypointIndex + 1) % waypoints.length;
+                    // Update target to next
+                    const nextWp = waypoints[bird.currentWaypointIndex];
+                    target.set(nextWp.x, nextWp.y, nextWp.z);
+                }
+            } else {
+                // Fallback: Hover at startPos
+                target.copy(startPos);
+                speed = 2.0;
+            }
         }
 
         // Move towards target
         const dir = this._vecToDrone.subVectors(target, mesh.position).normalize();
 
         // Face target
-        if (bird.state !== 'IDLE' || distToStart > 0.1) {
-            // Smooth rotation? Or instant lookAt. Instant is fine for birds usually.
+        if (bird.state !== 'PATROL' || (waypoints && waypoints.length > 0) || distToStart > 0.1) {
             mesh.lookAt(target);
         }
 

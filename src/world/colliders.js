@@ -13,6 +13,8 @@ export class ColliderSystem {
         this._tempVec1 = new THREE.Vector3();
         this._tempVec2 = new THREE.Vector3();
         this._tempVec2D = new THREE.Vector2();
+        // Bolt: Add scratch matrix for collision checks
+        this._tempMat = new THREE.Matrix4();
     }
 
     addStatic(colliders) {
@@ -61,69 +63,23 @@ export class ColliderSystem {
 
     checkCollisions(dronePos, radius, dynamicColliders = []) {
         // Broadphase Static
-        let nearby = this.spatialHash.query(dronePos.x, dronePos.z);
-
-        // Add Dynamic (Cars)
-        if (dynamicColliders.length > 0) {
-            nearby = nearby.concat(dynamicColliders);
-        }
+        const nearby = this.spatialHash.query(dronePos.x, dronePos.z);
 
         // Narrowphase: Sphere vs Geometry
         const hits = [];
         this._tempSphere.set(dronePos, radius);
         const droneSphere = this._tempSphere;
 
+        // Check Static Colliders
         for (const other of nearby) {
-            if (other.type === 'ring') {
-                 // Sphere vs Torus (approximated)
-                 // Transform sphere center to torus local space
-                 const invMat = other.mesh.matrixWorld.clone().invert(); // This clone/invert is still expensive but necessary for correct math without more scratch matrices
-                 const localPos = this._tempVec1.copy(dronePos).applyMatrix4(invMat);
+            this._checkObject(other, droneSphere, hits);
+        }
 
-                 // Torus (XY plane): R = 1.5 (major), r = 0.2 (tube)
-                 // Closest point on central circle
-                 const R = 1.5;
-                 const r = 0.2;
-
-                 // Vector on XY plane
-                 const vXY = this._tempVec2D.set(localPos.x, localPos.y);
-                 const len = vXY.length();
-
-                 if (len > 0.0001) {
-                     vXY.normalize().multiplyScalar(R);
-                 } else {
-                     vXY.set(R, 0); // Arbitrary if at center
-                 }
-
-                 const closestOnCircle = this._tempVec2.set(vXY.x, vXY.y, 0);
-
-                 // Distance from sphere center to closest circle point
-                 const dist = localPos.distanceTo(closestOnCircle);
-
-                 // Collision if dist < r + radius
-                 if (dist < r + radius) {
-                     // Hit!
-                     // We use a new vector for normal because hits array persists and needs unique objects
-                     const localNormal = new THREE.Vector3().subVectors(localPos, closestOnCircle).normalize();
-                     const normal = localNormal.transformDirection(other.mesh.matrixWorld).normalize();
-                     const penetration = (r + radius) - dist;
-
-                     hits.push({
-                         object: other,
-                         normal: normal,
-                         penetration: penetration
-                     });
-                 }
-
-            } else if (other.box && other.box.intersectsSphere(droneSphere)) {
-                // Medium Phase: Check if the main AABB is hit
-                // Now Narrow Phase: Check individual meshes inside the group
-                if (other.mesh) {
-                    this._checkMeshRecursively(other.mesh, droneSphere, hits, other);
-                } else {
-                    // Fallback for simple objects without a mesh reference (shouldn't happen for entities)
-                    this._addBoxHit(other.box, droneSphere, other, hits);
-                }
+        // Check Dynamic Colliders (Cars)
+        // Bolt: Iterate separately to avoid allocating new array with .concat()
+        if (dynamicColliders.length > 0) {
+            for (const other of dynamicColliders) {
+                this._checkObject(other, droneSphere, hits);
             }
         }
 
@@ -137,6 +93,61 @@ export class ColliderSystem {
         }
 
         return hits;
+    }
+
+    _checkObject(other, sphere, hits) {
+        if (other.type === 'ring') {
+            // Sphere vs Torus (approximated)
+            // Transform sphere center to torus local space
+            // Bolt: Use scratch matrix to avoid allocation
+            const invMat = this._tempMat.copy(other.mesh.matrixWorld).invert();
+            const localPos = this._tempVec1.copy(sphere.center).applyMatrix4(invMat);
+
+            // Torus (XY plane): R = 1.5 (major), r = 0.2 (tube)
+            // Closest point on central circle
+            const R = 1.5;
+            const r = 0.2;
+
+            // Vector on XY plane
+            const vXY = this._tempVec2D.set(localPos.x, localPos.y);
+            const len = vXY.length();
+
+            if (len > 0.0001) {
+                vXY.normalize().multiplyScalar(R);
+            } else {
+                vXY.set(R, 0); // Arbitrary if at center
+            }
+
+            const closestOnCircle = this._tempVec2.set(vXY.x, vXY.y, 0);
+
+            // Distance from sphere center to closest circle point
+            const dist = localPos.distanceTo(closestOnCircle);
+
+            // Collision if dist < r + radius
+            if (dist < r + sphere.radius) {
+                // Hit!
+                // We use a new vector for normal because hits array persists and needs unique objects
+                const localNormal = new THREE.Vector3().subVectors(localPos, closestOnCircle).normalize();
+                const normal = localNormal.transformDirection(other.mesh.matrixWorld).normalize();
+                const penetration = (r + sphere.radius) - dist;
+
+                hits.push({
+                    object: other,
+                    normal: normal,
+                    penetration: penetration
+                });
+            }
+
+        } else if (other.box && other.box.intersectsSphere(sphere)) {
+            // Medium Phase: Check if the main AABB is hit
+            // Now Narrow Phase: Check individual meshes inside the group
+            if (other.mesh) {
+                this._checkMeshRecursively(other.mesh, sphere, hits, other);
+            } else {
+                // Fallback for simple objects without a mesh reference (shouldn't happen for entities)
+                this._addBoxHit(other.box, sphere, other, hits);
+            }
+        }
     }
 
     _checkMeshRecursively(object, sphere, hits, rootEntity) {

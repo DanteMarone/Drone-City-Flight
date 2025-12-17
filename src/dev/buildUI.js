@@ -38,9 +38,9 @@ export class BuildUI {
             <h3>Map</h3>
             <button id="dev-clear">Clear Map</button>
             <button id="dev-save">Save Map</button>
-            <label class="file-btn">
+            <label class="file-btn" tabindex="0" role="button" aria-label="Load Custom Map">
                 Load Map
-                <input type="file" id="dev-load" accept=".json" style="display:none">
+                <input type="file" id="dev-load" accept=".json" class="visually-hidden" tabindex="-1">
             </label>
 
             <hr style="width:100%">
@@ -63,12 +63,12 @@ export class BuildUI {
                     </label>
                 </div>
 
-                <label style="display:flex; justify-content:space-between;">
+                <label for="dev-wind-speed" style="display:flex; justify-content:space-between;">
                     Wind Speed
                 </label>
                 <input type="number" id="dev-wind-speed" min="0" max="100" value="0">
 
-                <label style="display:flex; justify-content:space-between;">
+                <label for="dev-wind-dir" style="display:flex; justify-content:space-between;">
                     Wind Dir
                 </label>
                 <input type="number" id="dev-wind-dir" min="0" max="360" value="0">
@@ -123,6 +123,17 @@ export class BuildUI {
                 border: 1px solid #666;
                 display: block;
             }
+            .visually-hidden {
+                position: absolute;
+                width: 1px;
+                height: 1px;
+                padding: 0;
+                margin: -1px;
+                overflow: hidden;
+                clip: rect(0, 0, 0, 0);
+                white-space: nowrap;
+                border: 0;
+            }
             /* Input styling for 7 digits */
             #dev-ui input[type="number"] {
                 background: #111;
@@ -130,6 +141,14 @@ export class BuildUI {
                 border: 1px solid #444;
                 padding: 2px;
                 min-width: 60px; /* Ensure wide enough */
+            }
+
+            /* Focus Visibility for Accessibility */
+            #dev-ui button:focus-visible,
+            #dev-ui input:focus-visible,
+            .file-btn:focus-visible {
+                outline: 2px solid #22ffaa;
+                outline-offset: -2px;
             }
 
             /* Properties Flyout */
@@ -317,6 +336,16 @@ export class BuildUI {
         this.dom.querySelector('#dev-exit').onclick = () => this.devMode.disable();
         this.dom.querySelector('#dev-clear').onclick = () => this.devMode.clearMap();
         this.dom.querySelector('#dev-save').onclick = () => this.devMode.saveMap();
+
+        // Accessibility: Allow keyboard activation for file input label
+        const loadLabel = this.dom.querySelector('.file-btn');
+        loadLabel.onkeydown = (e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                this.dom.querySelector('#dev-load').click();
+            }
+        };
+
         this.dom.querySelector('#dev-load').onchange = (e) => {
             if (e.target.files.length > 0) {
                 this.devMode.loadMap(e.target.files[0]);

@@ -433,6 +433,12 @@ export class DevMode {
         if (!this.enabled) return;
         if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
+        if (e.code === 'Delete') {
+            e.preventDefault();
+            this.deleteSelected();
+            return;
+        }
+
         if (e.ctrlKey) {
             if (e.code === 'KeyZ') {
                 e.preventDefault();

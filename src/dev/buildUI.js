@@ -698,6 +698,9 @@ export class BuildUI {
     }
 
     hideProperties() {
+        if (this.propPanel.contains(document.activeElement)) {
+            document.activeElement.blur();
+        }
         this.propPanel.classList.remove('open');
         this.propPanel.setAttribute('aria-hidden', 'true');
     }

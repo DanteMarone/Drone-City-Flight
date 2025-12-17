@@ -93,10 +93,14 @@ void main() {
     // vUv.y maps 0 (bottom) to 1 (top) for top-half sphere
     float horizonFade = smoothstep(0.0, 0.15, vUv.y);
 
+    // Altitude Fade (Cloud Ceiling)
+    // Mask clouds below 120m (Drone Max Altitude) + buffer to 160m
+    float altitudeFade = smoothstep(120.0, 160.0, vWorldPosition.y);
+
     vec3 finalColor = uCloudColor * lighting + scatterColor;
 
     // Alpha
-    float alpha = density * horizonFade * 0.9;
+    float alpha = density * horizonFade * altitudeFade * 0.9;
 
     gl_FragColor = vec4(finalColor, alpha);
 }

@@ -221,14 +221,11 @@ export class GridSystem {
     update(camera) {
         if (!this.enabled || !this.group) return;
 
-        const x = Math.round(camera.position.x / this.cellSize) * this.cellSize;
-        const z = Math.round(camera.position.z / this.cellSize) * this.cellSize;
-
-        this.group.position.x = x;
-        this.group.position.z = z;
-
         const height = Math.abs(camera.position.y);
-        const distanceFromGridCenter = Math.hypot(camera.position.x - x, camera.position.z - z);
+        const distanceFromGridCenter = Math.hypot(
+            camera.position.x - this.group.position.x,
+            camera.position.z - this.group.position.z
+        );
 
         const visibleStep = this._computeVisibleStep(height);
         this._updateMinorGeometry(visibleStep);

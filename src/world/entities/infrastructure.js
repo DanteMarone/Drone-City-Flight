@@ -70,5 +70,42 @@ export class RiverEntity extends BaseEntity {
     }
 }
 
+export class SidewalkEntity extends BaseEntity {
+    constructor(params) {
+        super(params);
+        this.type = 'sidewalk';
+    }
+
+    static get displayName() { return 'Sidewalk'; }
+
+    createMesh(params) {
+        // 1 unit wide, 5 units long
+        const w = 1;
+        const l = 5;
+        const h = 0.2;
+
+        const geo = new THREE.BoxGeometry(w, h, l);
+        geo.translate(0, h / 2, 0); // Sit on ground
+
+        const concreteTex = TextureGenerator.createConcrete();
+        const sidewalkTex = TextureGenerator.createSidewalk();
+
+        const materials = [
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // px
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // nx
+            new THREE.MeshStandardMaterial({ map: sidewalkTex, color: 0xffffff, roughness: 0.8 }), // py (Top)
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // ny (Bottom)
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // pz
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // nz
+        ];
+
+        const mesh = new THREE.Mesh(geo, materials);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        return mesh;
+    }
+}
+
 EntityRegistry.register('road', RoadEntity);
 EntityRegistry.register('river', RiverEntity);
+EntityRegistry.register('sidewalk', SidewalkEntity);

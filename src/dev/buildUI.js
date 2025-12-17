@@ -85,6 +85,9 @@ export class BuildUI {
                 <button id="dev-mode-trans" style="flex:1; font-size:0.8em;">Move</button>
                 <button id="dev-mode-rot" style="flex:1; font-size:0.8em;">Rotate</button>
             </div>
+            <div style="display:flex; gap:5px; margin-top:5px;">
+                <button id="dev-tool-road" style="flex:1; font-size:0.8em;">Road Tool</button>
+            </div>
 
             <div style="display:flex; gap:5px; margin-top:5px;">
                 <button id="dev-undo" style="flex:1; font-size:0.8em;">Undo</button>
@@ -309,6 +312,18 @@ export class BuildUI {
                     this.devMode.interaction.onDragStart(type);
                 });
 
+                // Add Click handler for Smart Tool mode
+                item.addEventListener('click', (e) => {
+                    // Only for Roads currently
+                    if (type === 'road') {
+                        this.devMode.setPlacementMode(type);
+                        // Optional: Highlight UI
+                    } else {
+                        // For others, maybe select if we support generic placement
+                        // this.devMode.setPlacementMode(type);
+                    }
+                });
+
                 palette.appendChild(item);
             });
     }
@@ -434,6 +449,10 @@ export class BuildUI {
         };
         this.dom.querySelector('#dev-mode-rot').onclick = () => {
             this.devMode.gizmo.control.setMode('rotate');
+        };
+
+        this.dom.querySelector('#dev-tool-road').onclick = () => {
+            this.devMode.setPlacementMode('road');
         };
 
         this.dom.querySelector('#dev-undo').onclick = () => {

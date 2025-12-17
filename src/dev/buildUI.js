@@ -386,17 +386,34 @@ export class BuildUI {
         // Properties Input Bindings
         const toRad = (deg) => deg * (Math.PI / 180);
         let transformStart = null;
+        let focusedObjectUUIDs = null;
 
         ['x', 'y', 'z', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz'].forEach(axis => {
             const input = this.propPanel.querySelector(`#prop-${axis}`);
             if (input) {
                 input.onfocus = () => {
                     transformStart = this.devMode.captureTransforms(this.devMode.selectedObjects);
+                    focusedObjectUUIDs = this.devMode.selectedObjects.map(obj => obj.userData.uuid || obj.uuid);
                 };
 
                 input.onchange = (e) => {
                     const val = parseFloat(e.target.value);
                     if (isNaN(val)) return;
+
+                    // Verify selection hasn't changed
+                    const currentUUIDs = this.devMode.selectedObjects.map(obj => obj.userData.uuid || obj.uuid);
+                    const selectionChanged = !focusedObjectUUIDs ||
+                        currentUUIDs.length !== focusedObjectUUIDs.length ||
+                        !currentUUIDs.every((uuid, i) => uuid === focusedObjectUUIDs[i]);
+
+                    if (selectionChanged) {
+                        console.warn("BuildUI: Selection changed while editing property. Aborting update to prevent applying to wrong object.");
+                        // Reset input value to avoid confusion? Or just ignore.
+                        // Ignoring is safer. The UI will update when next selected.
+                        transformStart = null;
+                        focusedObjectUUIDs = null;
+                        return;
+                    }
 
                     const beforeStates = transformStart || this.devMode.captureTransforms(this.devMode.selectedObjects);
 
@@ -449,6 +466,7 @@ export class BuildUI {
                             this.devMode.history.push(new TransformCommand(this.devMode, beforeStates, afterStates, 'Property transform'));
                         }
                         transformStart = null;
+                        // Do NOT clear focusedObjectUUIDs here, as the input might still be focused for subsequent edits.
                     }
                 };
             }
@@ -471,8 +489,9 @@ export class BuildUI {
             let waitStart = null;
             pickupWaitInput.onfocus = () => {
                 const sel = this.devMode.selectedObjects[0];
-                if (this.devMode.selectedObjects.length === 1 && sel.userData.isVehicle) {
-                    waitStart = sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 0;
+                const vehicle = sel.userData.type === 'waypoint' ? sel.userData.vehicle : sel;
+                if (this.devMode.selectedObjects.length === 1 && (sel.userData.isVehicle || sel.userData.type === 'waypoint')) {
+                    waitStart = vehicle.userData.waitTime ?? vehicle.userData.params?.waitTime ?? 0;
                 }
             };
             pickupWaitInput.onchange = (e) => {
@@ -480,21 +499,23 @@ export class BuildUI {
                 if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
 
                 const sel = this.devMode.selectedObjects[0];
-                if (!sel.userData.isVehicle) return;
+                const vehicle = sel.userData.type === 'waypoint' ? sel.userData.vehicle : sel;
 
-                const before = waitStart ?? sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 0;
+                if (!vehicle || !vehicle.userData.isVehicle) return;
+
+                const before = waitStart ?? vehicle.userData.waitTime ?? vehicle.userData.params?.waitTime ?? 0;
                 const next = Math.max(0, val);
                 const applyWait = (value) => {
-                    sel.userData.waitTime = Math.max(0, value);
-                    if (sel.userData.params) sel.userData.params.waitTime = sel.userData.waitTime;
-                    this.updateProperties(sel);
+                    vehicle.userData.waitTime = Math.max(0, value);
+                    if (vehicle.userData.params) vehicle.userData.params.waitTime = vehicle.userData.waitTime;
+                    this.updateProperties(sel); // Update the selection (might be waypoint)
                 };
 
                 applyWait(next);
                 // Use PropertyChangeCommand for persistence
                 this.devMode.history.push(new PropertyChangeCommand(
                     this.devMode,
-                    sel.userData.uuid,
+                    vehicle.userData.uuid,
                     'waitTime',
                     before,
                     next,
@@ -619,19 +640,24 @@ export class BuildUI {
             pickupControls.style.display = 'none';
             if (angryControls) angryControls.style.display = 'none';
 
-            if (sel.userData.isVehicle) {
+            if (sel.userData.isVehicle || type === 'waypoint') {
                 carControls.style.display = 'flex';
-                this._updateWaypointList(sel);
+                // If it's a waypoint, we need the parent vehicle for the list and controls
+                const vehicle = type === 'waypoint' ? sel.userData.vehicle : sel;
 
-                // Show Wait Time controls if the vehicle supports it
-                const hasWaitTime = sel.userData.waitTime !== undefined || (sel.userData.params && sel.userData.params.waitTime !== undefined);
+                if (vehicle) {
+                    this._updateWaypointList(vehicle);
 
-                if (hasWaitTime) {
-                    pickupControls.style.display = 'flex';
-                    const waitInput = this.propPanel.querySelector('#pickup-wait-time');
-                    if (waitInput && document.activeElement !== waitInput) {
-                        const wait = sel.userData.waitTime ?? sel.userData.params?.waitTime ?? 10;
-                        waitInput.value = wait;
+                    // Show Wait Time controls if the vehicle supports it
+                    const hasWaitTime = vehicle.userData.waitTime !== undefined || (vehicle.userData.params && vehicle.userData.params.waitTime !== undefined);
+
+                    if (hasWaitTime) {
+                        pickupControls.style.display = 'flex';
+                        const waitInput = this.propPanel.querySelector('#pickup-wait-time');
+                        if (waitInput && document.activeElement !== waitInput) {
+                            const wait = vehicle.userData.waitTime ?? vehicle.userData.params?.waitTime ?? 10;
+                            waitInput.value = wait;
+                        }
                     }
                 }
             } else if (type === 'angryPerson') {
@@ -698,6 +724,9 @@ export class BuildUI {
     }
 
     hideProperties() {
+        if (this.propPanel.contains(document.activeElement)) {
+            document.activeElement.blur();
+        }
         this.propPanel.classList.remove('open');
         this.propPanel.setAttribute('aria-hidden', 'true');
     }

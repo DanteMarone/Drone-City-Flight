@@ -637,16 +637,65 @@ export class DevMode {
     deleteSelected() {
         if (this.selectedObjects.length === 0) return;
 
-        const serialized = this.selectedObjects
-            .map(obj => this._serializeMesh(obj))
-            .filter(Boolean);
+        // Separate waypoints from regular objects
+        const waypoints = this.selectedObjects.filter(o => o.userData.type === 'waypoint');
+        const objects = this.selectedObjects.filter(o => o.userData.type !== 'waypoint');
 
-        if (!serialized.length) return;
+        // Handle regular objects
+        if (objects.length > 0) {
+            const serialized = objects
+                .map(obj => this._serializeMesh(obj))
+                .filter(Boolean);
 
-        const command = new DeleteObjectCommand(this, serialized, 'Delete objects');
-        this._removeObjects([...this.selectedObjects]);
+            if (serialized.length) {
+                const command = new DeleteObjectCommand(this, serialized, 'Delete objects');
+                this._removeObjects(objects);
+                this.history.push(command);
+            }
+        }
+
+        // Handle waypoints
+        if (waypoints.length > 0) {
+            // Group by vehicle
+            const targets = new Map();
+            waypoints.forEach(wp => {
+                const car = wp.userData.vehicle;
+                if (car) {
+                    if (!targets.has(car.uuid)) {
+                        targets.set(car.uuid, { car, indices: [] });
+                    }
+                    targets.get(car.uuid).indices.push(wp.userData.index);
+                }
+            });
+
+            const cars = Array.from(targets.values()).map(t => t.car);
+            const beforeStates = cars.map(cloneWaypointState);
+            let changed = false;
+
+            targets.forEach(({ car, indices }) => {
+                if (!car.userData.waypoints) return;
+
+                // Sort indices descending to remove safely
+                indices.sort((a, b) => b - a);
+
+                indices.forEach(idx => {
+                    if (idx >= 0 && idx < car.userData.waypoints.length) {
+                         car.userData.waypoints.splice(idx, 1);
+                         changed = true;
+                    }
+                });
+
+                this._syncWaypointVisuals(car);
+                if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
+            });
+
+            if (changed) {
+                const afterStates = cars.map(cloneWaypointState);
+                this.history.push(new WaypointCommand(this, beforeStates, afterStates, 'Delete waypoint'));
+            }
+        }
+
         this.selectObject(null);
-        this.history.push(command);
     }
 
     // Commands

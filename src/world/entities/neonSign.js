@@ -37,6 +37,7 @@ export class NeonSignEntity extends BaseEntity {
         this.type = 'neonSign';
         this.flickerTimer = 0;
         this.isGlitching = false;
+        this._virtualLight = null;
     }
 
     static get displayName() { return 'Neon Sign'; }
@@ -70,6 +71,20 @@ export class NeonSignEntity extends BaseEntity {
         return group;
     }
 
+    postInit() {
+        if (window.app?.world?.lightSystem) {
+            this.mesh.updateMatrixWorld(true);
+            const worldPos = new THREE.Vector3(0, 0, 1).applyMatrix4(this.mesh.matrixWorld);
+            // Cyan/Pink mix - let's go with Magenta/Pink as dominant
+            const intensity = this.params.lightIntensity || 4.0;
+            this._baseIntensity = intensity;
+            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xff00ff, intensity, 25);
+            if (this._virtualLight) {
+                this._virtualLight.parentMesh = this.mesh;
+            }
+        }
+    }
+
     update(dt) {
         this.flickerTimer -= dt;
 
@@ -90,6 +105,12 @@ export class NeonSignEntity extends BaseEntity {
         } else {
             this.holoMat.opacity = 0.9 + Math.sin(Date.now() * 0.005) * 0.1;
             this.holoMat.visible = true;
+        }
+
+        if (this._virtualLight) {
+            // Sync light intensity with opacity/visibility
+            const vis = this.holoMat.visible ? 1 : 0;
+            this._virtualLight.intensity = this.holoMat.opacity * (this._baseIntensity || 4.0) * vis;
         }
     }
 }

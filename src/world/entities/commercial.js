@@ -77,6 +77,22 @@ export class BurgerJointEntity extends BaseEntity {
         return group;
     }
 
+    postInit() {
+        if (window.app?.world?.lightSystem) {
+            this.mesh.updateMatrixWorld(true);
+            // Light near the sign
+            // Sign pivot is at (width/2 - 1, 8, depth/2 - 1)
+            const w = this.params.width || 12;
+            const d = this.params.depth || 10;
+            const localPos = new THREE.Vector3(w / 2 - 1, 7, d / 2 - 1);
+            const worldPos = localPos.applyMatrix4(this.mesh.matrixWorld);
+
+            // Orange ambient
+            const vl = window.app.world.lightSystem.register(worldPos, 0xffaa00, 1.5, 25);
+            if (vl) vl.parentMesh = this.mesh;
+        }
+    }
+
     update(dt) {
         if (this.signMesh) {
             this.signMesh.rotation.y += dt * 1.0; // Rotate slowly

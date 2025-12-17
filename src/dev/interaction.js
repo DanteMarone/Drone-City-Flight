@@ -308,6 +308,7 @@ export class InteractionManager {
             // Re-create collider with new scale
             entity.box = entity.createCollider();
 
+            this.app.renderer.scene.add(entity.mesh);
             this.app.world.addEntity(entity);
             if (this.app.colliderSystem) {
                 this.app.colliderSystem.addStatic([entity]);

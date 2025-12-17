@@ -17,24 +17,47 @@ export class RoadEntity extends BaseEntity {
         this.params.width = w;
         this.params.length = l;
 
+        const tex = TextureGenerator.createAsphalt();
+        // Reset repeat defaults, we will control it
+        tex.repeat.set(1, 1);
+
         const mat = new THREE.MeshStandardMaterial({
-            map: TextureGenerator.createAsphalt(),
+            map: tex,
             roughness: 0.9,
-            color: 0x555555
+            color: 0xffffff // Use full texture color (dark asphalt)
         });
 
-        // Use BufferGeometry rotation/translation to persist through BaseEntity.init's transform override
+        // Use PlaneGeometry(w, l) for compatibility with existing logic,
+        // but Texture scaling handles visual correctness.
         const geo = new THREE.PlaneGeometry(w, l);
         geo.rotateX(-Math.PI / 2);
         geo.translate(0, 0.05, 0); // Lift up slightly
 
         const mesh = new THREE.Mesh(geo, mat);
         mesh.receiveShadow = true;
+
+        // Initial sync
+        this.updateTexture(mesh);
+
         return mesh;
     }
 
-    createCollider() {
-        return null;
+    updateTexture(mesh) {
+        if (mesh && mesh.material.map) {
+            // Calculate total length based on geometry length and mesh scale
+            // params.length is the geometry base length (l)
+            const totalLength = this.params.length * mesh.scale.z;
+            // Texture is designed to repeat approx every 10 meters (or whatever feels right)
+            // If texture is 1 unit high, repeat = totalLength
+            // If texture is "one dash segment", and we want a dash every 10m?
+            mesh.material.map.repeat.y = Math.max(1, totalLength / 10);
+        }
+    }
+
+    update(dt) {
+        if (this.mesh) {
+            this.updateTexture(this.mesh);
+        }
     }
 }
 

@@ -67,7 +67,7 @@ export const TextureGenerator = {
     },
 
     createAsphalt: () => {
-        const key = 'asphalt';
+        const key = 'asphalt_v2';
         if (textureCache.has(key)) return textureCache.get(key).clone();
 
         const canvas = document.createElement('canvas');
@@ -75,21 +75,37 @@ export const TextureGenerator = {
         canvas.height = 256;
         const ctx = canvas.getContext('2d');
 
-        ctx.fillStyle = '#333333';
+        // Dark Asphalt Background
+        ctx.fillStyle = '#1a1a1a';
         ctx.fillRect(0, 0, 256, 256);
 
-        // Noise
-        for (let i = 0; i < 5000; i++) {
-            const v = Math.floor(Math.random() * 60) + 40; // 40-100
-            ctx.fillStyle = `rgb(${v},${v},${v})`;
+        // Noise (Grain)
+        for (let i = 0; i < 8000; i++) {
+            const v = Math.floor(Math.random() * 40) + 10;
+            ctx.fillStyle = `rgba(${v},${v},${v}, 0.1)`;
             ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
         }
+
+        // Yellow Dashed Line
+        // Standard Road: Dash 3m, Gap 9m (Ratio 1:3)
+        // Texture represents one cycle? No, repeated.
+        // Let's make the texture have 1 dash and appropriate gap.
+        // Dash = 64px, Gap = 192px. Total 256.
+        // Centered vertically.
+        // Top Gap: 96px. Dash: 64px. Bottom Gap: 96px.
+
+        ctx.fillStyle = '#FFC107'; // Amber/Yellow
+        const centerX = 128;
+        const lineWidth = 4; // ~15cm width if road is 10m wide
+
+        ctx.fillRect(centerX - lineWidth/2, 96, lineWidth, 64);
 
         const tex = new THREE.CanvasTexture(canvas);
         tex.colorSpace = THREE.SRGBColorSpace;
         tex.wrapS = THREE.RepeatWrapping;
         tex.wrapT = THREE.RepeatWrapping;
-        tex.repeat.set(50, 50); // High repeat for road
+        // Default repeat to 1, controlled by RoadEntity
+        tex.repeat.set(1, 1);
 
         textureCache.set(key, tex);
         return tex;

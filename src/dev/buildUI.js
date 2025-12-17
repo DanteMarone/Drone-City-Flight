@@ -292,6 +292,18 @@ export class BuildUI {
                     this.devMode.interaction.onDragStart(type);
                 });
 
+                // Add Click handler for Smart Tool mode
+                item.addEventListener('click', (e) => {
+                    // Only for Roads currently
+                    if (type === 'road') {
+                        this.devMode.setPlacementMode(type);
+                        // Optional: Highlight UI
+                    } else {
+                        // For others, maybe select if we support generic placement
+                        // this.devMode.setPlacementMode(type);
+                    }
+                });
+
                 palette.appendChild(item);
             });
     }

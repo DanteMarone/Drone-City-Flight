@@ -17,6 +17,8 @@ export class DevMode {
         this.clipboard = null;
         this.history = new CommandManager(this);
 
+        this.placementMode = null; // Type of object being placed (e.g. 'road')
+
         // Controllers
         this.cameraController = new DevCameraController(app.renderer.camera, app.container);
         this.ui = new BuildUI(this);
@@ -87,6 +89,7 @@ export class DevMode {
     }
 
     disable() {
+        if (!this.enabled) return;
         console.log("DevMode: Disabled");
         this.enabled = false;
 
@@ -100,14 +103,31 @@ export class DevMode {
         this.ui.hide();
         this.interaction.disable();
 
-        this.grid.helper.visible = false;
-        this.gizmo.detach();
+        // Cleanup
         this.selectObject(null);
+        this.setPlacementMode(null); // Cancel placement
+        this.gizmo.detach();
+
+        this.grid.helper.visible = false;
 
         // Hide Waypoint Visuals
         this._setWaypointVisibility(false);
         this._setPlayerStartVisibility(false);
         this.app.paused = false;
+    }
+
+    setPlacementMode(type) {
+        this.placementMode = type;
+        if (type) {
+            console.log(`Entered Placement Mode: ${type}`);
+            this.selectObject(null); // Deselect current
+            // InteractionManager handles the rest
+        } else {
+            // Cancelled
+            if (this.interaction.activePlacement) {
+                this.interaction.cancelPlacement();
+            }
+        }
     }
 
     refreshVisibility() {
@@ -152,13 +172,6 @@ export class DevMode {
         this.gizmo.update();
 
         // Update Line Visuals if a waypoint is being moved
-        // We need to check if ANY selected object is a waypoint or car
-        // Or simplified: Just check the selected objects list.
-
-        // For performance, maybe only check if gizmo is active?
-        // But dragging happens in InteractionManager/Gizmo.
-
-        // Let's iterate selected objects to update lines if needed
         this.selectedObjects.forEach(sel => {
             if (sel.userData.type === 'waypoint') {
                 const vehicle = sel.userData.vehicle;
@@ -345,9 +358,6 @@ export class DevMode {
             let insertIndex;
             let refPos;
 
-            // If index is -1 (car selected) or last index, append to end
-            // If index is valid and not last, insert after index.
-
             const wpCount = car.userData.waypoints.length;
             const isLast = (index === -1) || (index === wpCount - 1);
 
@@ -486,6 +496,15 @@ export class DevMode {
         if (e.code === 'Delete') {
             e.preventDefault();
             this.deleteSelected();
+            return;
+        }
+
+        if (e.key === 'Escape') {
+            if (this.placementMode) {
+                this.setPlacementMode(null);
+            } else {
+                this.selectObject(null);
+            }
             return;
         }
 

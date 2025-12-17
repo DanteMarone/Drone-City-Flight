@@ -120,6 +120,16 @@ export class App {
             if (this.cloudSystem) {
                 this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind);
             }
+            // Update light system even in Dev Mode for accurate visuals
+            if (this.world) {
+                // We use world.update's signature, but in Dev Mode main world update is skipped.
+                // We should manually update lightSystem if needed, or allow it to update.
+                // However, world.update(dt) updates all entities which we might want paused.
+                // So we explicitly call lightSystem update here.
+                if (this.world.lightSystem) {
+                    this.world.lightSystem.update(dt, this.renderer.camera, this.world.timeCycle);
+                }
+            }
 
             // Allow basic input processing if needed, but skip game logic
             this.input.resetFrame();
@@ -154,7 +164,7 @@ export class App {
                 move.y = -1; move.x = 0; move.z = 0;
             }
 
-            this.world.update(dt); // Birds & Vehicles
+            this.world.update(dt, this.renderer.camera); // Birds & Vehicles & Lights
             this.particles.update(dt);
 
             this.drone.update(dt, move);

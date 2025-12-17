@@ -13,6 +13,7 @@ export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commer
 export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
 export { SidewalkEntity } from './infrastructure.js';
 export { BusStopEntity } from './busStop.js';
+export { FireHydrantEntity } from './fireHydrant.js';
 export { FireStationEntity } from './fireStation.js';
 
 // Eagerly load all entity modules to trigger their registrations.

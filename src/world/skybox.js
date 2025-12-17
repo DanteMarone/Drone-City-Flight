@@ -63,7 +63,8 @@ export class Skybox {
             transparent: true,
             opacity: 1.0,
             depthWrite: false,
-            fog: false
+            fog: false,
+            blending: THREE.AdditiveBlending
         });
 
         this.starSystem = new THREE.Points(starGeo, starMat);

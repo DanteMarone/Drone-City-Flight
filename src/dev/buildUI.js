@@ -104,6 +104,7 @@ export class BuildUI {
 
             <hr style="width:100%">
             <h3>Objects</h3>
+            <input type="text" id="dev-palette-search" placeholder="Search objects..." style="width: 100%; box-sizing: border-box; margin-bottom: 5px; background: #222; color: white; border: 1px solid #444; padding: 5px;">
             <div class="palette"></div>
         `;
 
@@ -328,6 +329,22 @@ export class BuildUI {
             });
     }
 
+    _filterPalette(query) {
+        const palette = this.dom.querySelector('.palette');
+        if (!palette) return;
+
+        const items = palette.querySelectorAll('.palette-item');
+        const q = query.toLowerCase();
+
+        items.forEach(item => {
+            if (item.textContent.toLowerCase().includes(q)) {
+                item.style.display = 'block';
+            } else {
+                item.style.display = 'none';
+            }
+        });
+    }
+
     _bindEvents() {
         this.dom.querySelector('#dev-exit').onclick = () => this.devMode.disable();
         this.dom.querySelector('#dev-clear').onclick = () => this.devMode.clearMap();
@@ -474,6 +491,13 @@ export class BuildUI {
         this.dom.querySelector('#dev-duplicate').onclick = () => {
             if (this.devMode.duplicateSelected) this.devMode.duplicateSelected();
         };
+
+        const searchInput = this.dom.querySelector('#dev-palette-search');
+        if (searchInput) {
+            searchInput.oninput = (e) => {
+                this._filterPalette(e.target.value);
+            };
+        }
 
         // Properties Input Bindings
         const toRad = (deg) => deg * (Math.PI / 180);

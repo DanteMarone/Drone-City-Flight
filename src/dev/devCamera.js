@@ -38,6 +38,9 @@ export class DevCameraController {
     }
 
     _onKey(e, pressed) {
+        // Prevent camera movement when typing in an input field
+        if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
+
         // Always track modifiers if possible, but definitely when enabled
         // Or check if we should listen even when not enabled?
         // Gizmo interaction requires devMode enabled, which implies this controller is likely active or at least DevMode is.

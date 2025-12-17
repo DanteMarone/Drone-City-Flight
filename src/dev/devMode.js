@@ -51,9 +51,14 @@ export class DevMode {
         // 1. Hide Drone
         if (this.app.drone) this.app.drone.mesh.visible = false;
 
-        // 2. Hide HUD
+        // 2. Hide HUD (Terminal)
         const hudEl = document.querySelector('.hud-container');
         if (hudEl) hudEl.style.display = 'none';
+
+        // Dismiss Tutorial Permanently
+        if (this.app.tutorial) {
+            this.app.tutorial.complete();
+        }
 
         // 3. Switch Camera Controller
         this.app.cameraController.enabled = false;

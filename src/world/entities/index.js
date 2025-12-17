@@ -20,6 +20,7 @@ export { WaterFountainEntity } from './waterFountain.js';
 export { ObservatoryEntity } from './observatory.js';
 export { FireHydrantEntity } from './fireHydrant.js';
 export { FireStationEntity } from './fireStation.js';
+export { LotusPondEntity } from './lotusPond.js';
 export { MushroomPatchEntity } from './mushroomPatch.js';
 export { RunwayEdgeLightEntity } from './runwayEdgeLight.js';
 export { JetBridgeEntity } from './jetBridge.js';

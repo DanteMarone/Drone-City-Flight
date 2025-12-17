@@ -10,6 +10,7 @@ export { HVACEntity } from './hvac.js';
 export { LandingPadEntity } from './landingPad.js';
 export { RadarDishEntity } from './radarDish.js';
 export { WoodenFenceEntity, PicketFenceEntity, ChainLinkFenceEntity, CementWallEntity } from './fence.js';
+export { LilyPondEntity } from './lilyPond.js';
 export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commercial.js';
 export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
 export { SidewalkEntity } from './infrastructure.js';
@@ -20,6 +21,11 @@ export { ObservatoryEntity } from './observatory.js';
 export { FireHydrantEntity } from './fireHydrant.js';
 export { FireStationEntity } from './fireStation.js';
 export { ChargingStationEntity } from './chargingStation.js';
+export { LotusPondEntity } from './lotusPond.js';
+export { MushroomPatchEntity } from './mushroomPatch.js';
+export { RunwayEdgeLightEntity } from './runwayEdgeLight.js';
+export { JetBridgeEntity } from './jetBridge.js';
+export { ConstructionBarrierEntity } from './constructionBarrier.js';
 
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated

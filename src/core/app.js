@@ -79,21 +79,24 @@ export class App {
     }
 
     _setupLights() {
-        const ambient = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
-        this.renderer.add(ambient);
-        const sun = new THREE.DirectionalLight(0xffffff, 1.0);
-        sun.position.set(50, 80, 50);
-        sun.castShadow = true;
-        sun.shadow.mapSize.width = 2048;
-        sun.shadow.mapSize.height = 2048;
-        sun.shadow.camera.near = 0.5;
-        sun.shadow.camera.far = 500;
-        const d = 100;
-        sun.shadow.camera.left = -d;
-        sun.shadow.camera.right = d;
-        sun.shadow.camera.top = d;
-        sun.shadow.camera.bottom = -d;
-        this.renderer.add(sun);
+        this.ambientLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
+        this.renderer.add(this.ambientLight);
+
+        this.sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
+        this.sunLight.position.set(50, 80, 50);
+        this.sunLight.castShadow = true;
+        this.sunLight.shadow.mapSize.width = 2048;
+        this.sunLight.shadow.mapSize.height = 2048;
+        this.sunLight.shadow.camera.near = 0.5;
+        this.sunLight.shadow.camera.far = 500;
+
+        // Slightly larger shadow frustum for long shadows
+        const d = 120;
+        this.sunLight.shadow.camera.left = -d;
+        this.sunLight.shadow.camera.right = d;
+        this.sunLight.shadow.camera.top = d;
+        this.sunLight.shadow.camera.bottom = -d;
+        this.renderer.add(this.sunLight);
     }
 
     update(dt) {
@@ -103,6 +106,9 @@ export class App {
             this.input.resetFrame();
             return;
         }
+
+        // Update environment first (Time Cycle)
+        this._updateEnvironment(dt);
 
         // Dev Mode Handling
         if (this.devMode && this.devMode.enabled) {
@@ -226,8 +232,11 @@ export class App {
             this.cameraController.update(dt, move);
         }
 
+        // Environment update is now handled at start of frame
+
         if (this.skybox) {
-            this.skybox.update(this.renderer.camera.position);
+            // Skybox needs to know time/sun info
+            this.skybox.update(this.renderer.camera.position, this.world.timeCycle);
         }
 
         if (this.cloudSystem) {
@@ -351,6 +360,46 @@ export class App {
 
         // Reset Game State AFTER loading objects, so PlayerStart can be found
         this._resetGame();
+    }
+
+    _updateEnvironment(dt) {
+        if (this.world && this.world.timeCycle) {
+            const cycle = this.world.timeCycle;
+
+            // Update cycle logic
+            cycle.update(dt);
+
+            // Apply Sun Position
+            if (this.sunLight) {
+                // Keep sun relative to drone/center to maximize shadow resolution near player
+                // But the cycle calculates global orbit.
+                // If we want shadows to work everywhere, sun needs to be far away or follow player.
+                // DirectionalLight position matters for shadow camera box.
+                // Let's keep sun "at infinity" direction-wise, but move position to follow drone x/z
+                // to keep shadow map centered?
+                // For now, let's just use the computed position from TimeCycle (relative to 0,0,0)
+                // and maybe offset by drone pos if needed.
+                // TimeCycle gives position on a sphere of radius 100.
+
+                this.sunLight.position.copy(cycle.sunPosition);
+
+                // Update Color & Intensity
+                this.sunLight.color.copy(cycle.sunColor);
+                this.sunLight.intensity = cycle.sunIntensity;
+            }
+
+            // Apply Ambient
+            if (this.ambientLight) {
+                this.ambientLight.color.copy(cycle.ambientColor);
+                this.ambientLight.groundColor.setHex(0x111111); // Dark ground
+                this.ambientLight.intensity = cycle.ambientIntensity;
+            }
+
+            // Fog (if enabled in scene, though config says density 0)
+            if (this.renderer.scene.fog) {
+                this.renderer.scene.fog.color.copy(cycle.fogColor);
+            }
+        }
     }
 
     animate(timestamp) {

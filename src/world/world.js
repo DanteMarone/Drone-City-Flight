@@ -4,12 +4,14 @@ import { CONFIG } from '../config.js';
 import { ObjectFactory } from './factory.js';
 import { BirdSystem } from './birdSystem.js';
 import { EntityRegistry } from './entities/index.js';
+import { TimeCycle } from './timeCycle.js';
 
 export class World {
     constructor(scene) {
         this.scene = scene;
         this.birdSystem = new BirdSystem(scene);
         this.factory = new ObjectFactory(scene);
+        this.timeCycle = new TimeCycle();
 
         // this.colliders now holds BaseEntity instances (which match {mesh, box} interface)
         this.colliders = [];
@@ -95,6 +97,17 @@ export class World {
             this.wind = { ...CONFIG.WORLD.WIND };
         }
 
+        if (mapData.environment) {
+            if (mapData.environment.startTime !== undefined) this.timeCycle.time = mapData.environment.startTime;
+            if (mapData.environment.daySpeed !== undefined) this.timeCycle.speed = mapData.environment.daySpeed;
+            if (mapData.environment.timeLocked !== undefined) this.timeCycle.isLocked = mapData.environment.timeLocked;
+        } else {
+            // Defaults
+            this.timeCycle.time = 12.0;
+            this.timeCycle.speed = 0.0;
+            this.timeCycle.isLocked = false;
+        }
+
         // We don't strictly need factory here if we use Registry,
         // but factory adds to scene.
         // Let's use Registry and manually add to scene/world to be explicit.
@@ -160,6 +173,11 @@ export class World {
         return {
             version: 1,
             wind: { ...this.wind },
+            environment: {
+                startTime: this.timeCycle.time,
+                daySpeed: this.timeCycle.speed,
+                timeLocked: this.timeCycle.isLocked
+            },
             objects
         };
     }

@@ -1,7 +1,6 @@
 // src/world/world.js
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { DistrictGenerator } from './generation.js';
 import { ObjectFactory } from './factory.js';
 import { BirdSystem } from './birdSystem.js';
 import { EntityRegistry } from './entities/index.js';
@@ -10,6 +9,7 @@ export class World {
     constructor(scene) {
         this.scene = scene;
         this.birdSystem = new BirdSystem(scene);
+        this.factory = new ObjectFactory(scene);
 
         // this.colliders now holds BaseEntity instances (which match {mesh, box} interface)
         this.colliders = [];
@@ -35,9 +35,17 @@ export class World {
     }
 
     _generateWorld() {
-        // Default to Blank Map.
-        // No longer generating districts or roads by default.
         this.colliders = [];
+
+        // Showcase landmark near spawn so players immediately see the new architecture.
+        const landmark = this.factory.createSkyGardenTower({
+            x: 35,
+            z: -28,
+            width: 28,
+            height: 74,
+            rotY: Math.PI / 8
+        });
+        this.addEntity(landmark);
     }
 
     update(dt) {

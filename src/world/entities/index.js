@@ -13,6 +13,7 @@ export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commer
 export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
 export { SidewalkEntity } from './infrastructure.js';
 export { BusStopEntity } from './busStop.js';
+export { FireHydrantEntity } from './fireHydrant.js';
 
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated

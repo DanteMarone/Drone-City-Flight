@@ -106,12 +106,24 @@ export class DevMode {
 
         // Hide Waypoint Visuals
         this._setWaypointVisibility(false);
+        this._setPlayerStartVisibility(false);
         this.app.paused = false;
     }
 
     refreshVisibility() {
         if (this.enabled) {
             this._setWaypointVisibility(true);
+            this._setPlayerStartVisibility(true);
+        }
+    }
+
+    _setPlayerStartVisibility(visible) {
+        if (this.app.world && this.app.world.colliders) {
+            this.app.world.colliders.forEach(c => {
+                if (c.type === 'playerStart' && c.mesh) {
+                    c.mesh.visible = visible;
+                }
+            });
         }
     }
 

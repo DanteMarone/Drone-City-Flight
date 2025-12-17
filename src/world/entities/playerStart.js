@@ -70,6 +70,9 @@ export class PlayerStartEntity extends BaseEntity {
         // Set userData for filtering later if needed
         group.userData.isPlayerStart = true;
 
+        // Hidden by default (shown in DevMode)
+        group.visible = false;
+
         return group;
     }
 

@@ -82,23 +82,54 @@ export class StreetLightEntity extends BaseEntity {
         glass.receiveShadow = false;
         group.add(glass);
 
-        // Light source
-        this._light = new THREE.PointLight(0xffe9a3, 1.4, 18, 1.5);
-        this._light.position.copy(glass.position).add(new THREE.Vector3(0.1, -poleRadius * 0.2, 0));
-        this._light.castShadow = false;
-        group.add(this._light);
+        // Light source registration
+        // We defer registration to postInit or check if world exists,
+        // but typically entities are created after world init.
+        // However, we can't easily access app.world from here without window.app
+        // Also, we need the world position, but here we are in local group space.
+        // Virtual Lights need world position.
+        // We will skip adding PointLight here and register in postInit or handle in update.
+
+        // Let's store the local light position relative to group
+        this._lightLocalPos = glass.position.clone().add(new THREE.Vector3(0.1, -poleRadius * 0.2, 0));
+        this._virtualLight = null;
 
         return group;
     }
 
+    postInit() {
+        if (window.app && window.app.world && window.app.world.lightSystem) {
+            // Register virtual light
+            this.mesh.updateMatrixWorld(true);
+            const worldPos = this._lightLocalPos.clone().applyMatrix4(this.mesh.matrixWorld);
+
+            // Now register returns the source object reference
+            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xffe9a3, 1.4, 18);
+
+            // Attach parent mesh for moving light support
+            if (this._virtualLight) {
+                this._virtualLight.parentMesh = this.mesh;
+            }
+        }
+    }
+
     update(dt) {
         this._time += dt;
-        if (this._glowMaterial && this._light) {
-            const pulse = 0.15 * Math.sin(this._time * 2.5 + (this.params.seed || 0));
-            const flicker = 0.05 * Math.sin(this._time * 17.0);
-            const intensity = 0.7 + pulse + flicker;
+        // Calculate flicker
+        const pulse = 0.15 * Math.sin(this._time * 2.5 + (this.params.seed || 0));
+        const flicker = 0.05 * Math.sin(this._time * 17.0);
+        const dynamicIntensityMod = pulse + flicker;
+
+        if (this._glowMaterial) {
+            const intensity = 0.7 + dynamicIntensityMod;
             this._glowMaterial.emissiveIntensity = THREE.MathUtils.clamp(intensity, 0.4, 1.1);
-            this._light.intensity = THREE.MathUtils.clamp(1.1 + pulse + flicker * 2, 0.8, 1.8);
+        }
+
+        // Update virtual light intensity if registered
+        if (this._virtualLight) {
+             const baseIntensity = 1.4;
+             // Apply flicker to the light source too
+             this._virtualLight.intensity = THREE.MathUtils.clamp(baseIntensity + dynamicIntensityMod * 2, 0.8, 1.8);
         }
     }
 }

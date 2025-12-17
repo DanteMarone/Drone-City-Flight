@@ -20,6 +20,7 @@ export { ObservatoryEntity } from './observatory.js';
 export { FireHydrantEntity } from './fireHydrant.js';
 export { FireStationEntity } from './fireStation.js';
 export { JetBridgeEntity } from './jetBridge.js';
+export { ConstructionBarrierEntity } from './constructionBarrier.js';
 
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated

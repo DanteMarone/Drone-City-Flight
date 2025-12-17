@@ -386,17 +386,34 @@ export class BuildUI {
         // Properties Input Bindings
         const toRad = (deg) => deg * (Math.PI / 180);
         let transformStart = null;
+        let focusedObjectUUIDs = null;
 
         ['x', 'y', 'z', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz'].forEach(axis => {
             const input = this.propPanel.querySelector(`#prop-${axis}`);
             if (input) {
                 input.onfocus = () => {
                     transformStart = this.devMode.captureTransforms(this.devMode.selectedObjects);
+                    focusedObjectUUIDs = this.devMode.selectedObjects.map(obj => obj.userData.uuid || obj.uuid);
                 };
 
                 input.onchange = (e) => {
                     const val = parseFloat(e.target.value);
                     if (isNaN(val)) return;
+
+                    // Verify selection hasn't changed
+                    const currentUUIDs = this.devMode.selectedObjects.map(obj => obj.userData.uuid || obj.uuid);
+                    const selectionChanged = !focusedObjectUUIDs ||
+                        currentUUIDs.length !== focusedObjectUUIDs.length ||
+                        !currentUUIDs.every((uuid, i) => uuid === focusedObjectUUIDs[i]);
+
+                    if (selectionChanged) {
+                        console.warn("BuildUI: Selection changed while editing property. Aborting update to prevent applying to wrong object.");
+                        // Reset input value to avoid confusion? Or just ignore.
+                        // Ignoring is safer. The UI will update when next selected.
+                        transformStart = null;
+                        focusedObjectUUIDs = null;
+                        return;
+                    }
 
                     const beforeStates = transformStart || this.devMode.captureTransforms(this.devMode.selectedObjects);
 
@@ -449,6 +466,7 @@ export class BuildUI {
                             this.devMode.history.push(new TransformCommand(this.devMode, beforeStates, afterStates, 'Property transform'));
                         }
                         transformStart = null;
+                        // Do NOT clear focusedObjectUUIDs here, as the input might still be focused for subsequent edits.
                     }
                 };
             }

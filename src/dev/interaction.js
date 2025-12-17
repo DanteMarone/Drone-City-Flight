@@ -260,8 +260,14 @@ export class InteractionManager {
 
         // Road Specific: Enforce whole unit length
         if (this.activePlacement.type === 'road') {
-            len = Math.round(len);
-            if (len < 1) len = 1;
+            // Enforce even lengths if grid snap is enabled to ensure center-alignment
+            if (this.devMode.grid && this.devMode.grid.enabled) {
+                len = Math.round(len / 2) * 2;
+                if (len < 2) len = 2;
+            } else {
+                len = Math.round(len);
+                if (len < 1) len = 1;
+            }
 
             // Adjust diff to match snapped length while preserving direction
             if (diff.lengthSq() > 0.001) {

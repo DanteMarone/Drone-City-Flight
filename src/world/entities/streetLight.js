@@ -100,6 +100,7 @@ export class StreetLightEntity extends BaseEntity {
     postInit() {
         if (window.app && window.app.world && window.app.world.lightSystem) {
             // Register virtual light
+            // Integrated LightSystem for performance optimization
             this.mesh.updateMatrixWorld(true);
             const worldPos = this._lightLocalPos.clone().applyMatrix4(this.mesh.matrixWorld);
 

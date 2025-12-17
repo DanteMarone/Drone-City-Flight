@@ -16,6 +16,7 @@ export class TrafficLightEntity extends BaseEntity {
         this.currentStateIndex = 0;
         this.stateElapsed = 0;
         this.lightMeshes = null;
+        this._virtualLight = null;
     }
 
     static get displayName() { return 'Traffic Light'; }
@@ -110,6 +111,18 @@ export class TrafficLightEntity extends BaseEntity {
         }
     }
 
+    postInit() {
+        if (window.app?.world?.lightSystem) {
+            // Register initial light
+            this.mesh.updateMatrixWorld(true);
+            const worldPos = new THREE.Vector3().setFromMatrixPosition(this.mesh.matrixWorld);
+            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xff0000, 0, 20);
+
+            // Immediately sync
+            this._applyLightState(LIGHT_STATES[this.currentStateIndex]);
+        }
+    }
+
     _createLightMaterial(hex) {
         return new THREE.MeshStandardMaterial({
             color: hex,
@@ -129,6 +142,31 @@ export class TrafficLightEntity extends BaseEntity {
         this.lightMeshes.red.material.emissiveIntensity = state === 'red' ? activeIntensity : idleIntensity;
         this.lightMeshes.yellow.material.emissiveIntensity = state === 'yellow' ? activeIntensity : idleIntensity;
         this.lightMeshes.green.material.emissiveIntensity = state === 'green' ? activeIntensity : idleIntensity;
+
+        if (this._virtualLight) {
+            let activeMesh = null;
+            let color = 0x000000;
+
+            if (state === 'red') {
+                activeMesh = this.lightMeshes.red;
+                color = 0xd2312d;
+            } else if (state === 'yellow') {
+                activeMesh = this.lightMeshes.yellow;
+                color = 0xe0c22e;
+            } else if (state === 'green') {
+                activeMesh = this.lightMeshes.green;
+                color = 0x31d25c;
+            }
+
+            if (activeMesh) {
+                // Attach to the active bulb mesh so LightSystem tracks its position
+                this._virtualLight.parentMesh = activeMesh;
+                this._virtualLight.color.setHex(color);
+                this._virtualLight.intensity = 2.0;
+            } else {
+                this._virtualLight.intensity = 0;
+            }
+        }
     }
 }
 

@@ -8,6 +8,7 @@ export class LandingPadEntity extends BaseEntity {
         this.type = 'landingPad';
         this.timer = 0;
         this.lights = [];
+        this._virtualLight = null;
     }
 
     static get displayName() { return 'Drone Landing Pad'; }
@@ -72,6 +73,18 @@ export class LandingPadEntity extends BaseEntity {
         return group;
     }
 
+    postInit() {
+        if (window.app?.world?.lightSystem) {
+            this.mesh.updateMatrixWorld(true);
+            // Center of pad, slightly up
+            const worldPos = new THREE.Vector3(0, 0.5, 0).applyMatrix4(this.mesh.matrixWorld);
+            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0x00ff00, 2.0, 15);
+            if (this._virtualLight) {
+                this._virtualLight.parentMesh = this.mesh;
+            }
+        }
+    }
+
     update(dt) {
         this.timer += dt;
 
@@ -82,6 +95,10 @@ export class LandingPadEntity extends BaseEntity {
         this.lights.forEach(light => {
             light.material.color.copy(color);
         });
+
+        if (this._virtualLight) {
+            this._virtualLight.color.copy(color);
+        }
     }
 }
 

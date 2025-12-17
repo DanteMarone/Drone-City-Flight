@@ -72,6 +72,18 @@ export class HouseModernEntity extends BaseEntity {
 
         return group;
     }
+
+    postInit() {
+        if (window.app?.world?.lightSystem) {
+            this.mesh.updateMatrixWorld(true);
+            // Light near the window
+            const localPos = new THREE.Vector3(-this.params.width * 0.5 - 2, this.params.height * 0.5, 0);
+            const worldPos = localPos.applyMatrix4(this.mesh.matrixWorld);
+            // Warm White (0xFFCCAA)
+            const vl = window.app.world.lightSystem.register(worldPos, 0xFFCCAA, 1.2, 15);
+            if (vl) vl.parentMesh = this.mesh;
+        }
+    }
 }
 
 /**
@@ -137,6 +149,7 @@ export class HouseCottageEntity extends BaseEntity {
 
         return group;
     }
+
 }
 
 /**
@@ -208,6 +221,18 @@ export class ApartmentBlockEntity extends BaseEntity {
         group.add(canopy);
 
         return group;
+    }
+
+    postInit() {
+        if (window.app?.world?.lightSystem) {
+            this.mesh.updateMatrixWorld(true);
+            // Light under canopy
+            const localPos = new THREE.Vector3(0, 2.5, this.params.depth / 2 + 1.5);
+            const worldPos = localPos.applyMatrix4(this.mesh.matrixWorld);
+            // Cool White (0xDDEEFF)
+            const vl = window.app.world.lightSystem.register(worldPos, 0xDDEEFF, 1.2, 20);
+            if (vl) vl.parentMesh = this.mesh;
+        }
     }
 }
 

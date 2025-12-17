@@ -8,9 +8,26 @@ export class BirdEntity extends BaseEntity {
         this.type = 'bird';
         // Override position Y default
         if (params.y === undefined) this.position.y = 5;
+
+        // Note: this.userData is not available yet (initialized in init -> createMesh)
+        // We will set isVehicle in postInit or rely on mesh.userData
+        this.waypoints = params.waypoints || [];
+        this.currentWaypointIndex = 0;
     }
 
     static get displayName() { return 'Bird'; }
+
+    postInit() {
+        // Sync waypoints to userData for persistence and DevMode
+        this.mesh.userData.waypoints = this.waypoints;
+        this.mesh.userData.isVehicle = true; // Enable DevMode waypoint editing
+    }
+
+    serialize() {
+        const data = super.serialize();
+        data.waypoints = this.mesh.userData.waypoints;
+        return data;
+    }
 
     createMesh(params) {
         const group = new THREE.Group();

@@ -13,6 +13,7 @@ export { WoodenFenceEntity, PicketFenceEntity, ChainLinkFenceEntity, CementWallE
 export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commercial.js';
 export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
 export { SidewalkEntity } from './infrastructure.js';
+export { RunwayEdgeLightEntity } from './runwayEdgeLight.js';
 export { BusStopEntity } from './busStop.js';
 export { PlayerStartEntity } from './playerStart.js';
 export { WaterFountainEntity } from './waterFountain.js';

@@ -67,7 +67,7 @@ export class DevMode {
         this.interaction.enable();
 
         // 6. Enable Gizmo & Grid (if previously on)
-        if (this.grid.enabled) this.grid.helper.visible = true;
+        if (this.grid.enabled) this.grid.group.visible = true;
 
         // 7. Show Waypoint Visuals
         this.refreshVisibility();
@@ -95,7 +95,7 @@ export class DevMode {
         this.ui.hide();
         this.interaction.disable();
 
-        this.grid.helper.visible = false;
+        this.grid.group.visible = false;
         this.gizmo.detach();
         this.selectObject(null);
 

@@ -3,10 +3,10 @@ import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 import { TextureGenerator } from '../../utils/textures.js';
 
-export class VendingMachineEntity extends BaseEntity {
+export class FuturisticVendingMachineEntity extends BaseEntity {
     constructor(params) {
         super(params);
-        this.type = 'vendingMachine';
+        this.type = 'futuristicVendingMachine';
         this._time = 0;
         this._virtualLight = null;
         this._panelMaterial = null;
@@ -14,7 +14,7 @@ export class VendingMachineEntity extends BaseEntity {
         this._baseLightIntensity = 1.8;
     }
 
-    static get displayName() { return 'Vending Machine'; }
+    static get displayName() { return 'Futuristic Vending Machine'; }
 
     createMesh() {
         const group = new THREE.Group();
@@ -175,4 +175,4 @@ export class VendingMachineEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('vendingMachine', VendingMachineEntity);
+EntityRegistry.register('futuristicVendingMachine', FuturisticVendingMachineEntity);

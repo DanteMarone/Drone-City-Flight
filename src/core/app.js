@@ -227,10 +227,12 @@ export class App {
                 }
             }
 
+            // Calculate percentage for HUD
+            const battPct = (this.battery.current / this.battery.max) * 100;
             this.hud.update({
                 speed: speed,
                 altitude: alt,
-                battery: this.battery.current,
+                battery: battPct,
                 rings: this.rings.collectedCount,
                 message: statusMsg
             });

@@ -3,6 +3,7 @@ export { EntityRegistry } from './registry.js';
 
 // Explicitly export new entities to ensure visibility and registration
 export { DeliveryVanEntity } from './deliveryVan.js';
+export { SkyGardenTowerEntity } from './skyGardenTower.js';
 export { RadioTowerEntity } from './radioTower.js';
 export { NeonSignEntity } from './neonSign.js';
 export { HVACEntity } from './hvac.js';
@@ -14,6 +15,10 @@ export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './r
 export { SidewalkEntity } from './infrastructure.js';
 export { BusStopEntity } from './busStop.js';
 export { PlayerStartEntity } from './playerStart.js';
+export { WaterFountainEntity } from './waterFountain.js';
+export { ObservatoryEntity } from './observatory.js';
+export { FireHydrantEntity } from './fireHydrant.js';
+export { FireStationEntity } from './fireStation.js';
 
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated

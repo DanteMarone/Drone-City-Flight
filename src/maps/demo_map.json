@@ -6,6 +6,13 @@
             "position": {"x": 0, "y": 0, "z": 0},
             "rotation": {"x": 0, "y": 0, "z": 0},
             "scale": {"x": 20, "y": 100, "z": 20}
+        },
+        {
+            "type": "observatory",
+            "params": {"radius": 14, "towerHeight": 11},
+            "position": {"x": 60, "y": 0, "z": -20},
+            "rotation": {"x": 0, "y": 0.2, "z": 0},
+            "scale": {"x": 1, "y": 1, "z": 1}
         }
     ],
     "rings": []

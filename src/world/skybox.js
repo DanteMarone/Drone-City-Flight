@@ -120,10 +120,9 @@ export class Skybox {
         }
 
         // --- Background ---
-        if (this.scene.background instanceof THREE.Color) {
-            this.scene.background.copy(timeCycle.skyColor);
-        } else {
-            this.scene.background = new THREE.Color().copy(timeCycle.skyColor);
+        if (!this.scene.background || !this.scene.background.isColor) {
+            this.scene.background = new THREE.Color();
         }
+        this.scene.background.copy(timeCycle.skyColor);
     }
 }

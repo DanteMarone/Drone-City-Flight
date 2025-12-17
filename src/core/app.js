@@ -118,7 +118,7 @@ export class App {
                 this.skybox.update(this.renderer.camera.position);
             }
             if (this.cloudSystem) {
-                this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind);
+                this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
             }
 
             // Allow basic input processing if needed, but skip game logic
@@ -240,7 +240,7 @@ export class App {
         }
 
         if (this.cloudSystem) {
-            this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind);
+            this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
         }
 
         this.input.resetFrame();

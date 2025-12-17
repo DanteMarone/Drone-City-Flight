@@ -19,6 +19,7 @@ export { WaterFountainEntity } from './waterFountain.js';
 export { ObservatoryEntity } from './observatory.js';
 export { FireHydrantEntity } from './fireHydrant.js';
 export { FireStationEntity } from './fireStation.js';
+export { MushroomPatchEntity } from './mushroomPatch.js';
 export { RunwayEdgeLightEntity } from './runwayEdgeLight.js';
 export { JetBridgeEntity } from './jetBridge.js';
 export { ConstructionBarrierEntity } from './constructionBarrier.js';

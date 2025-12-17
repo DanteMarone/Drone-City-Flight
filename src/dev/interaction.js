@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { ObjectFactory } from '../world/factory.js';
 import { TransformCommand } from './history.js';
+import { EntityRegistry } from '../world/entities/index.js';
 
 export class InteractionManager {
     constructor(app, devMode) {
@@ -26,6 +27,16 @@ export class InteractionManager {
         this.dragTarget = null; // Can be an object or the proxy
         this.dragPlane = new THREE.Plane();
         this.dragOffset = new THREE.Vector3();
+
+        // Ghost Preview
+        this.ghostMesh = null;
+        this.ghostMaterial = new THREE.MeshBasicMaterial({
+            color: 0x44ff44,
+            transparent: true,
+            opacity: 0.5,
+            depthTest: true,
+            depthWrite: false
+        });
     }
 
     enable() {
@@ -42,6 +53,7 @@ export class InteractionManager {
         window.removeEventListener('mousedown', this._onMouseDown);
         window.removeEventListener('mousemove', this._onMouseMove);
         window.removeEventListener('mouseup', this._onMouseUp);
+        this._destroyGhost();
     }
 
     onDragStart(type) {
@@ -221,15 +233,129 @@ export class InteractionManager {
             this.dragTarget = null;
         }
     }
+
+    // --- Ghost Preview Methods ---
+
+    _createGhost(type) {
+        if (this.ghostMesh) this._destroyGhost();
+
+        let mesh = null;
+
+        if (type === 'ring') {
+             // Replicate RingManager Geometry
+             // Geometry shared: TorusGeometry(1.5, 0.2, 8, 16)
+             const geo = new THREE.TorusGeometry(1.5, 0.2, 8, 16);
+             mesh = new THREE.Mesh(geo, this.ghostMaterial);
+             // Default orientation in RingManager is not X=PI/2, it's variable.
+             // But for ghost we should probably just default to upright or flat?
+             // RingManager: spawnRingAt does not set rotation, but spawnRing sets rotX=0, rotY=random.
+             // We'll leave it flat (default Torus is flat on XY, usually we want it upright or flat?)
+             // TorusGeometry is in XY plane. Z is normal.
+             // RingManager doesn't rotate X. So it stands up like a wheel if Y is up? No.
+             // If Torus is in XY, and Y is world up, it's standing like a wheel.
+             // That seems correct for flying through.
+        } else {
+             // Use EntityRegistry to create a temporary entity
+             const entity = EntityRegistry.create(type, { x: 0, y: 0, z: 0 });
+             if (entity && entity.mesh) {
+                 mesh = entity.mesh;
+                 // We don't need the entity itself, just the mesh.
+                 // We must NOT call world.addEntity(entity) or colliderSystem.addStatic.
+             }
+        }
+
+        if (mesh) {
+            this.ghostMesh = mesh;
+            this.ghostMesh.traverse((child) => {
+                if (child.isMesh) {
+                    child.material = this.ghostMaterial;
+                    child.castShadow = false;
+                    child.receiveShadow = false;
+                }
+            });
+            // Ensure ghost doesn't block raycasts
+            this.ghostMesh.traverse((obj) => {
+                obj.raycast = () => {}; // Disable raycasting for ghost
+            });
+
+            this.app.renderer.scene.add(this.ghostMesh);
+        }
+    }
+
+    _updateGhost(point) {
+        if (!this.ghostMesh) return;
+        this.ghostMesh.position.copy(point);
+    }
+
+    _destroyGhost() {
+        if (this.ghostMesh) {
+            this.app.renderer.scene.remove(this.ghostMesh);
+            // Dispose geometry if it was created specifically for ghost (like ring)
+            // But entity geometry might be shared?
+            // Safer to just remove from scene.
+            if (this.ghostMesh.geometry) {
+                 // this.ghostMesh.geometry.dispose(); // Only if unique?
+            }
+            this.ghostMesh = null;
+        }
+    }
 }
 
 export function setupDragDrop(interaction, container) {
+    // We use document.body for drag events to cover the whole window
+    // But we need to filter for canvas interaction logic
+
+    let currentDragType = null;
+
+    document.body.addEventListener('dragenter', (e) => {
+         const type = e.dataTransfer.getData('type') || interaction.draggedType; // getData might be empty on dragenter in some browsers
+         // Note: e.dataTransfer.getData() is protected in dragenter/dragover in Chrome/Firefox for security.
+         // We might need to rely on a global state or assume the last onDragStart set interaction.draggedType?
+         // But draggedType is set in dev/buildUI.js (or wherever dragstart is initiated).
+         // The palette is in the same window, so we can probably trust interaction.draggedType if set by buildUI.
+    });
+
     document.body.addEventListener('dragover', (e) => {
-        e.preventDefault();
+        e.preventDefault(); // Necessary to allow dropping
+
+        // We rely on interaction.draggedType being set by the drag source (BuildUI)
+        const type = interaction.draggedType;
+        if (!type) return;
+
+        // Check if we are over the canvas
+        if (e.target === interaction.app.renderer.domElement) {
+             let point = interaction._getIntersect(e);
+             if (point) {
+                 if (interaction.devMode.grid && interaction.devMode.grid.enabled) {
+                     point = interaction.devMode.grid.snap(point);
+                 }
+
+                 if (!interaction.ghostMesh) {
+                     interaction._createGhost(type);
+                 }
+                 interaction._updateGhost(point);
+             } else {
+                 // Off ground? Hide/Destroy ghost
+                 interaction._destroyGhost();
+             }
+        } else {
+             // Over UI or off canvas
+             interaction._destroyGhost();
+        }
+    });
+
+    document.body.addEventListener('dragleave', (e) => {
+        // e.target is the element we are leaving.
+        // If we leave the canvas, destroy ghost.
+        if (e.target === interaction.app.renderer.domElement) {
+             interaction._destroyGhost();
+        }
     });
 
     document.body.addEventListener('drop', (e) => {
         e.preventDefault();
+        interaction._destroyGhost(); // Cleanup ghost immediately
+
         const type = e.dataTransfer.getData('type');
         let point = interaction._getIntersect(e);
 

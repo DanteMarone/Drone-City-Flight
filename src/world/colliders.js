@@ -9,6 +9,10 @@ export class ColliderSystem {
         this.staticColliders = [];
         this._tempBox = new THREE.Box3();
         this._tempSphere = new THREE.Sphere();
+        // Scratch vectors to reduce GC
+        this._tempVec1 = new THREE.Vector3();
+        this._tempVec2 = new THREE.Vector3();
+        this._tempVec2D = new THREE.Vector2();
     }
 
     addStatic(colliders) {
@@ -66,14 +70,15 @@ export class ColliderSystem {
 
         // Narrowphase: Sphere vs Geometry
         const hits = [];
-        const droneSphere = new THREE.Sphere(dronePos, radius);
+        this._tempSphere.set(dronePos, radius);
+        const droneSphere = this._tempSphere;
 
         for (const other of nearby) {
             if (other.type === 'ring') {
                  // Sphere vs Torus (approximated)
                  // Transform sphere center to torus local space
-                 const invMat = other.mesh.matrixWorld.clone().invert();
-                 const localPos = dronePos.clone().applyMatrix4(invMat);
+                 const invMat = other.mesh.matrixWorld.clone().invert(); // This clone/invert is still expensive but necessary for correct math without more scratch matrices
+                 const localPos = this._tempVec1.copy(dronePos).applyMatrix4(invMat);
 
                  // Torus (XY plane): R = 1.5 (major), r = 0.2 (tube)
                  // Closest point on central circle
@@ -81,7 +86,7 @@ export class ColliderSystem {
                  const r = 0.2;
 
                  // Vector on XY plane
-                 const vXY = new THREE.Vector2(localPos.x, localPos.y);
+                 const vXY = this._tempVec2D.set(localPos.x, localPos.y);
                  const len = vXY.length();
 
                  if (len > 0.0001) {
@@ -90,7 +95,7 @@ export class ColliderSystem {
                      vXY.set(R, 0); // Arbitrary if at center
                  }
 
-                 const closestOnCircle = new THREE.Vector3(vXY.x, vXY.y, 0);
+                 const closestOnCircle = this._tempVec2.set(vXY.x, vXY.y, 0);
 
                  // Distance from sphere center to closest circle point
                  const dist = localPos.distanceTo(closestOnCircle);
@@ -98,6 +103,7 @@ export class ColliderSystem {
                  // Collision if dist < r + radius
                  if (dist < r + radius) {
                      // Hit!
+                     // We use a new vector for normal because hits array persists and needs unique objects
                      const localNormal = new THREE.Vector3().subVectors(localPos, closestOnCircle).normalize();
                      const normal = localNormal.transformDirection(other.mesh.matrixWorld).normalize();
                      const penetration = (r + radius) - dist;
@@ -136,19 +142,6 @@ export class ColliderSystem {
     _checkMeshRecursively(object, sphere, hits, rootEntity) {
         // If it's a Mesh (and visible), check its bounding box
         if (object.isMesh && object.visible) {
-             // We need the world bounding box of this specific mesh
-             // Optimization: Instead of full setFromObject (which traverses children),
-             // for a leaf mesh we can just transform its geometry box.
-             // But setFromObject is robust.
-
-             // Note: setFromObject on a Mesh calculates box of that mesh.
-             // If we are iterating, we don't want to re-traverse children if we are already traversing.
-             // Standard traverse goes to children.
-
-             // Let's rely on Box3.setFromObject for now, but apply it to the single object.
-             // However, `setFromObject` expands by children. If we use `traverse`, we hit children anyway.
-             // So we should strictly check the geometry of the current mesh.
-
              // Calculate World Box for this Mesh Only
              if (object.geometry) {
                  if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
@@ -172,18 +165,16 @@ export class ColliderSystem {
 
     _addBoxHit(box, sphere, object, hits) {
         // Clamp center to box to find closest point
-        const closestPoint = new THREE.Vector3().copy(sphere.center).clamp(box.min, box.max);
+        // Reuse tempVec1 to avoid allocation
+        const closestPoint = this._tempVec1.copy(sphere.center).clamp(box.min, box.max);
 
         // Calculate distance
         const dist = sphere.center.distanceTo(closestPoint);
         const penetration = sphere.radius - dist;
 
         if (penetration > 0) {
+            // Allocate new Vector3 only on confirmed hit
             const normal = new THREE.Vector3().subVectors(sphere.center, closestPoint).normalize();
-
-            // Avoid duplicate hits on the same object?
-            // Or maybe keep them and let the physics solver handle multiple constraints?
-            // Usually we want the deepest penetration.
 
             // Check if we already have a hit for this object
             const existingHit = hits.find(h => h.object === object);

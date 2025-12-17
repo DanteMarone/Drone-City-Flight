@@ -19,6 +19,7 @@ uniform vec3 uSunColor;
 uniform vec3 uAmbientColor;
 uniform vec2 uWind;
 uniform vec3 uCloudColor;
+uniform vec3 uCameraPosition; // We need to pass camera pos manually or use cameraPosition (built-in)
 
 varying vec2 vUv;
 varying vec3 vWorldPosition;
@@ -55,8 +56,7 @@ float fbm(vec2 p) {
 
 void main() {
     // Coordinate for noise
-    // Use world position XZ to allow moving through the field
-    // Divide by large number to scale noise (clouds are big)
+    // Scale noise for the huge plane
     vec2 coord = vWorldPosition.xz * 0.002;
 
     // Add Wind scroll
@@ -77,30 +77,25 @@ void main() {
     vec3 viewDir = normalize(cameraPosition - vWorldPosition);
     vec3 sunDir = normalize(uSunPosition);
 
-    // Simple diffuse-like lighting (fake volume)
-    // Higher density = darker bottom?
-    // Let's just mix Ambient and Sun
+    // Lighting Mix
     vec3 lighting = uAmbientColor + uSunColor * 0.8;
 
-    // Sun Scatter / Rim
-    // Dot of view and sun
+    // Sun Scatter
     float sunDot = max(0.0, dot(viewDir, sunDir));
-    // Strong forward scatter near sun
     float scatter = pow(sunDot, 12.0);
     vec3 scatterColor = uSunColor * scatter * 2.0;
 
-    // Horizon fade
-    // vUv.y maps 0 (bottom) to 1 (top) for top-half sphere
-    float horizonFade = smoothstep(0.0, 0.15, vUv.y);
-
-    // Altitude Fade (Cloud Ceiling)
-    // Mask clouds below 120m (Drone Max Altitude) + buffer to 160m
-    float altitudeFade = smoothstep(120.0, 160.0, vWorldPosition.y);
+    // Distance Fade (Soft Circle Mask)
+    // Fade out edges of the plane so we don't see a square in the sky
+    // Plane is 4000 wide, radius 2000.
+    float dist = distance(vWorldPosition.xz, cameraPosition.xz);
+    float fadeRadius = 1500.0;
+    float distFade = smoothstep(fadeRadius + 400.0, fadeRadius, dist);
 
     vec3 finalColor = uCloudColor * lighting + scatterColor;
 
     // Alpha
-    float alpha = density * horizonFade * altitudeFade * 0.9;
+    float alpha = density * distFade * 0.9;
 
     gl_FragColor = vec4(finalColor, alpha);
 }
@@ -110,9 +105,9 @@ export class CloudSystem {
     constructor(scene) {
         this.scene = scene;
 
-        // Hemisphere dome
-        // Radius 800, top half
-        this.geometry = new THREE.SphereGeometry(800, 64, 32, 0, Math.PI * 2, 0, Math.PI * 0.5);
+        // Overhead Plane
+        // Large enough to cover the view to the horizon/fog
+        this.geometry = new THREE.PlaneGeometry(4000, 4000);
 
         this.uniforms = {
             uTime: { value: 0 },
@@ -121,6 +116,8 @@ export class CloudSystem {
             uAmbientColor: { value: new THREE.Color(0.5, 0.5, 0.5) },
             uWind: { value: new THREE.Vector2(0.1, 0) },
             uCloudColor: { value: new THREE.Color(1.0, 1.0, 1.0) }
+            // cameraPosition is auto-uniform in ShaderMaterial? No, only in RawShaderMaterial it's missing.
+            // ShaderMaterial provides 'cameraPosition' (world pos of camera).
         };
 
         this.material = new THREE.ShaderMaterial({
@@ -128,12 +125,15 @@ export class CloudSystem {
             fragmentShader: fragmentShader,
             uniforms: this.uniforms,
             transparent: true,
-            side: THREE.BackSide,
+            side: THREE.DoubleSide, // View from below
             depthWrite: false
         });
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
         this.mesh.frustumCulled = false;
+
+        // Orient horizontally
+        this.mesh.rotation.x = -Math.PI / 2;
 
         this.scene.add(this.mesh);
     }
@@ -158,8 +158,8 @@ export class CloudSystem {
             this.uniforms.uAmbientColor.value.copy(timeCycle.ambientColor);
         }
 
-        // Follow camera on XZ, keep Y fixed relative to world or player?
-        // If we move XZ, the noise (world pos) scanning works.
-        this.mesh.position.set(camera.position.x, -50, camera.position.z);
+        // Follow camera on XZ, keep Y fixed High
+        // 200m is safely above 120m limit
+        this.mesh.position.set(camera.position.x, 200, camera.position.z);
     }
 }

@@ -251,7 +251,9 @@ export class InteractionManager {
             } else {
                 diff.x = 0; // Lock to Z
             }
-            // diff length is automatically integer-ish because anchor and currentPoint are snapped.
+            // Ensure strict 1-unit increments
+            diff.x = Math.round(diff.x);
+            diff.z = Math.round(diff.z);
         }
 
         let angle = 0;

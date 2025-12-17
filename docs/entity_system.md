@@ -159,3 +159,10 @@ The `BaseEntity.serialize()` method automatically handles standard transforms an
 *   **`src/world/colliders.js`**: Reads `entity.box` and `entity.mesh` for collision detection.
 *   **`src/dev/buildUI.js`**: Reads `entity.constructor.displayName` for the Palette.
 *   **`src/dev/devMode.js`**: Uses `EntityRegistry` to spawn dragged objects.
+
+## Specialized Systems
+
+Some entities require logic that goes beyond simple self-updates or need to interact with global game state (like the Drone). These are managed by specialized systems:
+
+*   **[Bird System](./bird_system.md)**: Manages `BirdEntity` instances, handling AI states (Patrol, Chase) and battery interactions.
+*   **[Time Cycle](./time_cycle.md)**: Manages the `Sun` and global lighting, though not strictly an "entity" in the registry sense.

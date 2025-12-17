@@ -96,7 +96,7 @@ export class GizmoManager {
 
         this.selectedObjects = [];
         this.offsets = []; // Stores { position, quaternion, scale } relative to proxy inverse
-        this.offsetY = 5;
+        this.offsetY = 0;
         this.dragStartStates = null;
     }
 
@@ -118,8 +118,8 @@ export class GizmoManager {
         this.selectedObjects.forEach(obj => centroid.add(obj.position));
         centroid.divideScalar(this.selectedObjects.length);
 
-        // Position Proxy at Centroid (plus offsetY)
-        this.proxy.position.copy(centroid).add(new THREE.Vector3(0, this.offsetY, 0));
+        // Position Proxy at Centroid
+        this.proxy.position.copy(centroid);
         this.proxy.rotation.set(0, 0, 0); // Reset rotation for group pivot
         this.proxy.scale.set(1, 1, 1);    // Reset scale
         this.proxy.updateMatrixWorld();

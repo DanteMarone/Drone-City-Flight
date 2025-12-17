@@ -46,6 +46,23 @@ export class BuildUI {
             <hr style="width:100%">
             <h3>Environment</h3>
             <div style="display:flex; flex-direction:column; gap:5px; font-size:0.9em;">
+                <div style="background:#222; padding:5px;">
+                    <strong>Time of Day</strong>
+                    <label style="display:flex; justify-content:space-between; margin-top:5px;">
+                        Current Time: <span id="time-display">12:00</span>
+                    </label>
+                    <input type="range" id="dev-time-slider" min="0" max="24" step="0.1" value="12" style="width:100%">
+
+                    <label style="display:flex; justify-content:space-between; margin-top:5px;">
+                        Day Speed
+                        <input type="number" id="dev-day-speed" min="0" max="1000" step="1" style="width:50px">
+                    </label>
+
+                    <label style="display:flex; align-items:center; gap:5px; margin-top:5px;">
+                        <input type="checkbox" id="dev-time-lock"> Lock Time
+                    </label>
+                </div>
+
                 <label style="display:flex; justify-content:space-between;">
                     Wind Speed
                 </label>
@@ -311,10 +328,27 @@ export class BuildUI {
         const windSpeed = this.dom.querySelector('#dev-wind-speed');
         const windDir = this.dom.querySelector('#dev-wind-dir');
 
-        const updateWindUI = () => {
+        // Time Controls
+        const timeSlider = this.dom.querySelector('#dev-time-slider');
+        const timeDisplay = this.dom.querySelector('#time-display');
+        const daySpeedInput = this.dom.querySelector('#dev-day-speed');
+        const timeLockInput = this.dom.querySelector('#dev-time-lock');
+
+        const updateEnvUI = () => {
             if (this.devMode.app.world.wind) {
                 windSpeed.value = this.devMode.app.world.wind.speed;
                 windDir.value = this.devMode.app.world.wind.direction;
+            }
+            if (this.devMode.app.world.timeCycle) {
+                const tc = this.devMode.app.world.timeCycle;
+                timeSlider.value = tc.time;
+                daySpeedInput.value = tc.speed;
+                timeLockInput.checked = tc.isLocked;
+
+                // Format HH:MM
+                const h = Math.floor(tc.time);
+                const m = Math.floor((tc.time - h) * 60);
+                timeDisplay.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
             }
         };
 
@@ -322,7 +356,46 @@ export class BuildUI {
         const originalShow = this.show.bind(this);
         this.show = () => {
             originalShow();
-            updateWindUI();
+            updateEnvUI();
+        };
+
+        // Hook into internal update or use a timer to update Time Display if game is running?
+        // BuildUI doesn't have an update loop.
+        // We can add a simple interval or just update when slider moves.
+        // If "Lock Time" is off, slider should move?
+        // DevMode update could call this.
+        // For now, let's just update on interaction or show.
+
+        // Time Inputs
+        timeSlider.oninput = (e) => {
+            const val = parseFloat(e.target.value);
+            if (this.devMode.app.world.timeCycle) {
+                this.devMode.app.world.timeCycle.time = val;
+                // Force update display
+                const h = Math.floor(val);
+                const m = Math.floor((val - h) * 60);
+                timeDisplay.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
+
+                // Also force a manual update of lighting so we see it while dragging
+                this.devMode.app.world.timeCycle.update(0);
+                // We need to trigger App update logic too?
+                // App.update calls cycle.update(dt), then applies values.
+                // cycle.update(0) updates internal positions/colors.
+                // Then on next frame, App will apply them.
+            }
+        };
+
+        daySpeedInput.onchange = (e) => {
+             const val = parseFloat(e.target.value);
+             if (!isNaN(val) && this.devMode.app.world.timeCycle) {
+                 this.devMode.app.world.timeCycle.speed = val;
+             }
+        };
+
+        timeLockInput.onchange = (e) => {
+            if (this.devMode.app.world.timeCycle) {
+                this.devMode.app.world.timeCycle.isLocked = e.target.checked;
+            }
         };
 
         windSpeed.oninput = (e) => {

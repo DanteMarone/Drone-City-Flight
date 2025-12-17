@@ -21,6 +21,47 @@ export class BirdEntity extends BaseEntity {
         // Sync waypoints to userData for persistence and DevMode
         this.mesh.userData.waypoints = this.waypoints;
         this.mesh.userData.isVehicle = true; // Enable DevMode waypoint editing
+
+        this._createWaypointVisuals();
+    }
+
+    _createWaypointVisuals() {
+        this.waypointGroup = new THREE.Group();
+        this.waypointGroup.name = 'waypointVisuals_WorldSpace';
+        this.waypointGroup.visible = false;
+
+        this.mesh.userData.waypointGroup = this.waypointGroup;
+
+        this._refreshWaypointVisuals();
+    }
+
+    _refreshWaypointVisuals() {
+        if (!this.waypointGroup) return;
+
+        while(this.waypointGroup.children.length > 0) {
+            this.waypointGroup.remove(this.waypointGroup.children[0]);
+        }
+
+        const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+
+        this.waypoints.forEach((pos, i) => {
+            const orb = new THREE.Mesh(orbGeo, orbMat);
+            // Ensure pos is Vector3
+            const p = new THREE.Vector3(pos.x, pos.y, pos.z);
+            orb.position.copy(p);
+            orb.userData = { type: 'waypoint', isHelper: true, index: i, ownerUUID: this.uuid, vehicle: this.mesh };
+            this.waypointGroup.add(orb);
+        });
+
+        if (this.waypoints.length > 0) {
+            const points = [this.mesh.position.clone(), ...this.waypoints.map(p => new THREE.Vector3(p.x, p.y, p.z))];
+            const geometry = new THREE.BufferGeometry().setFromPoints(points);
+            const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+            const line = new THREE.Line(geometry, material);
+            line.name = 'pathLine';
+            this.waypointGroup.add(line);
+        }
     }
 
     serialize() {

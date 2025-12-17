@@ -109,11 +109,12 @@ export class DevCameraController {
         if (this.keys.e) move.y += 1;
         if (this.keys.q) move.y -= 1;
 
-        // Apply speed multiplier (sprint)
+        // Apply speed multiplier (sprint) - REMOVED per feedback (too fast)
+        // let currentSpeed = this.speed;
+        // if (this.keys.shift) {
+        //      currentSpeed *= 2.5;
+        // }
         let currentSpeed = this.speed;
-        if (this.keys.shift) {
-             currentSpeed *= 2.5;
-        }
 
         move.normalize().multiplyScalar(currentSpeed * dt);
 

@@ -126,13 +126,13 @@ export class GridSystem {
             this.materials.major
         );
 
-        const axisGroup = new THREE.Group();
-        axisGroup.add(this._buildAxisLine(new THREE.Vector3(-this.size / 2, 0, 0), new THREE.Vector3(this.size / 2, 0, 0), this.materials.axisX));
-        axisGroup.add(this._buildAxisLine(new THREE.Vector3(0, 0, -this.size / 2), new THREE.Vector3(0, 0, this.size / 2), this.materials.axisZ));
+        this.axisGroup = new THREE.Group();
+        this.axisGroup.add(this._buildAxisLine(new THREE.Vector3(-this.size / 2, 0, 0), new THREE.Vector3(this.size / 2, 0, 0), this.materials.axisX));
+        this.axisGroup.add(this._buildAxisLine(new THREE.Vector3(0, 0, -this.size / 2), new THREE.Vector3(0, 0, this.size / 2), this.materials.axisZ));
 
         this.farGroup.add(midLines);
         this.farGroup.add(majorLines);
-        this.farGroup.add(axisGroup);
+        this.farGroup.add(this.axisGroup);
 
         this.group.add(this.farGroup);
     }
@@ -220,6 +220,10 @@ export class GridSystem {
 
     update(camera) {
         if (!this.enabled || !this.group) return;
+
+        if (this.axisGroup) {
+            this.axisGroup.position.set(camera.position.x, 0, camera.position.z);
+        }
 
         const height = Math.abs(camera.position.y);
         const distanceFromGridCenter = Math.hypot(

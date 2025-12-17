@@ -10,6 +10,7 @@ export { HVACEntity } from './hvac.js';
 export { LandingPadEntity } from './landingPad.js';
 export { RadarDishEntity } from './radarDish.js';
 export { WoodenFenceEntity, PicketFenceEntity, ChainLinkFenceEntity, CementWallEntity } from './fence.js';
+export { LilyPondEntity } from './lilyPond.js';
 export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commercial.js';
 export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
 export { SidewalkEntity } from './infrastructure.js';

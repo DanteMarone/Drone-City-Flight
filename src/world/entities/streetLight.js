@@ -105,7 +105,8 @@ export class StreetLightEntity extends BaseEntity {
             const worldPos = this._lightLocalPos.clone().applyMatrix4(this.mesh.matrixWorld);
 
             // Now register returns the source object reference
-            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xffe9a3, 1.4, 18);
+            const intensity = this.params.lightIntensity || 4.0;
+            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xffe9a3, intensity, 25);
 
             // Attach parent mesh for moving light support
             if (this._virtualLight) {
@@ -128,9 +129,9 @@ export class StreetLightEntity extends BaseEntity {
 
         // Update virtual light intensity if registered
         if (this._virtualLight) {
-             const baseIntensity = 1.4;
+             const baseIntensity = this.params.lightIntensity || 4.0;
              // Apply flicker to the light source too
-             this._virtualLight.intensity = THREE.MathUtils.clamp(baseIntensity + dynamicIntensityMod * 2, 0.8, 1.8);
+             this._virtualLight.intensity = THREE.MathUtils.clamp(baseIntensity + dynamicIntensityMod * 2, baseIntensity * 0.5, baseIntensity * 1.3);
         }
     }
 }

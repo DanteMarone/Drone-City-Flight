@@ -76,7 +76,9 @@ export class NeonSignEntity extends BaseEntity {
             this.mesh.updateMatrixWorld(true);
             const worldPos = new THREE.Vector3(0, 0, 1).applyMatrix4(this.mesh.matrixWorld);
             // Cyan/Pink mix - let's go with Magenta/Pink as dominant
-            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xff00ff, 2.0, 20);
+            const intensity = this.params.lightIntensity || 4.0;
+            this._baseIntensity = intensity;
+            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xff00ff, intensity, 25);
             if (this._virtualLight) {
                 this._virtualLight.parentMesh = this.mesh;
             }
@@ -108,7 +110,7 @@ export class NeonSignEntity extends BaseEntity {
         if (this._virtualLight) {
             // Sync light intensity with opacity/visibility
             const vis = this.holoMat.visible ? 1 : 0;
-            this._virtualLight.intensity = this.holoMat.opacity * 2.0 * vis;
+            this._virtualLight.intensity = this.holoMat.opacity * (this._baseIntensity || 4.0) * vis;
         }
     }
 }

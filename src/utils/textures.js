@@ -249,8 +249,10 @@ export const TextureGenerator = {
         ctx.lineWidth = 2;
         const segmentH = height / 5;
 
-        for (let i = 1; i < 5; i++) {
-            const y = Math.floor(i * segmentH);
+        // Offset lines by 0.5 * segmentH to align with world grid integers
+        // when object is centered on integer grid (since length is 5)
+        for (let i = 0; i < 5; i++) {
+            const y = Math.floor((i + 0.5) * segmentH);
             ctx.beginPath();
             ctx.moveTo(0, y);
             ctx.lineTo(width, y);

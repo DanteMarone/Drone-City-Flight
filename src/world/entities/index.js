@@ -14,6 +14,7 @@ export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commer
 export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
 export { SidewalkEntity } from './infrastructure.js';
 export { BusStopEntity } from './busStop.js';
+export { ObservatoryEntity } from './observatory.js';
 export { FireHydrantEntity } from './fireHydrant.js';
 export { FireStationEntity } from './fireStation.js';
 

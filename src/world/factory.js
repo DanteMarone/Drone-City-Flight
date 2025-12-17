@@ -33,5 +33,6 @@ export class ObjectFactory {
     createBush(params) { return this.createObject('bush', params); }
     createCar(params) { return this.createObject('car', params); }
     createRiver(params) { return this.createObject('river', params); }
+    createObservatory(params) { return this.createObject('observatory', params); }
     createSkyGardenTower(params) { return this.createObject('sky_garden_tower', params); }
 }

@@ -238,8 +238,6 @@ body {
     color: #ffff00;
     text-shadow: 0 0 5px orange;
     transform-origin: center center;
-    /* Unicode arrow points right by default? No, usually Up or Right depending on char */
-    /* ➤ Black Right-Pointing Pointer. Rotate -90 to point Up */
 }
 
 .compass-dist {
@@ -389,6 +387,16 @@ body {
     font-size: 12px;
 }
 
+/* Checkbox alignment */
+.dev-prop-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: #888;
+    cursor: pointer;
+}
+
 /* Top Bar */
 .dev-top-bar {
     pointer-events: auto;
@@ -473,6 +481,38 @@ body {
     color: #ddd;
 }
 
+/* Toolbar */
+.dev-toolbar {
+    position: absolute;
+    top: 32px; /* Below top bar */
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: rgba(40, 40, 40, 0.9);
+    border-bottom: 1px solid #444;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+    pointer-events: auto;
+    z-index: 2000;
+}
+
+.dev-tool-btn {
+    background: #333;
+    border: 1px solid #555;
+    color: #ccc;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.dev-tool-btn:hover { background: #444; color: white; }
+.dev-tool-btn:active { background: #2196F3; border-color: #2196F3; }
+
 
 /* Common Panel Styles */
 .dev-panel {
@@ -505,7 +545,7 @@ body {
 .dev-outliner {
     position: absolute;
     left: 10px;
-    top: 45px; /* Shifted down for top bar */
+    top: 80px; /* Shifted down for top bar + toolbar */
     bottom: 240px; /* Space for palette */
     width: 260px;
     border-radius: 4px;
@@ -573,13 +613,13 @@ body {
     background: #666;
 }
 .dev-outliner-visibility:hover { background: #888; }
-.dev-outliner-visibility.hidden { background: transparent; }
+.dev-outliner-visibility.is-hidden { background: transparent; border-color: #444; }
 
 /* Dynamic Property Inspector (Right) */
 .dev-inspector {
     position: absolute;
     right: 10px;
-    top: 45px; /* Shifted down for top bar */
+    top: 80px; /* Shifted down for top bar + toolbar */
     bottom: 60px;
     width: 280px;
     border-radius: 4px;
@@ -716,7 +756,7 @@ body {
 .dev-history {
     position: absolute;
     left: 280px;
-    top: 45px; /* Shifted */
+    top: 80px; /* Shifted */
     width: 200px;
     max-height: 200px;
     overflow: hidden;

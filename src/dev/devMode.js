@@ -479,11 +479,9 @@ export class DevMode {
 
         if (this.selectedObjects.length === 0) {
             this.gizmo.detach();
-            this.ui.hideProperties();
-            return;
+        } else {
+            this.gizmo.attach(this.selectedObjects);
         }
-
-        this.gizmo.attach(this.selectedObjects);
 
         if (this.ui && this.ui.onSelectionChanged) this.ui.onSelectionChanged();
     }

@@ -18,6 +18,7 @@ export class BuildUI {
 
         // Inspector State
         this.inspectorTab = 'Properties'; // 'Properties' | 'World'
+        this.lockScale = false;
 
         // For polling/updates
         this.lastHistoryLen = 0;
@@ -35,6 +36,7 @@ export class BuildUI {
 
         // Panels
         this._createTopBar();
+        this._createToolbar();
         this._createOutliner();
         this._createHistory();
         this._createInspector();
@@ -143,6 +145,42 @@ export class BuildUI {
                 document.querySelectorAll('.dev-menu-btn').forEach(b => b.classList.remove('active'));
             }
         });
+    }
+
+    _createToolbar() {
+        const bar = document.createElement('div');
+        bar.className = 'dev-toolbar';
+
+        const addBtn = (label, action, title='') => {
+            const btn = document.createElement('div');
+            btn.className = 'dev-tool-btn';
+            btn.textContent = label;
+            btn.title = title;
+            btn.onclick = action;
+            bar.appendChild(btn);
+        };
+
+        addBtn('Exit', () => this.devMode.disable(), 'Exit Dev Mode');
+
+        const sep = document.createElement('div');
+        sep.style.width = '1px';
+        sep.style.height = '20px';
+        sep.style.background = '#555';
+        sep.style.margin = '0 5px';
+        bar.appendChild(sep);
+
+        addBtn('Undo', () => this.devMode.history.undo(), 'Ctrl+Z');
+        addBtn('Redo', () => this.devMode.history.redo(), 'Ctrl+Y');
+
+        const sep2 = sep.cloneNode();
+        bar.appendChild(sep2);
+
+        addBtn('Grid', () => {
+             this.devMode.grid.enabled = !this.devMode.grid.enabled;
+             this.devMode.grid.helper.visible = this.devMode.grid.enabled;
+        }, 'Toggle Grid');
+
+        this.container.appendChild(bar);
     }
 
     _createMenu(parent, label, items) {
@@ -276,11 +314,12 @@ export class BuildUI {
 
                     // Visibility Toggle
                     const vis = document.createElement('div');
-                    vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'hidden'}`;
+                    vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'is-hidden'}`;
                     vis.title = 'Toggle Visibility';
                     vis.onclick = (e) => {
+                        e.stopPropagation();
                         entity.mesh.visible = !entity.mesh.visible;
-                        vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'hidden'}`;
+                        vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'is-hidden'}`;
                     };
                     item.appendChild(vis);
 
@@ -361,7 +400,7 @@ export class BuildUI {
             this._addPropGroup('Transform', [
                 this._createVectorInput('Position', obj.position, (v) => this._applyTransform(obj, 'position', v)),
                 this._createVectorInput('Rotation', obj.rotation, (v) => this._applyTransform(obj, 'rotation', v), true),
-                this._createVectorInput('Scale', obj.scale, (v) => this._applyTransform(obj, 'scale', v))
+                this._createScaleInput(obj)
             ]);
         } else {
              // Multi-select transform handled by gizmo mostly, but could show centroid here?
@@ -372,9 +411,11 @@ export class BuildUI {
         // Params (Single Object only)
         if (selection.length === 1) {
             if (obj.userData.params) {
+                const ignoredParams = new Set(['uuid', 'type', 'x', 'y', 'z', 'rotX', 'rotY', 'rotZ', 'width', 'height', 'depth', 'scale', 'waypoints', 'isVehicle', 'waitTime']);
+
                 const fields = [];
                 Object.keys(obj.userData.params).forEach(key => {
-                    if (key === 'uuid' || key === 'type') return;
+                    if (ignoredParams.has(key)) return;
                     const val = obj.userData.params[key];
 
                     if (typeof val === 'number') {
@@ -397,7 +438,7 @@ export class BuildUI {
             }
 
             // Waypoints (Vehicles)
-            if (obj.userData.isVehicle) {
+            if (obj.userData.isVehicle || obj.userData.type === 'vehicle' || obj.userData.type === 'car' || obj.userData.type === 'truck') {
                 this._renderWaypoints(obj);
             }
         }
@@ -544,7 +585,7 @@ export class BuildUI {
         this.palette.className = 'dev-palette-grid';
         container.appendChild(this.palette);
 
-        this.container.appendChild(container);
+        this.container.appendChild(container); // Append panel to root
     }
 
     refreshPalette() {
@@ -726,6 +767,75 @@ export class BuildUI {
                 } else {
                     newVec[axis] = n;
                     callback(newVec);
+                }
+            };
+            div.appendChild(inp);
+        });
+        row.appendChild(div);
+        return row;
+    }
+
+    _createScaleInput(obj) {
+        const label = 'Scale';
+        const vec = obj.scale;
+
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+
+        // Label + Lock Checkbox
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'dev-prop-label';
+        labelDiv.style.display = 'flex';
+        labelDiv.style.flexDirection = 'column';
+
+        const txt = document.createElement('span');
+        txt.textContent = label;
+        labelDiv.appendChild(txt);
+
+        const lockLabel = document.createElement('label');
+        lockLabel.className = 'dev-prop-checkbox-label';
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = this.lockScale;
+        check.style.width = '10px';
+        check.style.height = '10px';
+        check.onchange = (e) => this.lockScale = e.target.checked;
+        lockLabel.appendChild(check);
+        lockLabel.appendChild(document.createTextNode('Lock'));
+        labelDiv.appendChild(lockLabel);
+
+        row.appendChild(labelDiv);
+
+        const div = document.createElement('div');
+        div.className = 'dev-prop-vector';
+
+        ['x', 'y', 'z'].forEach(axis => {
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.step = '0.1';
+            inp.className = 'dev-prop-input';
+            inp.id = `insp-${label}-${axis}`;
+            inp.value = vec[axis].toFixed(2);
+
+            inp.onchange = (e) => {
+                const n = parseFloat(e.target.value);
+                if (Math.abs(n - vec[axis]) < 0.001) return;
+
+                if (this.lockScale) {
+                    // Update all axes proportionally or to same value?
+                    // Typically uniform scale means all axes = same value OR all axes multiply by same ratio.
+                    // For simplicity in a game editor, setting one usually sets all if "locked".
+                    const ratio = n / vec[axis]; // Calculate ratio if we wanted proportional, but uniform setting is easier
+                    // Let's set all to 'n' for uniform scaling behavior which is standard for "Scale" usually.
+                    // Actually, proportional is better if object is 1x2x1.
+                    // But here, we usually start at 1,1,1.
+                    // Let's just set all to n.
+                    const newVec = new THREE.Vector3(n, n, n);
+                    this._applyTransform(obj, 'scale', newVec);
+                } else {
+                    const newVec = vec.clone();
+                    newVec[axis] = n;
+                    this._applyTransform(obj, 'scale', newVec);
                 }
             };
             div.appendChild(inp);

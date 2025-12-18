@@ -6,6 +6,7 @@ import { BirdSystem } from './birdSystem.js';
 import { LightSystem } from './lightSystem.js';
 import { EntityRegistry } from './entities/index.js';
 import { TimeCycle } from './timeCycle.js';
+import { RiverEntity } from './entities/infrastructure.js';
 
 export class World {
     constructor(scene) {
@@ -50,6 +51,19 @@ export class World {
             rotY: Math.PI / 8
         });
         this.addEntity(landmark);
+
+        // Default River
+        const river = new RiverEntity({
+            x: -100, y: 0, z: -1000,
+            width: 50,
+            waypoints: [
+                {x: 50, y: 0, z: 0},
+                {x: -100, y: 0, z: 1000}
+            ]
+        });
+        river.init();
+        this.scene.add(river.mesh);
+        this.addEntity(river);
     }
 
     update(dt, camera) {

@@ -180,12 +180,23 @@ export class DevMode {
                     if (idx !== undefined && vehicle.userData.waypoints) {
                          vehicle.userData.waypoints[idx].copy(sel.position);
                          this._updateCarLine(vehicle);
+
+                         // Check for River Entity rebuild
+                         this._triggerEntityRebuild(vehicle);
                     }
                 }
-            } else if (sel.userData.isVehicle) {
+            } else if (sel.userData.isVehicle || sel.userData.isPath) {
                 this._updateCarLine(sel);
+                this._triggerEntityRebuild(sel);
             }
         });
+    }
+
+    _triggerEntityRebuild(mesh) {
+        const entity = this._findEntityByMesh(mesh);
+        if (entity && typeof entity.rebuildGeometry === 'function') {
+            entity.rebuildGeometry();
+        }
     }
 
     _updateCarLine(vehicleMesh) {
@@ -238,10 +249,12 @@ export class DevMode {
                 if (vehicle && idx !== undefined && vehicle.userData?.waypoints?.[idx]) {
                     vehicle.userData.waypoints[idx].copy(obj.position);
                     this._updateCarLine(vehicle);
+                    this._triggerEntityRebuild(vehicle);
                     toUpdate.add(vehicle);
                 }
-            } else if (obj.userData?.isVehicle) {
+            } else if (obj.userData?.isVehicle || obj.userData?.isPath) {
                 this._updateCarLine(obj);
+                this._triggerEntityRebuild(obj);
                 toUpdate.add(obj);
             } else {
                 toUpdate.add(obj);
@@ -270,6 +283,7 @@ export class DevMode {
             if (!state.car) return;
             state.car.userData.waypoints = state.waypoints.map(wp => wp.clone());
             this._syncWaypointVisuals(state.car);
+            this._triggerEntityRebuild(state.car);
             if (this.app.colliderSystem) {
                 this.app.colliderSystem.updateBody(state.car);
             }
@@ -327,7 +341,7 @@ export class DevMode {
 
     addWaypointToSelected() {
         const waypoints = this.selectedObjects.filter(o => o.userData.type === 'waypoint');
-        const cars = this.selectedObjects.filter(o => o.userData.isVehicle);
+        const cars = this.selectedObjects.filter(o => o.userData.isVehicle || o.userData.isPath);
 
         // Combine cars and unique cars derived from selected waypoints
         const targets = new Map();
@@ -348,7 +362,7 @@ export class DevMode {
         let newSelection = [];
 
         targets.forEach(({ car, index }) => {
-            if (car.userData.waypoints.length >= 10) { // Limit reasonable number
+            if (car.userData.waypoints.length >= 20) { // Limit reasonable number
                 console.warn(`Car ${car.uuid} max waypoints reached.`);
                 return;
             }
@@ -378,6 +392,8 @@ export class DevMode {
             car.userData.waypoints.splice(insertIndex, 0, newPos);
 
             this._syncWaypointVisuals(car);
+            this._triggerEntityRebuild(car);
+
             if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
 
             // Find the new waypoint orb to select it
@@ -402,7 +418,7 @@ export class DevMode {
     }
 
     removeWaypointFromSelected() {
-        const cars = this.selectedObjects.filter(o => o.userData.isVehicle);
+        const cars = this.selectedObjects.filter(o => o.userData.isVehicle || o.userData.isPath);
 
         const beforeStates = cars.map(cloneWaypointState);
         let changed = false;
@@ -414,6 +430,7 @@ export class DevMode {
 
             car.userData.waypoints.pop();
             this._syncWaypointVisuals(car);
+            this._triggerEntityRebuild(car);
             if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
         });
 
@@ -728,6 +745,7 @@ export class DevMode {
                 });
 
                 this._syncWaypointVisuals(car);
+                this._triggerEntityRebuild(car);
                 if (this.app.colliderSystem) this.app.colliderSystem.updateBody(car);
             });
 

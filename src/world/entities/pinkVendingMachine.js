@@ -3,19 +3,20 @@ import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 import { TextureGenerator } from '../../utils/textures.js';
 
-const PANEL_COLORS = [0x7ad7ff, 0xff7ad1, 0x9ef17a, 0xffdd7a];
+// Removed random panel colors since we are enforcing pink
+const PINK_ACCENT = 0xff7ad1;
 
-export class VendingMachineEntity extends BaseEntity {
+export class PinkVendingMachineEntity extends BaseEntity {
     constructor(params = {}) {
         super(params);
-        this.type = 'vendingMachine';
+        this.type = 'pinkVendingMachine';
         this._time = Math.random() * Math.PI * 2;
         this._glowPanel = null;
         this._virtualLight = null;
         this._lightLocalPos = null;
     }
 
-    static get displayName() { return 'Vending Machine'; }
+    static get displayName() { return 'Pink Vending Machine'; }
 
     createMesh(params = {}) {
         const group = new THREE.Group();
@@ -24,7 +25,7 @@ export class VendingMachineEntity extends BaseEntity {
         const depth = 0.8;
         const height = 2.1;
         const bodyColor = params.bodyColor || 0x1a202c;
-        const accent = params.accentColor || PANEL_COLORS[Math.floor(Math.random() * PANEL_COLORS.length)];
+        const accent = PINK_ACCENT; // Enforcing pink
 
         // Base plinth
         const plinthGeo = new THREE.BoxGeometry(width * 1.05, 0.15, depth * 1.05);
@@ -197,4 +198,4 @@ export class VendingMachineEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('vendingMachine', VendingMachineEntity);
+EntityRegistry.register('pinkVendingMachine', PinkVendingMachineEntity);

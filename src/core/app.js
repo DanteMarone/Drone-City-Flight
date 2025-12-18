@@ -115,7 +115,7 @@ export class App {
             this.devMode.update(dt);
             // Even in Dev Mode, we want to update environment visuals
             if (this.skybox) {
-                this.skybox.update(this.renderer.camera.position);
+                this.skybox.update(this.renderer.camera.position, this.world.timeCycle);
             }
             if (this.cloudSystem) {
                 this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);

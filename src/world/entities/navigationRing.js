@@ -143,13 +143,16 @@ export class NavigationRingEntity extends BaseEntity {
         if (lightSystem && this.mesh && this._lightLocalPos) {
             this.mesh.updateMatrixWorld(true);
             const worldPos = this._lightLocalPos.clone().applyMatrix4(this.mesh.matrixWorld);
-            this._lightHandle = lightSystem.register({
-                position: worldPos,
-                color: 0x4cf1ff,
-                intensity: this.params.lightIntensity || 1.6,
-                range: 18,
-                parentMesh: this.mesh
-            });
+            this._lightHandle = lightSystem.register(
+                worldPos,
+                0x4cf1ff,
+                this.params.lightIntensity || 1.6,
+                18
+            );
+
+            if (this._lightHandle) {
+                this._lightHandle.parentMesh = this.mesh;
+            }
         }
     }
 

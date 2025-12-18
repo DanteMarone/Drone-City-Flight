@@ -132,6 +132,17 @@ body {
     justify-content: center;
     align-items: center;
     pointer-events: auto; /* Catch clicks */
+
+    /* Animation State */
+    visibility: hidden;
+    opacity: 0;
+    transition: opacity 0.3s ease, visibility 0.3s;
+    z-index: 2000;
+}
+
+.menu-overlay.visible {
+    visibility: visible;
+    opacity: 1;
 }
 
 .hidden {
@@ -145,6 +156,28 @@ body {
     border: 1px solid #555;
     text-align: center;
     min-width: 300px;
+
+    /* Pop Animation */
+    transform: scale(0.95);
+    transition: transform 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+.menu-overlay.visible .menu-box {
+    transform: scale(1);
+}
+
+.menu-btn-content {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+}
+
+.menu-icon {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    opacity: 0.9;
 }
 
 .menu-box h1 {

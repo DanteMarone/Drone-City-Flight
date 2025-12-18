@@ -791,7 +791,7 @@ export class BuildUI {
             pickupControls.style.display = 'none';
             if (angryControls) angryControls.style.display = 'none';
 
-            if (sel.userData.isVehicle || type === 'waypoint') {
+            if (sel.userData.isVehicle || sel.userData.isPath || type === 'waypoint') {
                 carControls.style.display = 'flex';
                 // If it's a waypoint, we need the parent vehicle for the list and controls
                 const vehicle = type === 'waypoint' ? sel.userData.vehicle : sel;
@@ -842,8 +842,44 @@ export class BuildUI {
 
         car.userData.waypoints.forEach((wp, index) => {
             const row = document.createElement('div');
-            row.style.cssText = 'display:flex; gap:2px; align-items:center; font-size:0.8em;';
-            row.innerHTML = `<label style="width:15px">${index+1}</label>`;
+            row.style.cssText = 'display:flex; gap:2px; align-items:center; font-size:0.8em; margin-bottom:2px; padding:2px; border:1px solid transparent; transition: border-color 0.2s;';
+            row.innerHTML = `<label style="width:15px; text-align:right; margin-right:5px; color:#aaa;">${index+1}</label>`;
+
+            // Highlight Logic
+            row.onmouseenter = () => {
+                row.style.borderColor = '#22ffaa';
+                const orb = this._findWaypointOrb(car, index);
+                if (orb) {
+                    orb.scale.setScalar(1.5);
+                    if (orb.material) orb.material.color.setHex(0xffff00); // Yellow highlight
+                }
+            };
+            row.onmouseleave = () => {
+                row.style.borderColor = 'transparent';
+                const orb = this._findWaypointOrb(car, index);
+                if (orb) {
+                    orb.scale.setScalar(1.0);
+                    // Reset color (Cyan for River, White for Car - or just rely on selection state)
+                    // If selected, it might need to stay yellow?
+                    // Let's reset to default cyan/white.
+                    // River uses 0x00ffff, Car 0xffffff in _syncWaypointVisuals.
+                    // We can check car type.
+                    const color = car.userData.type === 'river' ? 0x00ffff : 0xffffff;
+
+                    // But if it is selected, GizmoManager makes it yellow?
+                    // GizmoManager uses selectionHelpers which are separate.
+                    // The orb itself is usually white/cyan.
+                    if (orb.material) orb.material.color.setHex(color);
+                }
+            };
+
+            // Select on Click/Focus
+            row.onclick = () => {
+                 const orb = this._findWaypointOrb(car, index);
+                 if (orb) {
+                     this.devMode.selectObject(orb);
+                 }
+            };
 
             ['x', 'y', 'z'].forEach(axis => {
                 const input = document.createElement('input');
@@ -851,6 +887,11 @@ export class BuildUI {
                 input.step = '0.5';
                 input.style.cssText = 'flex:1; width: 30px; background:#111; color:#fff; border:1px solid #444;';
                 input.value = wp[axis].toFixed(2);
+
+                input.onfocus = () => {
+                    const orb = this._findWaypointOrb(car, index);
+                    if (orb) this.devMode.selectObject(orb);
+                };
 
                 input.onchange = (e) => {
                     const val = parseFloat(e.target.value);
@@ -870,8 +911,31 @@ export class BuildUI {
                 };
                 row.appendChild(input);
             });
+
+            // Delete Button for Node
+            const delBtn = document.createElement('button');
+            delBtn.innerHTML = '&times;';
+            delBtn.title = 'Delete Waypoint';
+            delBtn.style.cssText = 'width:20px; background:#800; color:white; border:none; cursor:pointer; margin-left:2px;';
+            delBtn.onclick = (e) => {
+                e.stopPropagation();
+                const orb = this._findWaypointOrb(car, index);
+                if (orb) {
+                    this.devMode.selectObject(orb);
+                    this.devMode.deleteSelected();
+                }
+            };
+            row.appendChild(delBtn);
+
             container.appendChild(row);
         });
+    }
+
+    _findWaypointOrb(car, index) {
+        if (!car || !car.userData.waypointGroup) return null;
+        return car.userData.waypointGroup.children.find(c =>
+            c.userData.type === 'waypoint' && c.userData.index === index
+        );
     }
 
     hideProperties() {

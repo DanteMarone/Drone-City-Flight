@@ -195,6 +195,13 @@ export class RiverEntity extends BaseEntity {
              line.name = 'pathLine';
              this.waypointGroup.add(line);
         }
+
+        // Ensure visibility respects Dev Mode state if available
+        if (window.app && window.app.devMode && window.app.devMode.enabled) {
+            this.waypointGroup.visible = true;
+        } else {
+            this.waypointGroup.visible = false;
+        }
     }
 
     rebuildGeometry() {

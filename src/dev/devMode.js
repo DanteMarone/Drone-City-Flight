@@ -307,8 +307,11 @@ export class DevMode {
         const oldWaypoints = visualGroup.children.filter(c => c.userData?.type === 'waypoint');
         oldWaypoints.forEach(c => visualGroup.remove(c));
 
+        // Color coding: Cyan for Rivers, White for generic/vehicles
+        const color = car.userData.type === 'river' ? 0x00ffff : 0xffffff;
+
         const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
-        const orbMat = new THREE.MeshBasicMaterial({ color: 0xffffff });
+        const orbMat = new THREE.MeshBasicMaterial({ color: color });
 
         (car.userData.waypoints || []).forEach((wp, idx) => {
             const orb = new THREE.Mesh(orbGeo, orbMat);
@@ -318,7 +321,9 @@ export class DevMode {
         });
 
         if (car.userData.waypoints?.length) {
-            const material = new THREE.LineBasicMaterial({ color: 0xffffff });
+            // Match line color to orbs
+            const color = car.userData.type === 'river' ? 0x00ffff : 0xffffff;
+            const material = new THREE.LineBasicMaterial({ color: color });
             const points = [car.position.clone(), ...car.userData.waypoints];
             const geometry = new THREE.BufferGeometry().setFromPoints(points);
             const line = new THREE.Line(geometry, material);

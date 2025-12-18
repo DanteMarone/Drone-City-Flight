@@ -25,6 +25,42 @@ export class VehicleEntity extends BaseEntity {
             this.mesh.userData.isVehicle = true;
 
             this._createWaypointVisuals();
+
+            // Bolt Optimization: Pre-calculate local AABB for faster updates
+            const modelGroup = this.mesh.getObjectByName('modelGroup');
+            if (modelGroup) {
+                // Temporarily reset mesh AND modelGroup transform to Identity to get pure local aligned box
+                const oldPos = this.mesh.position.clone();
+                const oldRot = this.mesh.rotation.clone();
+                const oldScale = this.mesh.scale.clone();
+
+                // Also reset modelGroup in case it has initial offsets/scale
+                const oldMgPos = modelGroup.position.clone();
+                const oldMgRot = modelGroup.rotation.clone();
+                const oldMgScale = modelGroup.scale.clone();
+
+                this.mesh.position.set(0, 0, 0);
+                this.mesh.rotation.set(0, 0, 0);
+                this.mesh.scale.set(1, 1, 1);
+
+                modelGroup.position.set(0, 0, 0);
+                modelGroup.rotation.set(0, 0, 0);
+                modelGroup.scale.set(1, 1, 1);
+
+                this.mesh.updateMatrixWorld(true);
+
+                this._localBox = new THREE.Box3().setFromObject(modelGroup);
+
+                // Restore
+                modelGroup.position.copy(oldMgPos);
+                modelGroup.rotation.copy(oldMgRot);
+                modelGroup.scale.copy(oldMgScale);
+
+                this.mesh.position.copy(oldPos);
+                this.mesh.rotation.copy(oldRot);
+                this.mesh.scale.copy(oldScale);
+                this.mesh.updateMatrixWorld(true);
+            }
         }
     }
 
@@ -125,9 +161,15 @@ export class VehicleEntity extends BaseEntity {
 
         // Update Box
         if (this.box) {
-            this.box.makeEmpty();
-            modelGroup.updateMatrixWorld();
-            this.box.expandByObject(modelGroup);
+            modelGroup.updateMatrixWorld(); // Ensure world matrix is up to date
+
+            if (this._localBox) {
+                // Bolt Optimization: Transform pre-calculated local box instead of traversing hierarchy
+                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+            } else {
+                this.box.makeEmpty();
+                this.box.expandByObject(modelGroup);
+            }
         }
     }
 
@@ -293,9 +335,14 @@ export class PickupTruckEntity extends CarEntity {
         }
 
         if (this.box) {
-            this.box.makeEmpty();
             modelGroup.updateMatrixWorld();
-            this.box.expandByObject(modelGroup);
+
+            if (this._localBox) {
+                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+            } else {
+                this.box.makeEmpty();
+                this.box.expandByObject(modelGroup);
+            }
         }
     }
 

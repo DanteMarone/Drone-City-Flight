@@ -34,6 +34,7 @@ export class BuildUI {
         document.body.appendChild(this.container);
 
         // Panels
+        this._createTopBar();
         this._createOutliner();
         this._createHistory();
         this._createInspector();
@@ -94,6 +95,129 @@ export class BuildUI {
         }
     }
 
+    // --- Top Bar ---
+    _createTopBar() {
+        const bar = document.createElement('div');
+        bar.className = 'dev-top-bar';
+
+        // Dev Mode Menu
+        this._createMenu(bar, 'Dev Mode', [
+            { label: 'Resume Game', action: () => this.devMode.disable() },
+            { separator: true },
+            { label: 'Save Map', shortcut: 'Ctrl+S', action: () => this.devMode.saveMap() },
+            { label: 'Load Map...', action: () => this._triggerLoad() },
+            { separator: true },
+            { label: 'Clear Map', action: () => { if(confirm('Clear map?')) this.devMode.clearMap(); } },
+            { label: 'Exit Dev Mode', action: () => this.devMode.disable() }
+        ]);
+
+        // Edit Menu
+        this._createMenu(bar, 'Edit', [
+            { label: 'Undo', shortcut: 'Ctrl+Z', action: () => this.devMode.history.undo() },
+            { label: 'Redo', shortcut: 'Ctrl+Y', action: () => this.devMode.history.redo() },
+            { separator: true },
+            { label: 'Copy', shortcut: 'Ctrl+C', action: () => this.devMode.copySelected() },
+            { label: 'Paste', shortcut: 'Ctrl+V', action: () => this.devMode.pasteClipboard() },
+            { label: 'Duplicate', shortcut: 'Ctrl+D', action: () => this.devMode.duplicateSelected() },
+            { label: 'Delete', shortcut: 'Del', action: () => this.devMode.deleteSelected() }
+        ]);
+
+        // View Menu (Tools)
+        this._createMenu(bar, 'View', [
+             { label: 'Toggle Grid', action: () => {
+                 this.devMode.grid.enabled = !this.devMode.grid.enabled;
+                 this.devMode.grid.helper.visible = this.devMode.grid.enabled;
+             }},
+             { label: 'Toggle HUD', action: () => {
+                 const hud = document.querySelector('.hud-container');
+                 if(hud) hud.style.display = hud.style.display === 'none' ? 'block' : 'none';
+             }}
+        ]);
+
+        this.container.appendChild(bar);
+
+        // Close menus when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dev-menu-btn')) {
+                document.querySelectorAll('.dev-dropdown').forEach(d => d.classList.remove('visible'));
+                document.querySelectorAll('.dev-menu-btn').forEach(b => b.classList.remove('active'));
+            }
+        });
+    }
+
+    _createMenu(parent, label, items) {
+        const container = document.createElement('div');
+        container.style.position = 'relative';
+
+        const btn = document.createElement('button');
+        btn.className = 'dev-menu-btn';
+        btn.textContent = label;
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'dev-dropdown';
+
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const wasVisible = dropdown.classList.contains('visible');
+            // Close all others
+            document.querySelectorAll('.dev-dropdown').forEach(d => d.classList.remove('visible'));
+            document.querySelectorAll('.dev-menu-btn').forEach(b => b.classList.remove('active'));
+
+            if (!wasVisible) {
+                dropdown.classList.add('visible');
+                btn.classList.add('active');
+            }
+        };
+
+        items.forEach(item => {
+            if (item.separator) {
+                const sep = document.createElement('div');
+                sep.className = 'dev-dropdown-separator';
+                dropdown.appendChild(sep);
+            } else {
+                const div = document.createElement('div');
+                div.className = 'dev-dropdown-item';
+
+                const span = document.createElement('span');
+                span.textContent = item.label;
+                div.appendChild(span);
+
+                if (item.shortcut) {
+                    const sc = document.createElement('span');
+                    sc.className = 'dev-dropdown-shortcut';
+                    sc.textContent = item.shortcut;
+                    div.appendChild(sc);
+                }
+
+                div.onclick = () => {
+                    item.action();
+                    dropdown.classList.remove('visible');
+                    btn.classList.remove('active');
+                };
+                dropdown.appendChild(div);
+            }
+        });
+
+        container.appendChild(btn);
+        container.appendChild(dropdown);
+        parent.appendChild(container);
+    }
+
+    _triggerLoad() {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none';
+        fileInput.onchange = (e) => {
+            if (e.target.files.length > 0) {
+                this.devMode.loadMap(e.target.files[0]);
+            }
+        };
+        document.body.appendChild(fileInput);
+        fileInput.click();
+        document.body.removeChild(fileInput);
+    }
+
     // --- Outliner ---
     _createOutliner() {
         const panel = this._createPanel('dev-outliner', 'World Outliner');
@@ -141,7 +265,8 @@ export class BuildUI {
                     item.onclick = (e) => {
                         // Don't trigger if clicked on visibility toggle
                         if (e.target.classList.contains('dev-outliner-visibility')) return;
-                        this.devMode.selectObject(entity.mesh);
+                        // Multi-select with shift
+                        this.devMode.selectObject(entity.mesh, e.shiftKey);
                     };
 
                     const name = document.createElement('span');
@@ -154,9 +279,6 @@ export class BuildUI {
                     vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'hidden'}`;
                     vis.title = 'Toggle Visibility';
                     vis.onclick = (e) => {
-                        // Handled in item.onclick check, but better to stop propagation here
-                        // Actually propagation will hit item.onclick.
-                        // I added check in item.onclick.
                         entity.mesh.visible = !entity.mesh.visible;
                         vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'hidden'}`;
                     };
@@ -231,101 +353,112 @@ export class BuildUI {
         // Header
         const header = document.createElement('div');
         header.className = 'dev-prop-title';
-        header.textContent = obj.userData.type || 'Object';
+        header.textContent = selection.length > 1 ? `${selection.length} Objects Selected` : (obj.userData.type || 'Object');
         this.inspector.appendChild(header);
 
         // Transform
-        this._addPropGroup('Transform', [
-            this._createVectorInput('Position', obj.position, (v) => this._applyTransform(obj, 'position', v)),
-            this._createVectorInput('Rotation', obj.rotation, (v) => this._applyTransform(obj, 'rotation', v), true),
-            this._createVectorInput('Scale', obj.scale, (v) => this._applyTransform(obj, 'scale', v))
-        ]);
+        if (selection.length === 1) {
+            this._addPropGroup('Transform', [
+                this._createVectorInput('Position', obj.position, (v) => this._applyTransform(obj, 'position', v)),
+                this._createVectorInput('Rotation', obj.rotation, (v) => this._applyTransform(obj, 'rotation', v), true),
+                this._createVectorInput('Scale', obj.scale, (v) => this._applyTransform(obj, 'scale', v))
+            ]);
+        } else {
+             // Multi-select transform handled by gizmo mostly, but could show centroid here?
+             // For now, minimal multi-select UI
+             this.inspector.innerHTML += '<div style="color:#888;">Use Gizmo to transform selection.</div>';
+        }
 
-        // Params
-        if (obj.userData.params) {
-            const fields = [];
-            Object.keys(obj.userData.params).forEach(key => {
-                if (key === 'uuid' || key === 'type') return;
-                const val = obj.userData.params[key];
+        // Params (Single Object only)
+        if (selection.length === 1) {
+            if (obj.userData.params) {
+                const fields = [];
+                Object.keys(obj.userData.params).forEach(key => {
+                    if (key === 'uuid' || key === 'type') return;
+                    const val = obj.userData.params[key];
 
-                if (typeof val === 'number') {
-                    fields.push(this._createNumberInput(key, val, (n) => {
-                        this._applyParam(obj, key, n);
-                    }));
-                } else if (typeof val === 'string') {
-                    fields.push(this._createTextInput(key, val, (s) => {
-                        this._applyParam(obj, key, s);
-                    }));
-                } else if (typeof val === 'boolean') {
-                    fields.push(this._createCheckbox(key, val, (b) => {
-                        this._applyParam(obj, key, b);
-                    }));
+                    if (typeof val === 'number') {
+                        fields.push(this._createNumberInput(key, val, (n) => {
+                            this._applyParam(obj, key, n);
+                        }));
+                    } else if (typeof val === 'string') {
+                        fields.push(this._createTextInput(key, val, (s) => {
+                            this._applyParam(obj, key, s);
+                        }));
+                    } else if (typeof val === 'boolean') {
+                        fields.push(this._createCheckbox(key, val, (b) => {
+                            this._applyParam(obj, key, b);
+                        }));
+                    }
+                });
+                if (fields.length > 0) {
+                    this._addPropGroup('Parameters', fields);
                 }
-            });
-            if (fields.length > 0) {
-                this._addPropGroup('Parameters', fields);
+            }
+
+            // Waypoints (Vehicles)
+            if (obj.userData.isVehicle) {
+                this._renderWaypoints(obj);
             }
         }
 
         // Delete Button
         const delBtn = document.createElement('button');
         delBtn.className = 'dev-btn dev-btn-danger';
-        delBtn.textContent = 'Delete Object';
+        delBtn.textContent = 'Delete Selected';
         delBtn.style.marginTop = '10px';
         delBtn.onclick = () => this.devMode.deleteSelected();
         this.inspector.appendChild(delBtn);
+    }
+
+    _renderWaypoints(obj) {
+        const wpCount = obj.userData.waypoints ? obj.userData.waypoints.length : 0;
+
+        const group = document.createElement('div');
+        group.className = 'dev-prop-group';
+
+        const title = document.createElement('div');
+        title.className = 'dev-prop-title';
+        title.textContent = `Waypoints (${wpCount})`;
+        group.appendChild(title);
+
+        const row = document.createElement('div');
+        row.className = 'dev-btn-row';
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'dev-btn';
+        addBtn.textContent = 'Add';
+        addBtn.title = 'Add waypoint after selection or at end';
+        addBtn.onclick = () => this.devMode.addWaypointToSelected();
+        row.appendChild(addBtn);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'dev-btn';
+        removeBtn.textContent = 'Remove Last';
+        removeBtn.onclick = () => this.devMode.removeWaypointFromSelected();
+        row.appendChild(removeBtn);
+
+        group.appendChild(row);
+
+        // Wait Time Control (Specific to Vehicles usually)
+        if (obj.userData.waitTime !== undefined) {
+             const waitRow = this._createNumberInput('Wait Time (s)', obj.userData.waitTime, (val) => {
+                 obj.userData.waitTime = val;
+                 // Also update params if it exists there to be safe
+                 if (obj.userData.params) obj.userData.params.waitTime = val;
+             });
+             group.appendChild(waitRow);
+        }
+
+        this.inspector.appendChild(group);
     }
 
     _renderWorldControls() {
         const container = document.createElement('div');
         container.className = 'dev-system-section';
 
-        // 1. Map Controls
-        const mapGroup = document.createElement('div');
-        mapGroup.innerHTML = '<div class="dev-prop-title">Map</div>';
-
-        const row1 = document.createElement('div');
-        row1.className = 'dev-btn-row';
-
-        const saveBtn = document.createElement('button');
-        saveBtn.className = 'dev-btn';
-        saveBtn.textContent = 'Save Map (Ctrl+S)';
-        saveBtn.onclick = () => this.devMode.saveMap();
-        row1.appendChild(saveBtn);
-
-        const loadBtn = document.createElement('label');
-        loadBtn.className = 'dev-btn';
-        loadBtn.textContent = 'Load Map...';
-        loadBtn.style.display = 'block';
-        const fileInput = document.createElement('input');
-        fileInput.type = 'file';
-        fileInput.accept = '.json';
-        fileInput.style.display = 'none';
-        fileInput.onchange = (e) => {
-            if (e.target.files.length > 0) {
-                this.devMode.loadMap(e.target.files[0]);
-            }
-        };
-        loadBtn.appendChild(fileInput);
-        row1.appendChild(loadBtn);
-
-        mapGroup.appendChild(row1);
-
-        const clearBtn = document.createElement('button');
-        clearBtn.className = 'dev-btn dev-btn-danger';
-        clearBtn.textContent = 'Clear Map';
-        clearBtn.onclick = () => {
-            if (confirm('Are you sure you want to clear the map?')) {
-                this.devMode.clearMap();
-            }
-        };
-        mapGroup.appendChild(clearBtn);
-
-        container.appendChild(mapGroup);
-
-        // 2. Environment
+        // Environment
         const envGroup = document.createElement('div');
-        envGroup.style.marginTop = '20px';
         envGroup.innerHTML = '<div class="dev-prop-title">Environment</div>';
 
         // Time of Day
@@ -346,7 +479,6 @@ export class BuildUI {
             slider.value = tc.time;
             slider.oninput = (e) => {
                 tc.time = parseFloat(e.target.value);
-                // Force update? TimeCycle updates every frame.
             };
             sliderRow.appendChild(slider);
             envGroup.appendChild(sliderRow);
@@ -355,12 +487,11 @@ export class BuildUI {
             const speedRow = this._createNumberInput('Speed', tc.speed, (v) => tc.speed = v);
             envGroup.appendChild(speedRow);
 
-            // Pause Time Checkbox
-            // Assuming timeLocked exists or similar?
-            // checking world.js memory: "The World class serializes timeOfDay, daySpeed, and timeLocked"
-            // So world has timeLocked.
-            const lockedRow = this._createCheckbox('Time Locked', this.devMode.app.world.timeLocked, (b) => {
-                this.devMode.app.world.timeLocked = b;
+            // Time Locked
+            const lockedRow = this._createCheckbox('Time Locked', tc.isLocked, (b) => {
+                tc.isLocked = b;
+                // Also update persistent world setting if needed, but TimeCycle is authoritative at runtime
+                // The serialize function reads from tc.isLocked anyway via environment object
             });
             envGroup.appendChild(lockedRow);
         }
@@ -376,7 +507,6 @@ export class BuildUI {
         }
 
         container.appendChild(envGroup);
-
         this.inspector.appendChild(container);
     }
 
@@ -385,9 +515,11 @@ export class BuildUI {
         if (!selection || selection.length === 0) return;
         const obj = selection[0];
 
-        this._syncVectorInput('Position', obj.position);
-        this._syncVectorInput('Rotation', obj.rotation, true);
-        this._syncVectorInput('Scale', obj.scale);
+        if (selection.length === 1) {
+            this._syncVectorInput('Position', obj.position);
+            this._syncVectorInput('Rotation', obj.rotation, true);
+            this._syncVectorInput('Scale', obj.scale);
+        }
     }
 
     // --- Palette ---

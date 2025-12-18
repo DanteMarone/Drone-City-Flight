@@ -389,6 +389,91 @@ body {
     font-size: 12px;
 }
 
+/* Top Bar */
+.dev-top-bar {
+    pointer-events: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #444;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 4px;
+    z-index: 2001;
+}
+
+.dev-menu-btn {
+    background: transparent;
+    border: none;
+    color: #ddd;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    position: relative;
+    border-radius: 3px;
+}
+
+.dev-menu-btn:hover {
+    background: #444;
+    color: #fff;
+}
+
+.dev-menu-btn.active {
+    background: #2196F3;
+    color: white;
+}
+
+.dev-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    min-width: 150px;
+    display: none;
+    flex-direction: column;
+    padding: 4px 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    z-index: 2002;
+}
+
+.dev-dropdown.visible {
+    display: flex;
+}
+
+.dev-dropdown-item {
+    padding: 6px 16px;
+    cursor: pointer;
+    color: #ccc;
+    display: flex;
+    justify-content: space-between;
+}
+
+.dev-dropdown-item:hover {
+    background: #2196F3;
+    color: white;
+}
+
+.dev-dropdown-separator {
+    height: 1px;
+    background: #444;
+    margin: 4px 0;
+}
+
+.dev-dropdown-shortcut {
+    color: #666;
+    font-size: 10px;
+    margin-left: 10px;
+}
+.dev-dropdown-item:hover .dev-dropdown-shortcut {
+    color: #ddd;
+}
+
+
 /* Common Panel Styles */
 .dev-panel {
     pointer-events: auto;
@@ -420,7 +505,7 @@ body {
 .dev-outliner {
     position: absolute;
     left: 10px;
-    top: 60px;
+    top: 45px; /* Shifted down for top bar */
     bottom: 240px; /* Space for palette */
     width: 260px;
     border-radius: 4px;
@@ -494,7 +579,7 @@ body {
 .dev-inspector {
     position: absolute;
     right: 10px;
-    top: 60px;
+    top: 45px; /* Shifted down for top bar */
     bottom: 60px;
     width: 280px;
     border-radius: 4px;
@@ -631,7 +716,7 @@ body {
 .dev-history {
     position: absolute;
     left: 280px;
-    top: 60px;
+    top: 45px; /* Shifted */
     width: 200px;
     max-height: 200px;
     overflow: hidden;
@@ -656,7 +741,7 @@ body {
 
 .dev-save-indicator {
     position: absolute;
-    top: 15px;
+    top: 50px; /* Shifted */
     right: 320px;
     background: #222;
     padding: 5px 10px;

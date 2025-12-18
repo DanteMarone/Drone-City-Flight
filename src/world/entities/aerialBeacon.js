@@ -130,13 +130,17 @@ export class AerialBeaconEntity extends BaseEntity {
 
         // Register virtual light for night guidance
         if (params.lightSystem) {
-            this.lightHandle = params.lightSystem.register({
-                position: new THREE.Vector3(0, headHeight + 0.8, 0),
-                color: 0x66ccff,
-                intensity: 1.0,
-                range: 18,
-                parentMesh: group
-            });
+            const lightAnchor = new THREE.Object3D();
+            lightAnchor.position.set(0, headHeight + 0.8, 0);
+            group.add(lightAnchor);
+
+            this.lightHandle = params.lightSystem.register(
+                lightAnchor.getWorldPosition(new THREE.Vector3()),
+                0x66ccff,
+                1.0,
+                18
+            );
+            this.lightHandle.parentMesh = lightAnchor;
         }
 
         return group;

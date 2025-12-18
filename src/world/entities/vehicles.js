@@ -13,15 +13,16 @@ const _dir = new THREE.Vector3();
 export class VehicleEntity extends BaseEntity {
     constructor(params) {
         super(params);
-        this.waypoints = (params.waypoints || []).map(w => new THREE.Vector3(w.x, w.y, w.z));
-        this.currentWaypointIndex = 0;
+        // Ensure robust waypoint loading: handle both {x,y,z} objects and Vector3s
+        this.waypoints = (params.waypoints || []).map(w => new THREE.Vector3(w.x || 0, w.y || 0, w.z || 0));
+        this.targetIndex = params.targetIndex !== undefined ? params.targetIndex : 1; // Load saved index or default to 1
         this.baseSpeed = 0;
     }
 
     postInit() {
         if (this.mesh) {
             this.mesh.userData.waypoints = this.waypoints;
-            this.mesh.userData.targetIndex = 1;
+            this.mesh.userData.targetIndex = this.targetIndex; // Restore saved target index
             this.mesh.userData.isVehicle = true;
 
             this._createWaypointVisuals();
@@ -175,11 +176,17 @@ export class VehicleEntity extends BaseEntity {
 
     serialize() {
         const data = super.serialize();
-        if (this.mesh && this.mesh.userData.waypoints) {
-            data.params.waypoints = this.mesh.userData.waypoints;
-        } else {
-            data.params.waypoints = this.waypoints;
+        if (!data) return null; // Defensive check
+
+        // Serialize waypoints as plain objects to ensure clean JSON
+        const points = (this.mesh && this.mesh.userData.waypoints) ? this.mesh.userData.waypoints : this.waypoints;
+        data.params.waypoints = points.map(p => ({ x: p.x, y: p.y, z: p.z }));
+
+        // Save current progress
+        if (this.mesh && this.mesh.userData.targetIndex !== undefined) {
+            data.params.targetIndex = this.mesh.userData.targetIndex;
         }
+
         return data;
     }
 }

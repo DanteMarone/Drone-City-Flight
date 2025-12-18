@@ -476,7 +476,7 @@ export function setupDragDrop(interaction, container) {
                     interaction.devMode.selectObject(entity.mesh);
                     interaction.devMode._recordCreation([entity.mesh], 'Create object');
 
-                    if (entity.mesh.userData.isVehicle && interaction.devMode.enabled) {
+                    if ((entity.mesh.userData.isVehicle || entity.mesh.userData.isPath) && interaction.devMode.enabled) {
                         const wg = entity.mesh.userData.waypointGroup;
                         if (wg) {
                             wg.visible = true;

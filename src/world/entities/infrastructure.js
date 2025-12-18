@@ -57,14 +57,22 @@ export class RiverEntity extends BaseEntity {
         super(params);
         this.type = 'river';
         this.waypoints = (params.waypoints || []).map(w => new THREE.Vector3(w.x, w.y, w.z));
+
+        // Ensure we have at least one waypoint to form a segment (Mesh Pos -> Waypoint 0)
+        if (this.waypoints.length === 0) {
+            // Default segment length 50 along Z
+            const x = params.x || 0;
+            const y = params.y || 0;
+            const z = params.z || 0;
+            this.waypoints.push(new THREE.Vector3(x, y, z + 50));
+        }
+
         this.time = 0;
     }
 
     static get displayName() { return 'River'; }
 
     createMesh(params) {
-        // Initial Mesh - will be rebuilt by rebuildGeometry
-        // We start with a placeholder to be safe
         const geometry = new THREE.BufferGeometry();
 
         const uniforms = {
@@ -142,7 +150,7 @@ export class RiverEntity extends BaseEntity {
         if (this.mesh) {
             // Setup for DevMode interactions
             this.mesh.userData.waypoints = this.waypoints;
-            this.mesh.userData.isPath = true; // Signals DevMode to handle like a path
+            this.mesh.userData.isPath = true;
 
             // Initial build
             this.rebuildGeometry();
@@ -153,18 +161,11 @@ export class RiverEntity extends BaseEntity {
     }
 
     _createWaypointVisuals() {
-        // River handles its own visuals for now, or DevMode can do it?
-        // To be consistent with VehicleEntity, we create a group and attach it to userData
-        // But DevMode usually manages visibility.
         this.waypointGroup = new THREE.Group();
         this.waypointGroup.name = 'waypointVisuals_WorldSpace';
         this.waypointGroup.visible = false;
         this.mesh.userData.waypointGroup = this.waypointGroup;
 
-        // Use DevMode logic to sync visuals (handled by DevMode._syncWaypointVisuals if isPath is supported)
-        // But we need to prepopulate if DevMode calls aren't immediate.
-        // Actually, let's let DevMode handle it if we flag it correctly,
-        // OR we implement _refreshWaypointVisuals like VehicleEntity.
         this._refreshWaypointVisuals();
     }
 
@@ -174,8 +175,9 @@ export class RiverEntity extends BaseEntity {
             this.waypointGroup.remove(this.waypointGroup.children[0]);
         }
 
-        const orbGeo = new THREE.SphereGeometry(1.0, 16, 16); // Larger orbs for River
-        const orbMat = new THREE.MeshBasicMaterial({ color: 0x00ffff }); // Cyan for water
+        // Use 0.5 radius to match DevMode defaults for consistency
+        const orbGeo = new THREE.SphereGeometry(0.5, 16, 16);
+        const orbMat = new THREE.MeshBasicMaterial({ color: 0x00ffff }); // Cyan
 
         this.waypoints.forEach((pos, i) => {
             const orb = new THREE.Mesh(orbGeo, orbMat);
@@ -198,32 +200,22 @@ export class RiverEntity extends BaseEntity {
     rebuildGeometry() {
         if (!this.mesh) return;
 
-        // Collect all points: Start (Mesh Pos) -> Waypoints
-        // Points are in World Space
         const worldPoints = [this.mesh.position.clone(), ...(this.mesh.userData.waypoints || this.waypoints)];
 
         if (worldPoints.length < 2) {
-            // Need at least 2 points
             return;
         }
 
-        // Convert to Local Space relative to Mesh Position
-        // Mesh Position is the origin (0,0,0) in Local Space
         const points = worldPoints.map(p => p.clone().sub(this.mesh.position));
 
         const curve = new THREE.CatmullRomCurve3(points);
         const width = this.params.width || 40;
-        const segments = points.length * 20; // Resolution based on length
+        const segments = Math.max(20, points.length * 20);
 
         const geometry = this._generateRibbonGeometry(curve, width, segments);
 
         if (this.mesh.geometry) this.mesh.geometry.dispose();
         this.mesh.geometry = geometry;
-
-        // Update collider?
-        // River doesn't really need a collider for physics (unless we float?),
-        // but for raycasting in DevMode we might need something.
-        // The mesh itself is a ribbon, raycasting should hit it if side=DoubleSide.
     }
 
     _generateRibbonGeometry(curve, width, segments) {
@@ -249,11 +241,9 @@ export class RiverEntity extends BaseEntity {
 
             const side = new THREE.Vector3().crossVectors(up, tangent).normalize().multiplyScalar(width / 2);
 
-            // Left and Right vertices
             const v1 = p.clone().add(side);
             const v2 = p.clone().sub(side);
 
-            // Raise slightly to avoid z-fighting with ground
             const yOffset = 1.0;
 
             vertices.push(v1.x, v1.y + yOffset, v1.z);
@@ -291,7 +281,6 @@ export class RiverEntity extends BaseEntity {
 
     serialize() {
         const data = super.serialize();
-        // Persist waypoints
         data.params.waypoints = this.mesh?.userData?.waypoints || this.waypoints;
         return data;
     }
@@ -306,24 +295,23 @@ export class SidewalkEntity extends BaseEntity {
     static get displayName() { return 'Sidewalk'; }
 
     createMesh(params) {
-        // 1 unit wide, 5 units long
         const w = 1;
         const l = 5;
         const h = 0.2;
 
         const geo = new THREE.BoxGeometry(w, h, l);
-        geo.translate(0, h / 2, 0); // Sit on ground
+        geo.translate(0, h / 2, 0);
 
         const concreteTex = TextureGenerator.createConcrete();
         const sidewalkTex = TextureGenerator.createSidewalk();
 
         const materials = [
-            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // px
-            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // nx
-            new THREE.MeshStandardMaterial({ map: sidewalkTex, color: 0xffffff, roughness: 0.8 }), // py (Top)
-            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // ny (Bottom)
-            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // pz
-            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }), // nz
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }),
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }),
+            new THREE.MeshStandardMaterial({ map: sidewalkTex, color: 0xffffff, roughness: 0.8 }),
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }),
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }),
+            new THREE.MeshStandardMaterial({ map: concreteTex, color: 0xaaaaaa, roughness: 0.8 }),
         ];
 
         const mesh = new THREE.Mesh(geo, materials);

@@ -20,6 +20,7 @@ import { CONFIG } from '../config.js';
 import { DevMode } from '../dev/devMode.js';
 import { Skybox } from '../world/skybox.js';
 import { CloudSystem } from '../world/clouds.js';
+import { WaterSystem } from '../world/water.js';
 import { PhotoMode } from '../ui/photoMode.js';
 
 export class App {
@@ -62,6 +63,7 @@ export class App {
 
         this.skybox = new Skybox(this.renderer.scene);
         this.cloudSystem = new CloudSystem(this.renderer.scene);
+        this.waterSystem = new WaterSystem(this.renderer.scene);
 
         this.cameraController = new CameraController(this.renderer.camera, this.drone);
 
@@ -119,6 +121,9 @@ export class App {
             }
             if (this.cloudSystem) {
                 this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
+            }
+            if (this.waterSystem) {
+                this.waterSystem.update(dt);
             }
             // Update light system even in Dev Mode for accurate visuals
             if (this.world) {
@@ -251,6 +256,10 @@ export class App {
 
         if (this.cloudSystem) {
             this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
+        }
+
+        if (this.waterSystem) {
+            this.waterSystem.update(dt);
         }
 
         this.input.resetFrame();

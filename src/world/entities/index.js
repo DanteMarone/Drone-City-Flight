@@ -34,6 +34,7 @@ export { VendingMachineEntity } from './vendingMachine.js';
 export { FuturisticVendingMachineEntity } from './futuristicVendingMachine.js';
 export { WindTurbineEntity } from './windTurbine.js';
 export { ScooterDockEntity } from './scooterDock.js';
+export { BoostGateEntity } from './boostGate.js';
 
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated

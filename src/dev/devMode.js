@@ -485,11 +485,7 @@ export class DevMode {
 
         this.gizmo.attach(this.selectedObjects);
 
-        if (this.selectedObjects.length > 1) {
-            this.ui.showProperties(this.gizmo.proxy);
-        } else {
-            this.ui.showProperties(this.selectedObjects[0]);
-        }
+        if (this.ui && this.ui.onSelectionChanged) this.ui.onSelectionChanged();
     }
 
     _handleShortcuts(e) {

@@ -16,6 +16,9 @@ export class BuildUI {
         this.expandedGroups = new Set(['Infrastructure', 'Residential', 'Vehicles', 'Nature', 'Props', 'Misc']);
         this.thumbnails = new Map();
 
+        // Inspector State
+        this.inspectorTab = 'Properties'; // 'Properties' | 'World'
+
         // For polling/updates
         this.lastHistoryLen = 0;
         this.needsOutlinerUpdate = true;
@@ -60,10 +63,8 @@ export class BuildUI {
         if (this.container.style.display === 'none') return;
 
         // Sync Inspector
-        if (this.devMode.selectedObjects.length > 0) {
+        if (this.inspectorTab === 'Properties' && this.devMode.selectedObjects.length > 0) {
             this._syncInspector();
-        } else {
-             // Maybe clear inspector if it was showing something
         }
 
         // Check History updates
@@ -78,8 +79,19 @@ export class BuildUI {
     }
 
     onSelectionChanged() {
+        // Auto-switch to Properties if object selected
+        if (this.devMode.selectedObjects.length > 0) {
+            this.inspectorTab = 'Properties';
+        }
         this.refreshInspector();
         this.refreshOutliner(); // To update selection highlight
+    }
+
+    updateProperties(obj) {
+        // Compatibility method for high-frequency updates (e.g. dragging)
+        if (this.inspectorTab === 'Properties') {
+            this._syncInspector();
+        }
     }
 
     // --- Outliner ---
@@ -125,12 +137,16 @@ export class BuildUI {
                     const isSelected = this.devMode.selectedObjects.includes(entity.mesh);
                     item.className = `dev-outliner-item ${isSelected ? 'selected' : ''}`;
 
+                    // Allow clicking anywhere on row to select
+                    item.onclick = (e) => {
+                        // Don't trigger if clicked on visibility toggle
+                        if (e.target.classList.contains('dev-outliner-visibility')) return;
+                        this.devMode.selectObject(entity.mesh);
+                    };
+
                     const name = document.createElement('span');
                     const displayName = entity.constructor.displayName || entity.type || 'Object';
                     name.textContent = displayName;
-                    name.onclick = () => {
-                        this.devMode.selectObject(entity.mesh);
-                    };
                     item.appendChild(name);
 
                     // Visibility Toggle
@@ -138,7 +154,9 @@ export class BuildUI {
                     vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'hidden'}`;
                     vis.title = 'Toggle Visibility';
                     vis.onclick = (e) => {
-                        e.stopPropagation();
+                        // Handled in item.onclick check, but better to stop propagation here
+                        // Actually propagation will hit item.onclick.
+                        // I added check in item.onclick.
                         entity.mesh.visible = !entity.mesh.visible;
                         vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'hidden'}`;
                     };
@@ -153,10 +171,33 @@ export class BuildUI {
 
     // --- Inspector ---
     _createInspector() {
-        const panel = this._createPanel('dev-inspector', 'Properties');
-        this.inspector = document.createElement('div');
-        this.inspector.className = 'dev-inspector-content';
-        panel.appendChild(this.inspector);
+        const panel = this._createPanel('dev-inspector', 'Properties'); // Title will be overwritten by tabs
+        // Clear header to insert tabs
+        panel.innerHTML = '';
+
+        // Tabs Container
+        const tabs = document.createElement('div');
+        tabs.className = 'dev-inspector-tabs';
+
+        ['Properties', 'World'].forEach(t => {
+            const tab = document.createElement('div');
+            tab.className = `dev-inspector-tab`;
+            tab.textContent = t;
+            tab.dataset.tab = t;
+            tab.onclick = () => {
+                this.inspectorTab = t;
+                this.refreshInspector();
+            };
+            tabs.appendChild(tab);
+        });
+        panel.appendChild(tabs);
+
+        const content = document.createElement('div');
+        content.className = 'dev-inspector-content';
+        panel.appendChild(content);
+
+        this.inspectorPanel = panel; // Reference to full panel if needed
+        this.inspector = content; // Content area
         this.container.appendChild(panel);
     }
 
@@ -164,13 +205,28 @@ export class BuildUI {
         if (!this.inspector) return;
         this.inspector.innerHTML = '';
 
+        // Update Tabs Active State
+        const tabs = this.container.querySelectorAll('.dev-inspector-tab');
+        tabs.forEach(t => {
+            if (t.dataset.tab === this.inspectorTab) t.classList.add('active');
+            else t.classList.remove('active');
+        });
+
+        if (this.inspectorTab === 'Properties') {
+            this._renderProperties();
+        } else {
+            this._renderWorldControls();
+        }
+    }
+
+    _renderProperties() {
         const selection = this.devMode.selectedObjects;
         if (!selection || selection.length === 0) {
             this.inspector.innerHTML = '<div style="color:#666; font-style:italic;">No object selected</div>';
             return;
         }
 
-        const obj = selection[0]; // Multi-edit not supported in UI v2 yet
+        const obj = selection[0];
 
         // Header
         const header = document.createElement('div');
@@ -213,20 +269,120 @@ export class BuildUI {
 
         // Delete Button
         const delBtn = document.createElement('button');
+        delBtn.className = 'dev-btn dev-btn-danger';
         delBtn.textContent = 'Delete Object';
-        delBtn.style.width = '100%';
-        delBtn.style.padding = '8px';
-        delBtn.style.background = '#d32f2f';
-        delBtn.style.color = 'white';
-        delBtn.style.border = 'none';
-        delBtn.style.cursor = 'pointer';
+        delBtn.style.marginTop = '10px';
         delBtn.onclick = () => this.devMode.deleteSelected();
         this.inspector.appendChild(delBtn);
     }
 
+    _renderWorldControls() {
+        const container = document.createElement('div');
+        container.className = 'dev-system-section';
+
+        // 1. Map Controls
+        const mapGroup = document.createElement('div');
+        mapGroup.innerHTML = '<div class="dev-prop-title">Map</div>';
+
+        const row1 = document.createElement('div');
+        row1.className = 'dev-btn-row';
+
+        const saveBtn = document.createElement('button');
+        saveBtn.className = 'dev-btn';
+        saveBtn.textContent = 'Save Map (Ctrl+S)';
+        saveBtn.onclick = () => this.devMode.saveMap();
+        row1.appendChild(saveBtn);
+
+        const loadBtn = document.createElement('label');
+        loadBtn.className = 'dev-btn';
+        loadBtn.textContent = 'Load Map...';
+        loadBtn.style.display = 'block';
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none';
+        fileInput.onchange = (e) => {
+            if (e.target.files.length > 0) {
+                this.devMode.loadMap(e.target.files[0]);
+            }
+        };
+        loadBtn.appendChild(fileInput);
+        row1.appendChild(loadBtn);
+
+        mapGroup.appendChild(row1);
+
+        const clearBtn = document.createElement('button');
+        clearBtn.className = 'dev-btn dev-btn-danger';
+        clearBtn.textContent = 'Clear Map';
+        clearBtn.onclick = () => {
+            if (confirm('Are you sure you want to clear the map?')) {
+                this.devMode.clearMap();
+            }
+        };
+        mapGroup.appendChild(clearBtn);
+
+        container.appendChild(mapGroup);
+
+        // 2. Environment
+        const envGroup = document.createElement('div');
+        envGroup.style.marginTop = '20px';
+        envGroup.innerHTML = '<div class="dev-prop-title">Environment</div>';
+
+        // Time of Day
+        if (this.devMode.app.world.timeCycle) {
+            const tc = this.devMode.app.world.timeCycle;
+
+            // Slider
+            const sliderRow = document.createElement('div');
+            sliderRow.className = 'dev-prop-row';
+            sliderRow.innerHTML = '<div class="dev-prop-label">Time</div>';
+
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.min = '0';
+            slider.max = '24';
+            slider.step = '0.1';
+            slider.style.flex = '1';
+            slider.value = tc.time;
+            slider.oninput = (e) => {
+                tc.time = parseFloat(e.target.value);
+                // Force update? TimeCycle updates every frame.
+            };
+            sliderRow.appendChild(slider);
+            envGroup.appendChild(sliderRow);
+
+            // Time Speed
+            const speedRow = this._createNumberInput('Speed', tc.speed, (v) => tc.speed = v);
+            envGroup.appendChild(speedRow);
+
+            // Pause Time Checkbox
+            // Assuming timeLocked exists or similar?
+            // checking world.js memory: "The World class serializes timeOfDay, daySpeed, and timeLocked"
+            // So world has timeLocked.
+            const lockedRow = this._createCheckbox('Time Locked', this.devMode.app.world.timeLocked, (b) => {
+                this.devMode.app.world.timeLocked = b;
+            });
+            envGroup.appendChild(lockedRow);
+        }
+
+        // Wind
+        if (this.devMode.app.world.wind) {
+            envGroup.appendChild(document.createElement('br'));
+            envGroup.innerHTML += '<div class="dev-prop-title">Wind</div>';
+
+            const wind = this.devMode.app.world.wind;
+            envGroup.appendChild(this._createNumberInput('Speed', wind.speed, (v) => wind.speed = v));
+            envGroup.appendChild(this._createNumberInput('Direction', wind.direction, (v) => wind.direction = v));
+        }
+
+        container.appendChild(envGroup);
+
+        this.inspector.appendChild(container);
+    }
+
     _syncInspector() {
         const selection = this.devMode.selectedObjects;
-        if (selection.length === 0) return;
+        if (!selection || selection.length === 0) return;
         const obj = selection[0];
 
         this._syncVectorInput('Position', obj.position);
@@ -371,10 +527,12 @@ export class BuildUI {
     _createPanel(cls, title) {
         const p = document.createElement('div');
         p.className = `dev-panel ${cls}`;
-        const h = document.createElement('div');
-        h.className = 'dev-panel-header';
-        h.textContent = title;
-        p.appendChild(h);
+        if (title) { // Allow optional title
+            const h = document.createElement('div');
+            h.className = 'dev-panel-header';
+            h.textContent = title;
+            p.appendChild(h);
+        }
         return p;
     }
 

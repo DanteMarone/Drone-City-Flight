@@ -673,3 +673,49 @@ body {
 @keyframes fadeOut {
     to { opacity: 0; visibility: hidden; }
 }
+
+/* Inspector Tabs */
+.dev-inspector-tabs {
+    display: flex;
+    background: #2a2a2a;
+    border-bottom: 1px solid #444;
+}
+.dev-inspector-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+}
+.dev-inspector-tab:hover { background: #333; }
+.dev-inspector-tab.active {
+    color: #fff;
+    border-bottom: 2px solid #2196F3;
+    background: #333;
+}
+
+/* System/World Controls */
+.dev-system-section {
+    padding: 10px;
+}
+.dev-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.dev-btn {
+    flex: 1;
+    padding: 6px;
+    background: #333;
+    border: 1px solid #555;
+    color: #eee;
+    cursor: pointer;
+    font-size: 11px;
+    text-align: center;
+}
+.dev-btn:hover { background: #444; }
+.dev-btn:active { background: #2196F3; }
+.dev-btn-danger { background: #522; border-color: #833; }
+.dev-btn-danger:hover { background: #733; }

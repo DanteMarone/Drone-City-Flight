@@ -36,6 +36,7 @@ export { WindTurbineEntity } from './windTurbine.js';
 export { ScooterDockEntity } from './scooterDock.js';
 export { FuturisticMailboxEntity } from './futuristicMailbox.js';
 export { PowerTransformerAlternateEntity } from './powerTransformerAlternate.js';
+export { FuturisticEmergencySirenEntity } from './futuristicEmergencySiren.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

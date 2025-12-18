@@ -3,10 +3,10 @@ import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 import { TextureGenerator } from '../../utils/textures.js';
 
-export class EmergencySirenTowerEntity extends BaseEntity {
+export class FuturisticEmergencySirenEntity extends BaseEntity {
     constructor(params = {}) {
         super(params);
-        this.type = 'emergencySirenTower';
+        this.type = 'futuristicEmergencySiren';
         this._time = 0;
         this._sirenHub = null;
         this._lightMaterials = [];
@@ -15,7 +15,7 @@ export class EmergencySirenTowerEntity extends BaseEntity {
         this._baseRotation = this.rotation.clone();
     }
 
-    static get displayName() { return 'Emergency Siren Tower'; }
+    static get displayName() { return 'Futuristic Emergency Siren'; }
 
     createMesh(params) {
         const group = new THREE.Group();
@@ -258,4 +258,4 @@ export class EmergencySirenTowerEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('emergencySirenTower', EmergencySirenTowerEntity);
+EntityRegistry.register('futuristicEmergencySiren', FuturisticEmergencySirenEntity);

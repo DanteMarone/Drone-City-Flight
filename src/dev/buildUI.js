@@ -87,6 +87,7 @@ export class BuildUI {
             </div>
             <div style="display:flex; gap:5px; margin-top:5px;">
                 <button id="dev-tool-road" style="flex:1; font-size:0.8em;">Road Tool</button>
+                <button id="dev-tool-river" style="flex:1; font-size:0.8em;">River Tool</button>
             </div>
 
             <div style="display:flex; gap:5px; margin-top:5px;">
@@ -318,6 +319,7 @@ export class BuildUI {
 
         const entries = Array.from(EntityRegistry.registry.entries());
         entries
+            .filter(([type]) => type !== 'river')
             .map(([type, classRef]) => ({ type, name: this._formatDisplayName(type, classRef) }))
             .sort((a, b) => a.name.localeCompare(b.name))
             .forEach(({ type, name }) => {
@@ -499,6 +501,10 @@ export class BuildUI {
 
         this.dom.querySelector('#dev-tool-road').onclick = () => {
             this.devMode.setPlacementMode('road');
+        };
+
+        this.dom.querySelector('#dev-tool-river').onclick = () => {
+            this.devMode.setPlacementMode('river');
         };
 
         this.dom.querySelector('#dev-undo').onclick = () => {

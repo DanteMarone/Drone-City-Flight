@@ -3,11 +3,13 @@ import * as THREE from 'three';
 import { ObjectFactory } from '../world/factory.js';
 import { TransformCommand } from './history.js';
 import { EntityRegistry } from '../world/entities/index.js';
+import { RiverTool } from './riverTool.js';
 
 export class InteractionManager {
     constructor(app, devMode) {
         this.app = app;
         this.devMode = devMode;
+        this.riverTool = new RiverTool(app, devMode);
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
 
@@ -59,6 +61,9 @@ export class InteractionManager {
     }
 
     cancelPlacement() {
+        if (this.devMode.placementMode === 'river') {
+            this.riverTool.deactivate();
+        }
         this.activePlacement = null;
         this._destroyGhost();
     }
@@ -116,23 +121,39 @@ export class InteractionManager {
         const intersects = this.raycaster.intersectObjects(this.app.renderer.scene.children, true);
 
         let hit = null;
+        let priorityHit = null;
+
         for (const i of intersects) {
             let obj = i.object;
+            // Skip non-interactive helpers (except waypoints)
             if (obj.userData && obj.userData.isHelper && obj.userData.type !== 'waypoint') continue;
             if (obj.userData && obj.userData.type === 'gizmoProxy') continue;
 
-            while (obj) {
-                if (obj.userData && obj.userData.type) {
-                    hit = obj;
+            // Bubble up to find the Entity root or interactive object
+            let candidate = null;
+            let current = obj;
+            while (current) {
+                if (current.userData && current.userData.type) {
+                    candidate = current;
                     break;
                 }
-                if (obj.parent === this.app.renderer.scene) break;
-                obj = obj.parent;
+                if (current.parent === this.app.renderer.scene) break;
+                current = current.parent;
             }
-            if (hit) break;
+
+            if (candidate) {
+                // Priority Check: Waypoints take precedence
+                if (candidate.userData.type === 'waypoint') {
+                    priorityHit = candidate;
+                    break; // Found high priority, stop looking
+                }
+                // Store first regular hit if we haven't found one yet
+                if (!hit) hit = candidate;
+            }
         }
 
-        this.devMode.selectObject(hit, e.shiftKey);
+        // Use priority hit if found, otherwise standard hit
+        this.devMode.selectObject(priorityHit || hit, e.shiftKey);
 
         if (this.devMode.selectedObjects.length > 0) {
             this.isDragging = true;
@@ -166,6 +187,11 @@ export class InteractionManager {
 
         if (this.devMode.grid && this.devMode.grid.enabled) {
             this.devMode.grid.snap(point);
+        }
+
+        if (this.devMode.placementMode === 'river') {
+            this.riverTool.onMouseDown(point);
+            return;
         }
 
         if (!this.ghostMesh) {
@@ -223,6 +249,12 @@ export class InteractionManager {
 
         if (this.devMode.grid && this.devMode.grid.enabled) {
             this.devMode.grid.snap(point);
+        }
+
+        if (this.devMode.placementMode === 'river') {
+            if (!this.riverTool.active) this.riverTool.activate();
+            this.riverTool.onMouseMove(point);
+            return;
         }
 
         if (this.activePlacement) {

@@ -62,10 +62,12 @@ export class RooftopCellTowerEntity extends BaseEntity {
 
         // 2. Tripod Legs
         const legHeight = 2.0;
-        const legGeo = new THREE.CylinderGeometry(0.06, 0.06, Math.sqrt(legHeight*legHeight + spread*spread), 8);
+        const legRadius = 0.08;
+        const legGeo = new THREE.CylinderGeometry(legRadius, legRadius, Math.sqrt(legHeight*legHeight + spread*spread), 8);
         legGeo.translate(0, legGeo.parameters.height/2, 0); // Pivot at bottom
 
         const legAngle = Math.atan2(spread, legHeight);
+        const footGeo = new THREE.CylinderGeometry(0.15, 0.15, 0.1, 12);
 
         for (let i = 0; i < 3; i++) {
             const angle = (i / 3) * Math.PI * 2;
@@ -83,10 +85,23 @@ export class RooftopCellTowerEntity extends BaseEntity {
 
             leg.castShadow = true;
             group.add(leg);
+
+            // Feet
+            const foot = new THREE.Mesh(footGeo, mountMat);
+            foot.position.set(x, 0.25, z);
+            foot.castShadow = true;
+            group.add(foot);
         }
 
+        // Collar at junction
+        const collarGeo = new THREE.CylinderGeometry(0.18, 0.18, 0.3, 12);
+        const collar = new THREE.Mesh(collarGeo, mountMat);
+        collar.position.y = 0.2 + legHeight;
+        collar.castShadow = true;
+        group.add(collar);
+
         // 3. Central Pole
-        const poleGeo = new THREE.CylinderGeometry(0.1, 0.1, poleHeight, 12);
+        const poleGeo = new THREE.CylinderGeometry(0.12, 0.12, poleHeight, 12); // Slightly thicker
         const pole = new THREE.Mesh(poleGeo, steelMat);
         pole.position.y = 0.2 + poleHeight / 2; // Sit on base
         pole.castShadow = true;
@@ -147,8 +162,15 @@ export class RooftopCellTowerEntity extends BaseEntity {
         const beaconY = 0.2 + poleHeight;
         const beaconGeo = new THREE.SphereGeometry(0.15, 8, 8);
         const beaconMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+
+        // Beacon Housing
+        const housingGeo = new THREE.CylinderGeometry(0.1, 0.1, 0.1, 8);
+        const housing = new THREE.Mesh(housingGeo, mountMat);
+        housing.position.y = beaconY - 0.05;
+        group.add(housing);
+
         this.beaconMesh = new THREE.Mesh(beaconGeo, beaconMat);
-        this.beaconMesh.position.y = beaconY;
+        this.beaconMesh.position.y = beaconY + 0.05;
         group.add(this.beaconMesh);
 
         // 8. Register Virtual Light

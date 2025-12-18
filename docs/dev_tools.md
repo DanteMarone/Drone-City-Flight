@@ -57,11 +57,22 @@ Implements the Command Pattern for Undo/Redo functionality.
 ## Key Workflows
 
 ### Object Creation (Drag & Drop)
+Standard placement for simple objects (e.g., trees, buildings).
 1.  **Event**: User drags an item from the Palette (HTML `dragstart`).
 2.  **Drop**: `InteractionManager` listens for `drop` on `document.body`.
 3.  **Raycast**: Calculates the world position on the ground or existing objects.
 4.  **Factory**: Calls `EntityRegistry.create()` to instantiate the mesh.
 5.  **Registration**: Adds the entity to `World` (for logic) and `ColliderSystem` (for physics).
+
+### Smart Placement Tool (Anchor & Stretch)
+Used for variable-length infrastructure (Roads, Fences) or specific placements activated via UI buttons.
+1.  **Activation**: The tool enters `placementMode` (e.g., 'road').
+2.  **Anchor (MouseDown)**: The user clicks to set the starting point (Anchor). `InteractionManager` creates a temporary "Ghost Mesh".
+3.  **Stretch (MouseMove)**: As the user drags, the tool calculates the vector from Anchor to Current Mouse Position.
+    *   **Axis Locking**: If Grid Snap is enabled, the tool forces the vector to align with the X or Z axis.
+    *   **Integer Snapping**: For roads, the length is rounded to the nearest integer to ensure texture alignment.
+    *   **Visuals**: The Ghost Mesh is scaled and rotated in real-time to preview the result.
+4.  **Place (MouseUp)**: The object is finalized with the calculated position, rotation, and scale. The collider is rebuilt to match the new dimensions.
 
 ### Selection & Transformation
 1.  **Click**: `InteractionManager` raycasts to find a mesh.
@@ -103,6 +114,8 @@ When loading, `App.loadMap` clears the world and iterates this list, asking `Ent
 | **W, A, S, D** | Move Camera (Free Fly) |
 | **Q, E** | Move Camera Up/Down |
 | **Right Mouse** | Rotate Camera (Look) |
+| **Shift + Click** | Multi-Select Objects |
+| **Delete** | Delete Selection |
 | **Ctrl + Z** | Undo |
 | **Ctrl + Y** | Redo |
 | **Ctrl + C** | Copy Selection |

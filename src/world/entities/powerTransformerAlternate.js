@@ -3,16 +3,16 @@ import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 import { TextureGenerator } from '../../utils/textures.js';
 
-export class PowerTransformerEntity extends BaseEntity {
+export class PowerTransformerAlternateEntity extends BaseEntity {
     constructor(params = {}) {
         super(params);
-        this.type = 'powerTransformer';
+        this.type = 'powerTransformerAlternate';
         this.elapsed = Math.random() * Math.PI * 2;
         this.statusLight = null;
         this.lightHandle = null;
     }
 
-    static get displayName() { return 'Power Transformer'; }
+    static get displayName() { return 'Power Transformer Alternate'; }
 
     createMesh(params) {
         const group = new THREE.Group();
@@ -167,4 +167,4 @@ export class PowerTransformerEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('powerTransformer', PowerTransformerEntity);
+EntityRegistry.register('powerTransformerAlternate', PowerTransformerAlternateEntity);

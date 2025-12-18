@@ -3,10 +3,10 @@ import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 import { TextureGenerator } from '../../utils/textures.js';
 
-export class MailboxEntity extends BaseEntity {
+export class FuturisticMailboxEntity extends BaseEntity {
     constructor(params = {}) {
         super(params);
-        this.type = 'mailbox';
+        this.type = 'futuristicMailbox';
         this._time = 0;
         this._flagPivot = null;
         this._indicatorMaterial = null;
@@ -14,7 +14,7 @@ export class MailboxEntity extends BaseEntity {
         this._lightLocalPos = null;
     }
 
-    static get displayName() { return 'Mailbox'; }
+    static get displayName() { return 'Futuristic Mailbox'; }
 
     createMesh(params) {
         const group = new THREE.Group();
@@ -165,4 +165,4 @@ export class MailboxEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('mailbox', MailboxEntity);
+EntityRegistry.register('futuristicMailbox', FuturisticMailboxEntity);

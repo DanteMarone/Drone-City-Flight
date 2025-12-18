@@ -34,6 +34,7 @@ export { VendingMachineEntity } from './vendingMachine.js';
 export { FuturisticVendingMachineEntity } from './futuristicVendingMachine.js';
 export { WindTurbineEntity } from './windTurbine.js';
 export { ScooterDockEntity } from './scooterDock.js';
+export { BoostGateEntity } from './boostGate.js';
 export { FuturisticMailboxEntity } from './futuristicMailbox.js';
 export { PowerTransformerAlternateEntity } from './powerTransformerAlternate.js';
 export { FuturisticEmergencySirenEntity } from './futuristicEmergencySiren.js';

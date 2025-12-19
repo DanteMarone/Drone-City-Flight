@@ -253,23 +253,23 @@ export class BuildUI {
 
             <div class="dev-prop-section">
                 <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label class="dev-prop-label">X</label> <input id="prop-x" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">Y</label> <input id="prop-y" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">Z</label> <input id="prop-z" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label for="prop-x" class="dev-prop-label" title="Position X">X</label> <input id="prop-x" class="dev-prop-input" type="number" step="1" aria-label="Position X"></div>
+                    <div class="dev-prop-pair"><label for="prop-y" class="dev-prop-label" title="Position Y">Y</label> <input id="prop-y" class="dev-prop-input" type="number" step="1" aria-label="Position Y"></div>
+                    <div class="dev-prop-pair"><label for="prop-z" class="dev-prop-label" title="Position Z">Z</label> <input id="prop-z" class="dev-prop-input" type="number" step="1" aria-label="Position Z"></div>
                 </div>
                 <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label class="dev-prop-label">RX</label> <input id="prop-rx" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">RY</label> <input id="prop-ry" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">RZ</label> <input id="prop-rz" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label for="prop-rx" class="dev-prop-label" title="Rotation X (Degrees)">RX</label> <input id="prop-rx" class="dev-prop-input" type="number" step="1" aria-label="Rotation X (Degrees)"></div>
+                    <div class="dev-prop-pair"><label for="prop-ry" class="dev-prop-label" title="Rotation Y (Degrees)">RY</label> <input id="prop-ry" class="dev-prop-input" type="number" step="1" aria-label="Rotation Y (Degrees)"></div>
+                    <div class="dev-prop-pair"><label for="prop-rz" class="dev-prop-label" title="Rotation Z (Degrees)">RZ</label> <input id="prop-rz" class="dev-prop-input" type="number" step="1" aria-label="Rotation Z (Degrees)"></div>
                 </div>
 
                 <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label class="dev-prop-label">SX</label> <input id="prop-sx" class="dev-prop-input" type="number" step="0.1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">SY</label> <input id="prop-sy" class="dev-prop-input" type="number" step="0.1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">SZ</label> <input id="prop-sz" class="dev-prop-input" type="number" step="0.1"></div>
+                    <div class="dev-prop-pair"><label for="prop-sx" class="dev-prop-label" title="Scale X">SX</label> <input id="prop-sx" class="dev-prop-input" type="number" step="0.1" aria-label="Scale X"></div>
+                    <div class="dev-prop-pair"><label for="prop-sy" class="dev-prop-label" title="Scale Y">SY</label> <input id="prop-sy" class="dev-prop-input" type="number" step="0.1" aria-label="Scale Y"></div>
+                    <div class="dev-prop-pair"><label for="prop-sz" class="dev-prop-label" title="Scale Z">SZ</label> <input id="prop-sz" class="dev-prop-input" type="number" step="0.1" aria-label="Scale Z"></div>
                 </div>
                 <div style="display:flex; align-items:center; gap:5px;">
-                    <input type="checkbox" id="prop-scale-lock" checked> <span style="font-size:0.85em">Lock Aspect Ratio</span>
+                    <input type="checkbox" id="prop-scale-lock" checked aria-label="Lock Aspect Ratio"> <label for="prop-scale-lock" style="font-size:0.85em">Lock Aspect Ratio</label>
                 </div>
             </div>
 

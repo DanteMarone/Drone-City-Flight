@@ -2,6 +2,11 @@ import * as THREE from 'three';
 import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 
+const _tempTargetPos = new THREE.Vector3();
+const _tempForward = new THREE.Vector3();
+const _tempDir = new THREE.Vector3();
+const GRAVITY = new THREE.Vector3(0, -9.8, 0);
+
 const STYLES = [
     { name: 'Classic', pants: 0x111199, shirt: 0xcc0000, skin: 0xffccaa }, // Blue pants, Red shirt
     { name: 'Business', pants: 0x333333, shirt: 0xffffff, skin: 0xffdbac, tie: true }, // Grey/Black pants, White shirt
@@ -165,8 +170,8 @@ export class AngryPersonEntity extends BaseEntity {
         // Look at drone if relatively close
         if (dist < 40) {
             // Keep upright, rotate Y only
-            const targetPos = new THREE.Vector3(drone.position.x, this.mesh.position.y, drone.position.z);
-            this.mesh.lookAt(targetPos);
+            _tempTargetPos.set(drone.position.x, this.mesh.position.y, drone.position.z);
+            this.mesh.lookAt(_tempTargetPos);
         }
 
         // Get firing range and interval from params
@@ -195,16 +200,16 @@ export class AngryPersonEntity extends BaseEntity {
         // Start Position: Above head, slightly forward
         mesh.position.copy(this.mesh.position);
         mesh.position.y += 2.0;
-        const forward = new THREE.Vector3(0, 0, 1).applyQuaternion(this.mesh.quaternion);
-        mesh.position.addScaledVector(forward, 0.5);
+        _tempForward.set(0, 0, 1).applyQuaternion(this.mesh.quaternion);
+        mesh.position.addScaledVector(_tempForward, 0.5);
 
         // Velocity Calculation: Arc towards target
-        const dir = new THREE.Vector3().subVectors(target.position, mesh.position);
-        const dist = dir.length();
-        dir.normalize();
+        _tempDir.subVectors(target.position, mesh.position);
+        const dist = _tempDir.length();
+        _tempDir.normalize();
 
         const baseSpeed = 10;
-        const velocity = dir.multiplyScalar(baseSpeed);
+        const velocity = _tempDir.clone().multiplyScalar(baseSpeed);
         // Add upward arc: proportional to distance
         velocity.y += 3 + (dist * 0.15);
 
@@ -225,8 +230,6 @@ export class AngryPersonEntity extends BaseEntity {
     }
 
     _updateProjectiles(dt, drone) {
-        const gravity = new THREE.Vector3(0, -9.8, 0);
-
         for (let i = this.projectiles.length - 1; i >= 0; i--) {
             const p = this.projectiles[i];
 
@@ -238,7 +241,7 @@ export class AngryPersonEntity extends BaseEntity {
             }
 
             // Physics integration
-            p.velocity.addScaledVector(gravity, dt);
+            p.velocity.addScaledVector(GRAVITY, dt);
             p.mesh.position.addScaledVector(p.velocity, dt);
 
             // Spin effect

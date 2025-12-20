@@ -51,7 +51,7 @@ export class BuildUI {
                     <label style="display:flex; justify-content:space-between; margin-top:5px;">
                         Current Time: <span id="time-display">12:00</span>
                     </label>
-                    <input type="range" id="dev-time-slider" min="0" max="24" step="0.1" value="12" style="width:100%">
+                    <input type="range" id="dev-time-slider" aria-label="Time of Day" min="0" max="24" step="0.1" value="12" style="width:100%">
 
                     <label style="display:flex; justify-content:space-between; margin-top:5px;">
                         Day Speed
@@ -104,7 +104,7 @@ export class BuildUI {
 
             <hr style="width:100%">
             <h3>Objects</h3>
-            <input type="text" id="dev-palette-search" placeholder="Search objects..." style="width: 100%; box-sizing: border-box; margin-bottom: 5px; background: #222; color: white; border: 1px solid #444; padding: 5px;">
+            <input type="text" id="dev-palette-search" aria-label="Search objects" placeholder="Search objects..." style="width: 100%; box-sizing: border-box; margin-bottom: 5px; background: #222; color: white; border: 1px solid #444; padding: 5px;">
             <div class="palette"></div>
         `;
 
@@ -117,6 +117,12 @@ export class BuildUI {
                 margin-bottom: 5px;
                 cursor: grab;
                 border: 1px solid #555;
+                /* Button Reset */
+                width: 100%;
+                text-align: left;
+                color: white;
+                font-family: inherit;
+                font-size: inherit;
             }
             .palette-item:hover { background: #444; }
             .file-btn {
@@ -253,20 +259,20 @@ export class BuildUI {
 
             <div class="dev-prop-section">
                 <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label class="dev-prop-label">X</label> <input id="prop-x" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">Y</label> <input id="prop-y" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">Z</label> <input id="prop-z" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label" for="prop-x">X</label> <input id="prop-x" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label" for="prop-y">Y</label> <input id="prop-y" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label" for="prop-z">Z</label> <input id="prop-z" class="dev-prop-input" type="number" step="1"></div>
                 </div>
                 <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label class="dev-prop-label">RX</label> <input id="prop-rx" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">RY</label> <input id="prop-ry" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">RZ</label> <input id="prop-rz" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label" for="prop-rx">RX</label> <input id="prop-rx" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label" for="prop-ry">RY</label> <input id="prop-ry" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label" for="prop-rz">RZ</label> <input id="prop-rz" class="dev-prop-input" type="number" step="1"></div>
                 </div>
 
                 <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label class="dev-prop-label">SX</label> <input id="prop-sx" class="dev-prop-input" type="number" step="0.1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">SY</label> <input id="prop-sy" class="dev-prop-input" type="number" step="0.1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">SZ</label> <input id="prop-sz" class="dev-prop-input" type="number" step="0.1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label" for="prop-sx">SX</label> <input id="prop-sx" class="dev-prop-input" type="number" step="0.1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label" for="prop-sy">SY</label> <input id="prop-sy" class="dev-prop-input" type="number" step="0.1"></div>
+                    <div class="dev-prop-pair"><label class="dev-prop-label" for="prop-sz">SZ</label> <input id="prop-sz" class="dev-prop-input" type="number" step="0.1"></div>
                 </div>
                 <div style="display:flex; align-items:center; gap:5px;">
                     <input type="checkbox" id="prop-scale-lock" checked> <span style="font-size:0.85em">Lock Aspect Ratio</span>
@@ -321,7 +327,7 @@ export class BuildUI {
             .map(([type, classRef]) => ({ type, name: this._formatDisplayName(type, classRef) }))
             .sort((a, b) => a.name.localeCompare(b.name))
             .forEach(({ type, name }) => {
-                const item = document.createElement('div');
+                const item = document.createElement('button');
                 item.className = 'palette-item';
                 item.draggable = true;
                 item.dataset.type = type;

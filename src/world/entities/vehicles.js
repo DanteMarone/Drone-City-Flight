@@ -25,6 +25,34 @@ export class VehicleEntity extends BaseEntity {
             this.mesh.userData.isVehicle = true;
 
             this._createWaypointVisuals();
+
+            // Bolt Optimization: Pre-calculate local bounding box to avoid
+            // costly expandByObject() scene graph traversal every frame.
+            const modelGroup = this.mesh.getObjectByName('modelGroup');
+            if (modelGroup) {
+                this._localBox = new THREE.Box3();
+
+                // Calculate local bounding box
+                const parent = modelGroup.parent;
+                modelGroup.removeFromParent();
+
+                const p = modelGroup.position.clone();
+                const q = modelGroup.quaternion.clone();
+                const s = modelGroup.scale.clone();
+
+                modelGroup.position.set(0, 0, 0);
+                modelGroup.rotation.set(0, 0, 0);
+                modelGroup.scale.set(1, 1, 1);
+                modelGroup.updateMatrixWorld(true);
+
+                this._localBox.setFromObject(modelGroup);
+
+                modelGroup.position.copy(p);
+                modelGroup.quaternion.copy(q);
+                modelGroup.scale.copy(s);
+
+                if (parent) parent.add(modelGroup);
+            }
         }
     }
 
@@ -125,9 +153,13 @@ export class VehicleEntity extends BaseEntity {
 
         // Update Box
         if (this.box) {
-            this.box.makeEmpty();
             modelGroup.updateMatrixWorld();
-            this.box.expandByObject(modelGroup);
+            if (this._localBox) {
+                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+            } else {
+                this.box.makeEmpty();
+                this.box.expandByObject(modelGroup);
+            }
         }
     }
 
@@ -293,9 +325,13 @@ export class PickupTruckEntity extends CarEntity {
         }
 
         if (this.box) {
-            this.box.makeEmpty();
             modelGroup.updateMatrixWorld();
-            this.box.expandByObject(modelGroup);
+            if (this._localBox) {
+                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+            } else {
+                this.box.makeEmpty();
+                this.box.expandByObject(modelGroup);
+            }
         }
     }
 

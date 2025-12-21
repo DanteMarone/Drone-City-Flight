@@ -40,6 +40,7 @@ export { AerialBeaconEntity } from './aerialBeacon.js';
 export { RiverBuoyEntity } from './riverBuoy.js';
 export { PowerTransformerAlternateEntity } from './powerTransformerAlternate.js';
 export { FuturisticEmergencySirenEntity } from './futuristicEmergencySiren.js';
+export { CementMixerEntity } from './cementMixer.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

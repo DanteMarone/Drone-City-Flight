@@ -44,3 +44,9 @@
 ### 4. Procedural Brick Texture
 * **Technique**: `TextureGenerator.createBrick` generates a brick pattern by looping through rows and columns, drawing offset rectangles.
 * **Detail**: Adding a second pass of random noise (small dark pixels) over the bricks breaks up the "perfect digital" look and adds gritty realism suitable for cottages or old apartments.
+
+### 5. Fast Food Primitives
+* **Combination:** Creating recognizable food items using only primitives is surprisingly effective for signage.
+* **Burger:** Cylinder (Bun Bot) + Cylinder (Patty) + Box (Cheese, rotated 45deg) + Cylinder (Lettuce) + Hemisphere (Bun Top).
+* **Donut:** TorusGeometry is perfect. Adding a second, slightly flatter Torus on top creates "Icing".
+* **Ice Cream:** Inverted Cone + Stacked Spheres.

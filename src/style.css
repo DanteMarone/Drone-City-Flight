@@ -1,5 +1,5 @@
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
+  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
 
@@ -13,84 +13,405 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
-}
-
 body {
   margin: 0;
   display: flex;
   place-items: center;
   min-width: 320px;
   min-height: 100vh;
-}
-
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+  overflow: hidden; /* Prevent scrollbars */
 }
 
 #app {
-  max-width: 1280px;
-  margin: 0 auto;
-  padding: 2rem;
-  text-align: center;
+  width: 100vw;
+  height: 100vh;
+  position: relative;
 }
 
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #f7df1eaa);
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
 }
 
-.card {
-  padding: 2em;
+/* UI Layer */
+#ui-layer {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Let clicks pass through to canvas */
+    display: flex;
+    flex-direction: column;
 }
 
-.read-the-docs {
-  color: #888;
+/* HUD Container */
+.hud-container {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    padding: 20px;
+    box-sizing: border-box;
+    transition: opacity 0.3s;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.hud-container.hidden {
+    opacity: 0;
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* Menu Overlay */
+#pause-menu {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.85);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    pointer-events: auto;
+    z-index: 2000;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 0.3s, visibility 0.3s;
 }
+
+#pause-menu.visible {
+    opacity: 1;
+    visibility: visible;
+}
+
+.menu-title {
+    font-size: 3rem;
+    font-weight: bold;
+    margin-bottom: 2rem;
+    text-transform: uppercase;
+    letter-spacing: 0.2rem;
+    color: white;
+}
+
+.menu-items {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    min-width: 300px;
+}
+
+.menu-btn {
+    background: transparent;
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    color: white;
+    padding: 1rem 2rem;
+    font-size: 1.2rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.menu-btn:hover, .menu-btn:focus {
+    background: white;
+    color: black;
+    border-color: white;
+    outline: none;
+}
+
+.menu-setting {
+    display: flex;
+    flex-direction: column;
+    color: #aaa;
+    margin-bottom: 0.5rem;
+}
+
+.menu-slider-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.menu-slider-row input[type=range] {
+    flex: 1;
+}
+
+/* Utility */
+.visually-hidden {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+/* -------------------------------------------------------------------------- */
+/* DEV UI 2.0 STYLES                                                          */
+/* -------------------------------------------------------------------------- */
+
+/* Main Layout Container */
+#dev-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none; /* Panels will re-enable pointer-events */
+    z-index: 1000;
+    display: grid;
+    grid-template-areas:
+        "header header header"
+        "left   main   right"
+        "bottom bottom right";
+    grid-template-rows: 40px 1fr 200px;
+    grid-template-columns: 250px 1fr 300px;
+    gap: 0;
+    font-size: 13px;
+    color: #eee;
+}
+
+/* Panel Base Style */
+.dev-panel {
+    background: #1e1e1e;
+    border: 1px solid #333;
+    pointer-events: auto;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+}
+
+.dev-panel-header {
+    padding: 8px 10px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #333;
+    font-weight: bold;
+    font-size: 0.9em;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+}
+
+.dev-panel-content {
+    padding: 10px;
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+/* Top Bar (Header) */
+.dev-top-bar {
+    grid-area: header;
+    background: #2a2a2a;
+    border-bottom: 1px solid #333;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    pointer-events: auto;
+    justify-content: space-between;
+}
+
+.dev-menu-bar {
+    display: flex;
+    gap: 15px;
+}
+
+.dev-menu-item {
+    cursor: pointer;
+    padding: 5px 8px;
+    border-radius: 4px;
+}
+.dev-menu-item:hover { background: #3c3c3c; }
+
+.dev-toolbar {
+    display: flex;
+    gap: 5px;
+}
+
+.dev-tool-btn {
+    background: #333;
+    border: 1px solid #444;
+    color: #ccc;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.9em;
+}
+.dev-tool-btn:hover { background: #444; color: white; }
+.dev-tool-btn.active { background: #22aaff; color: black; border-color: #22aaff; }
+
+/* Outliner (Left) */
+.dev-outliner {
+    grid-area: left;
+    border-right: 1px solid #333;
+}
+
+.dev-tree-item {
+    padding: 2px 5px 2px 10px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    border-radius: 2px;
+}
+.dev-tree-item:hover { background: #2a2a2a; }
+.dev-tree-item.selected { background: #3a4a5a; color: white; }
+.dev-tree-icon { opacity: 0.7; font-size: 1.1em; }
+.dev-tree-eye { margin-left: auto; cursor: pointer; opacity: 0.5; padding: 0 5px; }
+.dev-tree-eye:hover { opacity: 1; }
+.dev-tree-eye.is-hidden { opacity: 0.2; }
+
+/* Inspector (Right) */
+.dev-inspector {
+    grid-area: right;
+    border-left: 1px solid #333;
+    grid-row: 2 / span 2; /* Stretch down */
+}
+
+/* Asset Browser (Bottom) */
+.dev-assets {
+    grid-area: bottom;
+    border-top: 1px solid #333;
+    /* This panel goes under 'left' in the grid areas but we defined grid-template-rows/cols such that 'left' spans down? */
+    /* Wait, the grid template areas define 'left main right', then 'bottom bottom right'.
+       So 'left' is only in the middle row. Outliner should span down?
+       Let's adjust grid-template-areas or just keep asset browser in middle?
+       Usually Asset Browser is full width bottom or bottom center.
+       Let's stick to "Left Panel: World Outliner", "Bottom Panel: Visual Asset Browser".
+       And "Right Panel: Property Inspector".
+       Layout:
+       Header Header Header
+       Left   Main   Right
+       Left   Bottom Right
+    */
+}
+
+/* Grid Override for Layout Logic */
+#dev-ui {
+    grid-template-areas:
+        "header header header"
+        "left   main   right"
+        "left   bottom right";
+}
+
+/* Tab System */
+.dev-tabs {
+    display: flex;
+    border-bottom: 1px solid #333;
+}
+.dev-tab {
+    padding: 8px 12px;
+    cursor: pointer;
+    border-right: 1px solid #333;
+    background: #222;
+    color: #888;
+}
+.dev-tab:hover { background: #2a2a2a; color: #ccc; }
+.dev-tab.active { background: #1e1e1e; color: white; border-bottom: 2px solid #22aaff; }
+
+/* Asset Grid */
+.dev-asset-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: 8px;
+    padding: 10px;
+}
+
+.dev-asset-item {
+    background: #2a2a2a;
+    border: 1px solid #333;
+    border-radius: 4px;
+    aspect-ratio: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    cursor: grab;
+    overflow: hidden;
+    position: relative;
+}
+.dev-asset-item:hover { border-color: #666; background: #333; }
+.dev-asset-thumb { width: 100%; height: 100%; object-fit: cover; }
+.dev-asset-name {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: rgba(0,0,0,0.7);
+    font-size: 0.75em;
+    padding: 2px 4px;
+    text-align: center;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* Inspector Form Elements */
+.dev-prop-section {
+    margin-bottom: 10px;
+    background: #252525;
+    border: 1px solid #333;
+    border-radius: 4px;
+    padding: 8px;
+}
+.dev-prop-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 5px;
+    gap: 8px;
+}
+.dev-prop-row label {
+    flex: 0 0 80px; /* Fixed label width */
+    font-size: 0.9em;
+    color: #aaa;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dev-prop-input {
+    flex: 1;
+    background: #111;
+    border: 1px solid #444;
+    color: white;
+    padding: 4px 6px;
+    border-radius: 2px;
+    min-width: 0;
+}
+.dev-prop-input:focus { border-color: #22aaff; outline: none; }
+.dev-prop-input[type="checkbox"] { flex: 0; }
+.dev-prop-color { padding: 0; height: 24px; }
+
+/* Buttons */
+.dev-btn {
+    background: #333;
+    border: 1px solid #444;
+    color: #ddd;
+    padding: 6px 12px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: center;
+}
+.dev-btn:hover { background: #444; color: white; }
+.dev-btn-danger { background: #600; border-color: #800; }
+.dev-btn-danger:hover { background: #800; }
+
+/* Scrollbars */
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-track { background: #1e1e1e; }
+::-webkit-scrollbar-thumb { background: #444; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }

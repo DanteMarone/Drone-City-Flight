@@ -2,12 +2,14 @@
 import * as THREE from 'three';
 import { EntityRegistry } from '../world/entities/index.js';
 import { TransformCommand, PropertyChangeCommand, WaypointCommand, cloneWaypointState } from './history.js';
+import { AlignTool } from './tools/alignTool.js';
 
 export class BuildUI {
     constructor(devMode) {
         this.devMode = devMode;
         this.dom = null;
         this.propPanel = null;
+        this.alignTool = new AlignTool(devMode);
         this._init();
     }
 
@@ -99,6 +101,8 @@ export class BuildUI {
                 <button id="dev-paste" style="flex:1; font-size:0.8em;">Paste</button>
                 <button id="dev-duplicate" style="flex:1; font-size:0.8em;">Duplicate</button>
             </div>
+
+            <div id="dev-align-container" style="display:none;"></div>
 
             <!-- Properties flyout is created separately via _createPropertyPanel() -->
 
@@ -235,6 +239,11 @@ export class BuildUI {
 
         document.body.appendChild(div);
         this.dom = div;
+
+        // Insert Align Tool
+        const alignContainer = this.dom.querySelector('#dev-align-container');
+        alignContainer.appendChild(this.alignTool.createUI());
+
         this.propPanel = this._createPropertyPanel();
 
         this._buildPalette();
@@ -733,7 +742,9 @@ export class BuildUI {
         const count = this.devMode.selectedObjects.length;
         if (count > 1) {
             info.textContent = `Multiple Selection (${count} items)`;
+            this.dom.querySelector('#dev-align-container').style.display = 'block';
         } else if (count === 1) {
+            this.dom.querySelector('#dev-align-container').style.display = 'none';
             info.textContent = `Type: ${this.devMode.selectedObjects[0].userData.type || 'Unknown'}`;
         } else {
             info.textContent = '';
@@ -743,6 +754,19 @@ export class BuildUI {
 
         this.propPanel.classList.add('open');
         this.propPanel.setAttribute('aria-hidden', 'false');
+    }
+
+    hideProperties() {
+        if (this.propPanel.contains(document.activeElement)) {
+            document.activeElement.blur();
+        }
+        this.propPanel.classList.remove('open');
+        this.propPanel.setAttribute('aria-hidden', 'true');
+
+        // Hide align tool if no selection
+        if (this.devMode.selectedObjects.length < 2) {
+             this.dom.querySelector('#dev-align-container').style.display = 'none';
+        }
     }
 
     updateProperties(object) {

@@ -35,6 +35,10 @@
   - **Pivot Logic**: Separated `turret` (Y-axis rotation) and `dishPivot` (X-axis elevation) into nested Groups to allow independent, simultaneous 2-axis animation.
 - **Generic NPC**: Created using `CylinderGeometry` (Legs, Torso) + `SphereGeometry` (Head) within a `THREE.Group`.
   - **Texture**: `CanvasTexture` on the head sphere enables procedural facial expressions without external assets.
+- **Cement Mixer Drum**: Created using merged `CylinderGeometry` segments with varying top/bottom radii.
+  - **Shape**: Tapered Base + Wide Mid + Tapered Top creates a convincing mixer shape.
+  - **Animation**: Rotating the drum group (tilted X, rotating Y) provides immediate visual feedback of functionality.
+  - **Texture**: Used a `CanvasTexture` with a simple spiral pattern to make the rotation visible without complex UV unwrapping.
 
 ### Procedural Patterns
 - **Holographic Signs**: Created using `THREE.CanvasTexture` with a transparent background and `THREE.AdditiveBlending` on a `PlaneGeometry`.

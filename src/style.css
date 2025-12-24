@@ -94,3 +94,47 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Dev Align Tool */
+.dev-align-tool {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-top: 10px;
+  padding: 5px;
+  background: #222;
+  border: 1px solid #444;
+}
+
+.dev-align-label {
+    font-size: 0.85em;
+    font-weight: bold;
+    color: #ccc;
+    margin-bottom: 2px;
+}
+
+.align-row {
+    display: flex;
+    gap: 2px;
+}
+
+.align-btn {
+  flex: 1;
+  padding: 4px;
+  font-size: 1.2em;
+  line-height: 1;
+  background: #333;
+  border: 1px solid #555;
+  color: #eee;
+  cursor: pointer;
+  border-radius: 4px;
+}
+
+.align-btn:hover {
+  background: #444;
+  border-color: #777;
+}
+
+.align-btn:active {
+  background: #555;
+}

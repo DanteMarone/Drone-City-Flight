@@ -9,6 +9,7 @@ const _targetPos = new THREE.Vector3();
 const _localTarget = new THREE.Vector3();
 const _currentLocal = new THREE.Vector3();
 const _dir = new THREE.Vector3();
+const _tempBox = new THREE.Box3(); // Bolt: Reuse box for updates
 
 export class VehicleEntity extends BaseEntity {
     constructor(params) {
@@ -16,6 +17,7 @@ export class VehicleEntity extends BaseEntity {
         this.waypoints = (params.waypoints || []).map(w => new THREE.Vector3(w.x, w.y, w.z));
         this.currentWaypointIndex = 0;
         this.baseSpeed = 0;
+        this._localBox = null; // Cached local AABB
     }
 
     postInit() {
@@ -23,6 +25,35 @@ export class VehicleEntity extends BaseEntity {
             this.mesh.userData.waypoints = this.waypoints;
             this.mesh.userData.targetIndex = 1;
             this.mesh.userData.isVehicle = true;
+
+            // Bolt Optimization: Pre-calculate Local AABB of the modelGroup
+            // This avoids calling expandByObject (which traverses geometry) every frame.
+            const modelGroup = this.mesh.getObjectByName('modelGroup');
+            if (modelGroup) {
+                // To get the true local AABB, we need to measure it as if it were at world identity.
+                // We detach it temporarily to measure it without parent transforms.
+                const parent = modelGroup.parent;
+                if (parent) parent.remove(modelGroup);
+
+                const oldPos = modelGroup.position.clone();
+                const oldRot = modelGroup.rotation.clone();
+                const oldScale = modelGroup.scale.clone();
+
+                modelGroup.position.set(0, 0, 0);
+                modelGroup.rotation.set(0, 0, 0);
+                modelGroup.scale.set(1, 1, 1);
+                modelGroup.updateMatrixWorld(true);
+
+                this._localBox = new THREE.Box3().setFromObject(modelGroup);
+
+                // Restore
+                modelGroup.position.copy(oldPos);
+                modelGroup.rotation.copy(oldRot);
+                modelGroup.scale.copy(oldScale);
+                modelGroup.updateMatrixWorld(true);
+
+                if (parent) parent.add(modelGroup);
+            }
 
             this._createWaypointVisuals();
         }
@@ -125,9 +156,16 @@ export class VehicleEntity extends BaseEntity {
 
         // Update Box
         if (this.box) {
-            this.box.makeEmpty();
             modelGroup.updateMatrixWorld();
-            this.box.expandByObject(modelGroup);
+
+            // Bolt Optimization: Transform local AABB instead of traversing geometry
+            if (this._localBox) {
+                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+            } else {
+                // Fallback
+                this.box.makeEmpty();
+                this.box.expandByObject(modelGroup);
+            }
         }
     }
 
@@ -293,9 +331,15 @@ export class PickupTruckEntity extends CarEntity {
         }
 
         if (this.box) {
-            this.box.makeEmpty();
             modelGroup.updateMatrixWorld();
-            this.box.expandByObject(modelGroup);
+
+            // Bolt Optimization
+            if (this._localBox) {
+                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+            } else {
+                this.box.makeEmpty();
+                this.box.expandByObject(modelGroup);
+            }
         }
     }
 

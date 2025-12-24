@@ -97,9 +97,15 @@ export class BusEntity extends VehicleEntity {
 
         // Update Collider Box
         if (this.box) {
-            this.box.makeEmpty();
             modelGroup.updateMatrixWorld();
-            this.box.expandByObject(modelGroup);
+
+            // Bolt Optimization
+            if (this._localBox) {
+                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+            } else {
+                this.box.makeEmpty();
+                this.box.expandByObject(modelGroup);
+            }
         }
     }
 

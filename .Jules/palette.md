@@ -10,3 +10,7 @@
 ## 2024-05-24 - Transitioning "Hidden" UI Elements
 **Learning:** Using `display: none` for toggling overlays prevents CSS transitions like opacity fades or scale effects. A pattern of `visibility: hidden; opacity: 0;` allows for smooth transitions while maintaining accessibility (removing it from the accessibility tree when hidden).
 **Action:** For modal/overlay transitions, use a `visible` class that toggles `visibility` and `opacity`, rather than removing a `hidden` class that controls `display`.
+
+## 2025-05-24 - [Dev Mode Form Accessibility]
+**Learning:** The Dev Mode Property Panel used non-semantic label patterns (`<label>X</label> <input>`) which failed to programmatically associate text with inputs. This is a common pattern in 3D tools where UI is often treated as "debug" rather than "product", but it severely hampers accessibility for screen readers and touch targets.
+**Action:** Always use explicit `for` attributes (`<label for="id">`) in generated UI code, even for internal tools, to ensure labels are clickable and accessible.

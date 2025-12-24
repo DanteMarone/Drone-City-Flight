@@ -48,7 +48,7 @@ export class BuildUI {
             <div style="display:flex; flex-direction:column; gap:5px; font-size:0.9em;">
                 <div style="background:#222; padding:5px;">
                     <strong>Time of Day</strong>
-                    <label style="display:flex; justify-content:space-between; margin-top:5px;">
+                <label for="dev-time-slider" style="display:flex; justify-content:space-between; margin-top:5px;">
                         Current Time: <span id="time-display">12:00</span>
                     </label>
                     <input type="range" id="dev-time-slider" min="0" max="24" step="0.1" value="12" style="width:100%">
@@ -104,7 +104,7 @@ export class BuildUI {
 
             <hr style="width:100%">
             <h3>Objects</h3>
-            <input type="text" id="dev-palette-search" placeholder="Search objects..." style="width: 100%; box-sizing: border-box; margin-bottom: 5px; background: #222; color: white; border: 1px solid #444; padding: 5px;">
+            <input type="text" id="dev-palette-search" aria-label="Filter objects" placeholder="Search objects..." style="width: 100%; box-sizing: border-box; margin-bottom: 5px; background: #222; color: white; border: 1px solid #444; padding: 5px;">
             <div class="palette"></div>
         `;
 
@@ -253,23 +253,23 @@ export class BuildUI {
 
             <div class="dev-prop-section">
                 <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label class="dev-prop-label">X</label> <input id="prop-x" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">Y</label> <input id="prop-y" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">Z</label> <input id="prop-z" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label for="prop-x" class="dev-prop-label">X</label> <input id="prop-x" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label for="prop-y" class="dev-prop-label">Y</label> <input id="prop-y" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label for="prop-z" class="dev-prop-label">Z</label> <input id="prop-z" class="dev-prop-input" type="number" step="1"></div>
                 </div>
                 <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label class="dev-prop-label">RX</label> <input id="prop-rx" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">RY</label> <input id="prop-ry" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">RZ</label> <input id="prop-rz" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label for="prop-rx" class="dev-prop-label">RX</label> <input id="prop-rx" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label for="prop-ry" class="dev-prop-label">RY</label> <input id="prop-ry" class="dev-prop-input" type="number" step="1"></div>
+                    <div class="dev-prop-pair"><label for="prop-rz" class="dev-prop-label">RZ</label> <input id="prop-rz" class="dev-prop-input" type="number" step="1"></div>
                 </div>
 
                 <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label class="dev-prop-label">SX</label> <input id="prop-sx" class="dev-prop-input" type="number" step="0.1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">SY</label> <input id="prop-sy" class="dev-prop-input" type="number" step="0.1"></div>
-                    <div class="dev-prop-pair"><label class="dev-prop-label">SZ</label> <input id="prop-sz" class="dev-prop-input" type="number" step="0.1"></div>
+                    <div class="dev-prop-pair"><label for="prop-sx" class="dev-prop-label">SX</label> <input id="prop-sx" class="dev-prop-input" type="number" step="0.1"></div>
+                    <div class="dev-prop-pair"><label for="prop-sy" class="dev-prop-label">SY</label> <input id="prop-sy" class="dev-prop-input" type="number" step="0.1"></div>
+                    <div class="dev-prop-pair"><label for="prop-sz" class="dev-prop-label">SZ</label> <input id="prop-sz" class="dev-prop-input" type="number" step="0.1"></div>
                 </div>
                 <div style="display:flex; align-items:center; gap:5px;">
-                    <input type="checkbox" id="prop-scale-lock" checked> <span style="font-size:0.85em">Lock Aspect Ratio</span>
+                    <input type="checkbox" id="prop-scale-lock" checked> <label for="prop-scale-lock" style="font-size:0.85em">Lock Aspect Ratio</label>
                 </div>
             </div>
 

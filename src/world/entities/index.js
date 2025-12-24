@@ -40,6 +40,7 @@ export { AerialBeaconEntity } from './aerialBeacon.js';
 export { RiverBuoyEntity } from './riverBuoy.js';
 export { PowerTransformerAlternateEntity } from './powerTransformerAlternate.js';
 export { FuturisticEmergencySirenEntity } from './futuristicEmergencySiren.js';
+export { GazeboEntity } from './gazebo.js';
 export { CementMixerEntity } from './cementMixer.js';
 export { FoodTruckEntity } from './foodTruck.js';
 export { LighthouseEntity } from './lighthouse.js';

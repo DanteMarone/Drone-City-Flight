@@ -14,3 +14,6 @@
 ## 2025-05-24 - [Dev Mode Form Accessibility]
 **Learning:** The Dev Mode Property Panel used non-semantic label patterns (`<label>X</label> <input>`) which failed to programmatically associate text with inputs. This is a common pattern in 3D tools where UI is often treated as "debug" rather than "product", but it severely hampers accessibility for screen readers and touch targets.
 **Action:** Always use explicit `for` attributes (`<label for="id">`) in generated UI code, even for internal tools, to ensure labels are clickable and accessible.
+## 2025-05-24 - Interactive Palette Accessibility
+**Learning:** In creative tools, "palette" items are often implemented as draggable divs, which excludes keyboard users from selecting or "picking up" tools. Converting these to `<button>` elements immediately provides tab focus and "click" events (via Enter/Space) for free, enabling alternative interaction modes (like "click to select tool" vs "drag to place") without complex custom key handlers.
+**Action:** Implement palette/toolbar items as `<button>` elements by default, even if their primary interaction is drag-and-drop, to ensure a baseline of keyboard accessibility.

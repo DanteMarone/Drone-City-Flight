@@ -2,12 +2,17 @@
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 
+// Bolt: Scratch objects to prevent GC
+const _tempVec = new THREE.Vector3();
+const _tempMat = new THREE.Matrix4();
+
 export class RingManager {
     constructor(scene, drone, colliderSystem) {
         this.scene = scene;
         this.drone = drone;
         this.colliderSystem = colliderSystem;
         this.rings = [];
+        this._cachedColliders = []; // Bolt: Cache for physics
         this.collectedCount = 0;
 
         // Geometry shared
@@ -22,9 +27,15 @@ export class RingManager {
         this.spawnRing();
     }
 
+    // Bolt: Expose cached colliders to avoid mapping in update
+    getColliders() {
+        return this._cachedColliders;
+    }
+
     clear() {
         this.rings.forEach(r => this.scene.remove(r.mesh));
         this.rings = [];
+        this._cachedColliders = [];
         this.collectedCount = 0;
     }
 
@@ -49,7 +60,15 @@ export class RingManager {
         mesh.userData.type = 'ring';
 
         this.scene.add(mesh);
-        this.rings.push({ mesh });
+        const ringObj = { mesh };
+        this.rings.push(ringObj);
+
+        // Bolt: Add to cache
+        this._cachedColliders.push({
+            type: 'ring',
+            mesh: mesh,
+            box: null
+        });
     }
 
     exportRings() {
@@ -83,8 +102,14 @@ export class RingManager {
             // BUT we must be "inside" the torus plane thickness too.
             // We can check if distance to center < 1.0 (safe margin) AND distance to plane < 0.5.
 
-            // Transform drone pos to Ring Local Space
-            const localPos = this.drone.position.clone().applyMatrix4(ring.mesh.matrixWorld.clone().invert());
+            // Bolt: Transform drone pos to Ring Local Space without allocation
+            // localPos = drone.pos * inv(ringMatrix)
+
+            // Calculate Inverse World Matrix
+            _tempMat.copy(ring.mesh.matrixWorld).invert();
+
+            // Transform Drone Position (using scratch vector)
+            const localPos = _tempVec.copy(this.drone.position).applyMatrix4(_tempMat);
 
             // Torus is in XY plane. Z is normal.
             const distToCenter = Math.sqrt(localPos.x*localPos.x + localPos.y*localPos.y);
@@ -146,13 +171,25 @@ export class RingManager {
 
         this.scene.add(mesh);
 
-        this.rings.push({ mesh });
+        const ringObj = { mesh };
+        this.rings.push(ringObj);
+
+        // Bolt: Add to cache
+        this._cachedColliders.push({
+            type: 'ring',
+            mesh: mesh,
+            box: null
+        });
     }
 
     collectRing(ring) {
         this.scene.remove(ring.mesh);
         const idx = this.rings.indexOf(ring);
-        if (idx > -1) this.rings.splice(idx, 1);
+        if (idx > -1) {
+            this.rings.splice(idx, 1);
+            // Bolt: Remove from cache
+            this._cachedColliders.splice(idx, 1);
+        }
 
         this.collectedCount++;
     }
@@ -160,6 +197,7 @@ export class RingManager {
     reset() {
         this.rings.forEach(r => this.scene.remove(r.mesh));
         this.rings = [];
+        this._cachedColliders = [];
         this.collectedCount = 0;
         this.spawnRing();
     }

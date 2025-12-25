@@ -170,13 +170,8 @@ export class App {
             this.drone.update(dt, move);
 
             // Collisions
-            const ringColliders = this.rings.rings.map(r => ({
-                type: 'ring',
-                mesh: r.mesh,
-                box: null // Special handling
-            }));
-
-            const dynamicColliders = [...ringColliders];
+            // Bolt: Use cached colliders from RingManager to avoid allocation
+            const dynamicColliders = this.rings.getColliders();
 
             const collided = this.physics.resolveCollisions(this.drone, dynamicColliders);
 

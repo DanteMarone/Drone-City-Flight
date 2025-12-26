@@ -2,10 +2,12 @@
 import * as THREE from 'three';
 import { EntityRegistry } from '../world/entities/index.js';
 import { TransformCommand, PropertyChangeCommand, WaypointCommand, cloneWaypointState } from './history.js';
+import { AlignTool } from './tools/alignTool.js';
 
 export class BuildUI {
     constructor(devMode) {
         this.devMode = devMode;
+        this.alignTool = new AlignTool(devMode);
         this.dom = null;
         this.propPanel = null;
         this._init();
@@ -294,6 +296,21 @@ export class BuildUI {
                      Throw Distance
                      <input id="angry-throw-dist" type="number" min="1" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
                  </label>
+            </div>
+
+            <div id="dev-align-container" class="dev-align-tool" style="display:none;">
+                <div class="dev-align-row">
+                    <span class="dev-label-small">X</span>
+                    <button class="dev-align-btn" data-axis="x" data-mode="min" aria-label="Align X Minimum">Min</button>
+                    <button class="dev-align-btn" data-axis="x" data-mode="center" aria-label="Align X Center">Cen</button>
+                    <button class="dev-align-btn" data-axis="x" data-mode="max" aria-label="Align X Maximum">Max</button>
+                </div>
+                <div class="dev-align-row">
+                    <span class="dev-label-small">Z</span>
+                    <button class="dev-align-btn" data-axis="z" data-mode="min" aria-label="Align Z Minimum">Min</button>
+                    <button class="dev-align-btn" data-axis="z" data-mode="center" aria-label="Align Z Center">Cen</button>
+                    <button class="dev-align-btn" data-axis="z" data-mode="max" aria-label="Align Z Maximum">Max</button>
+                </div>
             </div>
 
             <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
@@ -711,6 +728,14 @@ export class BuildUI {
         if (angryIntervalInput) bindAngryInput(angryIntervalInput, 'throwInterval', 'Update throw interval');
         if (angryDistInput) bindAngryInput(angryDistInput, 'firingRange', 'Update firing range');
 
+        // Align Tool Bindings
+        this.propPanel.querySelectorAll('.dev-align-btn').forEach(btn => {
+            btn.onclick = () => {
+                const axis = btn.dataset.axis;
+                const mode = btn.dataset.mode;
+                this.alignTool.align(axis, mode);
+            };
+        });
     }
 
     show() {
@@ -774,6 +799,10 @@ export class BuildUI {
         const carControls = this.propPanel.querySelector('#car-controls');
         const pickupControls = this.propPanel.querySelector('#pickup-controls');
         const angryControls = this.propPanel.querySelector('#angry-person-controls');
+        const alignContainer = this.propPanel.querySelector('#dev-align-container');
+
+        // Reset visibility
+        if (alignContainer) alignContainer.style.display = 'none';
 
         // Show specific controls only if SINGLE selection and correct type
         if (this.devMode.selectedObjects.length === 1) {
@@ -820,8 +849,16 @@ export class BuildUI {
                     }
                 }
             }
-        } else {
+        } else if (this.devMode.selectedObjects.length > 1) {
             // Hide for multi-select (per user requirement to hide incompatible options)
+            carControls.style.display = 'none';
+            pickupControls.style.display = 'none';
+            if (angryControls) angryControls.style.display = 'none';
+
+            // Show Align Tool
+            if (alignContainer) alignContainer.style.display = 'flex';
+        } else {
+            // Zero selection
             carControls.style.display = 'none';
             pickupControls.style.display = 'none';
             if (angryControls) angryControls.style.display = 'none';

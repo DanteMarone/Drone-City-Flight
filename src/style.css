@@ -94,3 +94,38 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Align Tool Styles */
+.dev-align-tool {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 10px;
+    background: #222;
+    border: 1px solid #444;
+    margin-top: 10px;
+}
+.dev-align-row {
+    display: flex;
+    gap: 5px;
+    align-items: center;
+}
+.dev-align-btn {
+    flex: 1;
+    padding: 4px;
+    font-size: 0.8em;
+    background: #333;
+    border: 1px solid #555;
+    color: #ccc;
+    cursor: pointer;
+}
+.dev-align-btn:hover {
+    background: #444;
+    color: white;
+}
+.dev-label-small {
+    width: 20px;
+    font-size: 0.8em;
+    color: #aaa;
+    text-align: center;
+}

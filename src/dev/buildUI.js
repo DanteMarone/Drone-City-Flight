@@ -2,12 +2,14 @@
 import * as THREE from 'three';
 import { EntityRegistry } from '../world/entities/index.js';
 import { TransformCommand, PropertyChangeCommand, WaypointCommand, cloneWaypointState } from './history.js';
+import { AlignTool } from './tools/alignTool.js';
 
 export class BuildUI {
     constructor(devMode) {
         this.devMode = devMode;
         this.dom = null;
         this.propPanel = null;
+        this.alignTool = new AlignTool(devMode);
         this._init();
     }
 
@@ -298,6 +300,9 @@ export class BuildUI {
 
             <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
         `;
+
+        // Inject Align Tool here
+        flyout.insertBefore(this.alignTool.createUI(), flyout.firstChild.nextSibling.nextSibling);
 
         document.body.appendChild(flyout);
         return flyout;
@@ -740,6 +745,7 @@ export class BuildUI {
         }
 
         this.updateProperties(object);
+        this.alignTool.updateVisibility(this.devMode.selectedObjects);
 
         this.propPanel.classList.add('open');
         this.propPanel.setAttribute('aria-hidden', 'false');

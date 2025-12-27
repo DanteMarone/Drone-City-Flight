@@ -44,6 +44,7 @@ export { GazeboEntity } from './gazebo.js';
 export { CementMixerEntity } from './cementMixer.js';
 export { FoodTruckEntity } from './foodTruck.js';
 export { LighthouseEntity } from './lighthouse.js';
+export { ShippingContainerEntity } from './shippingContainer.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

@@ -117,6 +117,11 @@ export class BuildUI {
                 margin-bottom: 5px;
                 cursor: grab;
                 border: 1px solid #555;
+                color: white;
+                width: 100%;
+                text-align: left;
+                font-family: inherit;
+                font-size: inherit;
             }
             .palette-item:hover { background: #444; }
             .file-btn {
@@ -321,7 +326,7 @@ export class BuildUI {
             .map(([type, classRef]) => ({ type, name: this._formatDisplayName(type, classRef) }))
             .sort((a, b) => a.name.localeCompare(b.name))
             .forEach(({ type, name }) => {
-                const item = document.createElement('div');
+                const item = document.createElement('button');
                 item.className = 'palette-item';
                 item.draggable = true;
                 item.dataset.type = type;

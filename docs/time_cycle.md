@@ -96,3 +96,6 @@ update(dt) {
     // ... apply values to scene ...
 }
 ```
+
+## Related Systems
+*   **[Environment System](./environment_system.md)**: Details how the Skybox and Procedural Clouds consume TimeCycle data to render the atmosphere.

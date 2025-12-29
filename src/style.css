@@ -94,3 +94,33 @@ button:focus-visible {
     background-color: #f9f9f9;
   }
 }
+
+/* Align Tool */
+.dev-align-tool {
+    margin-top: 10px;
+    background: rgba(0, 0, 0, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 8px;
+}
+
+.dev-align-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 4px;
+    margin-top: 8px;
+}
+
+/* Ensure Dev Buttons in the grid look good */
+.dev-btn-icon {
+    background: #333;
+    border: 1px solid #444;
+    color: #eee;
+    border-radius: 4px;
+    padding: 4px 8px;
+    font-size: 16px;
+    cursor: pointer;
+}
+.dev-btn-icon:hover {
+    background: #444;
+}

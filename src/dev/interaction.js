@@ -370,7 +370,7 @@ export class InteractionManager {
         } else {
              // Use generic create, but override params for road
              let params = { x: 0, y: 0, z: 0 };
-             if (type === 'road') params.length = 1;
+             if (type === 'road' || type === 'river') params.length = 1;
 
              const entity = EntityRegistry.create(type, params);
              if (entity && entity.mesh) {

@@ -64,8 +64,8 @@ export class RingManager {
         // Do NOT add to colliderSystem as static. Rings are triggers managed by RingEntity.
         // this.colliderSystem.addStatic([ringEntity]);
 
-        // this.rings.push({ entity: ringEntity, mesh: ringEntity.mesh });
-        // RingEntity.postInit calls this.add(ringEntity)
+        // Explicitly add to local list to ensure registration even if global app.rings isn't ready
+        this.add(ringEntity);
     }
 
     add(entity) {

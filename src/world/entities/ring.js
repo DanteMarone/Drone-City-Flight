@@ -34,8 +34,8 @@ export class RingEntity extends VehicleEntity {
     }
 
     // Override init to prevent BaseEntity from creating the default collider
-    init() {
-        super.init();
+    init(...args) {
+        super.init(...args);
         // After super.init() creates the collider, force it to null
         this.box = null;
     }

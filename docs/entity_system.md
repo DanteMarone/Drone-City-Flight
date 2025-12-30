@@ -165,4 +165,6 @@ The `BaseEntity.serialize()` method automatically handles standard transforms an
 Some entities require logic that goes beyond simple self-updates or need to interact with global game state (like the Drone). These are managed by specialized systems:
 
 *   **[Bird System](./bird_system.md)**: Manages `BirdEntity` instances, handling AI states (Patrol, Chase) and battery interactions.
+*   **[NPC System](./npc_system.md)**: Manages active agents like `AngryPersonEntity`, detailing their behaviors, configuration, and combat logic.
 *   **[Time Cycle](./time_cycle.md)**: Manages the `Sun` and global lighting, though not strictly an "entity" in the registry sense.
+*   **[World Generation](./world_generation.md)**: Uses the `ObjectFactory` adapter to procedurally generate the initial city layout using `EntityRegistry` types.

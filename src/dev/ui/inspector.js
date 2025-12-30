@@ -238,6 +238,20 @@ export class Inspector {
             envGroup.appendChild(this._createNumberInput('Direction', wind.direction, (v) => wind.direction = v));
         }
 
+        // Gameplay
+        envGroup.appendChild(document.createElement('br'));
+
+        const gameplayTitle = document.createElement('div');
+        gameplayTitle.className = 'dev-prop-title';
+        gameplayTitle.textContent = 'Gameplay';
+        envGroup.appendChild(gameplayTitle);
+
+        if (this.devMode.app.world.batteryDrain !== undefined) {
+             envGroup.appendChild(this._createNumberInput('Battery Drain', this.devMode.app.world.batteryDrain, (v) => {
+                 this.devMode.app.world.batteryDrain = v;
+             }));
+        }
+
         container.appendChild(envGroup);
         this.content.appendChild(container);
     }

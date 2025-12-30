@@ -4,6 +4,7 @@ import { CONFIG } from '../config.js';
 import { ObjectFactory } from './factory.js';
 import { BirdSystem } from './birdSystem.js';
 import { LightSystem } from './lightSystem.js';
+import { InstancedEntitySystem } from './instancing.js';
 import { EntityRegistry } from './entities/index.js';
 import { BaseEntity } from './entities/base.js';
 import { TimeCycle } from './timeCycle.js';
@@ -13,6 +14,7 @@ export class World {
         this.scene = scene;
         this.birdSystem = new BirdSystem(scene);
         this.lightSystem = new LightSystem(scene);
+        this.instancer = new InstancedEntitySystem(scene);
         this.factory = new ObjectFactory(scene);
         this.timeCycle = new TimeCycle();
 
@@ -23,6 +25,7 @@ export class World {
         this.ground = null;
 
         this.wind = { ...CONFIG.WORLD.WIND };
+        this.batteryDrain = CONFIG.BATTERY.DRAIN_RATE;
 
         this._initGround();
         this._generateWorld();
@@ -123,6 +126,7 @@ export class World {
         this.updatables = [];
         if (this.birdSystem) this.birdSystem.clear();
         if (this.lightSystem) this.lightSystem.clear();
+        if (this.instancer) this.instancer.clear();
     }
 
     loadMap(mapData) {
@@ -132,6 +136,12 @@ export class World {
             this.wind = { ...mapData.wind };
         } else {
             this.wind = { ...CONFIG.WORLD.WIND };
+        }
+
+        if (mapData.batteryDrain !== undefined) {
+            this.batteryDrain = mapData.batteryDrain;
+        } else {
+            this.batteryDrain = CONFIG.BATTERY.DRAIN_RATE;
         }
 
         if (mapData.environment) {
@@ -150,6 +160,14 @@ export class World {
         // Let's use Registry and manually add to scene/world to be explicit.
 
         if (mapData.objects) {
+            // ATLAS: Optimization Step 1 - Pre-count for instancing
+            const typeCounts = {};
+            mapData.objects.forEach(obj => {
+                typeCounts[obj.type] = (typeCounts[obj.type] || 0) + 1;
+            });
+            this.instancer.initBatches(typeCounts);
+
+            // Create entities
             mapData.objects.forEach(obj => {
                 // Determine params
                 const params = { ...(obj.params || obj.userData?.params || {}) };
@@ -167,28 +185,36 @@ export class World {
 
                 const entity = EntityRegistry.create(obj.type, params);
                 if (entity) {
-                    this.scene.add(entity.mesh);
-                    this.addEntity(entity);
-
                     // Restore exact transform if serialization was precise
                     // BaseEntity init sets position from params.
-                    // Should be correct.
-                    // But rotation?
-                if (obj.rotation) {
-                    entity.mesh.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z);
-                }
+                    if (obj.rotation) {
+                        entity.mesh.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z);
+                    }
+                    if (obj.scale) {
+                        entity.mesh.scale.set(obj.scale.x, obj.scale.y, obj.scale.z);
+                    }
 
-                if (obj.scale) {
-                    entity.mesh.scale.set(obj.scale.x, obj.scale.y, obj.scale.z);
-                }
+                    // Update matrix world for collider generation AND instancing
+                    entity.mesh.updateMatrixWorld(true);
 
-                // Recompute box in case rotation changed it
-                if (entity.box) {
-                     entity.box.setFromObject(entity.mesh);
-                         // Handle house roof extension if needed?
-                         // BaseEntity.createCollider handles it based on mesh state.
-                         // But for HouseEntity, createCollider logic is specific.
-                         // It should be fine as long as mesh structure is consistent.
+                    // Recompute box in case rotation changed it
+                    if (entity.box) {
+                        entity.box.setFromObject(entity.mesh);
+                    }
+
+                    // ATLAS: Try to add to instancer
+                    if (this.instancer.add(entity)) {
+                        // Handled by instancer (rendering)
+                        // We still add to colliders/logic, but NOT to scene graph
+                        this.addEntity(entity);
+
+                        // Optional: Dispose of individual mesh geometry to save memory?
+                        // entity.mesh.geometry.dispose(); // Risky if shared
+                        // For now, just rely on V8 GC and not adding to scene.
+                    } else {
+                        // Standard fallback
+                        this.scene.add(entity.mesh);
+                        this.addEntity(entity);
                     }
                 }
             });
@@ -210,6 +236,7 @@ export class World {
         return {
             version: 1,
             wind: { ...this.wind },
+            batteryDrain: this.batteryDrain,
             environment: {
                 startTime: this.timeCycle.time,
                 daySpeed: this.timeCycle.speed,

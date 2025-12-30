@@ -42,9 +42,10 @@ export class ConstructionBarrierEntity extends BaseEntity {
     createMesh() {
         const group = new THREE.Group();
 
-        const barrierWidth = 1.5 + Math.random() * 0.4;
-        const barrierHeight = 0.85 + Math.random() * 0.15;
-        const barrierDepth = 0.35 + Math.random() * 0.1;
+        // ATLAS: Fixed dimensions for instancing compatibility
+        const barrierWidth = 1.7;
+        const barrierHeight = 0.9;
+        const barrierDepth = 0.4;
 
         // Materials
         const stripeTexture = createStripeTexture();

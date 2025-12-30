@@ -1,5 +1,7 @@
 # Spec: Static Intersection Entities
 
+## Status: Completed
+
 ## 1. Overview
 Currently, the `RoadEntity` allows for creating straight road segments of variable length. However, there is no clean way to create intersections where roads meet. Overlapping two straight roads results in visual Z-fighting (flickering) and does not look like a proper junction.
 
@@ -51,7 +53,7 @@ Instead of complex drawing for now, we will create a **Blank Asphalt** texture.
 4.  Export and register in `src/world/entities/index.js`.
 
 ## 5. Acceptance Criteria
-*   [ ] Can place a "Cross Intersection" entity from the palette.
-*   [ ] Entity size is exactly 10x10.
-*   [ ] Texture matches the road color but lacks the longitudinal line (no Z-fighting when placed between roads).
-*   [ ] Snaps correctly to the end of a `RoadEntity`.
+*   [x] Can place a "Cross Intersection" entity from the palette.
+*   [x] Entity size is exactly 10x10.
+*   [x] Texture matches the road color but lacks the longitudinal line (no Z-fighting when placed between roads).
+*   [x] Snaps correctly to the end of a `RoadEntity`.

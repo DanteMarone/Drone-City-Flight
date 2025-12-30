@@ -31,6 +31,9 @@ export class DevMode {
         // One-time setup for drag-drop
         setupDragDrop(this.interaction, this.app.container);
 
+        // Init UI
+        this.ui.init(this);
+
         // Listen for toggle key
         window.addEventListener('keydown', (e) => {
             if (e.code === 'Backquote') {
@@ -69,7 +72,7 @@ export class DevMode {
         this.cameraController.euler.setFromQuaternion(this.app.renderer.camera, 'YXZ');
 
         // 4. Show Dev UI
-        this.ui.show();
+        this.ui.toggle(true);
 
         // 5. Enable Interaction
         this.interaction.enable();
@@ -102,7 +105,7 @@ export class DevMode {
         this.cameraController.enabled = false;
         this.app.cameraController.enabled = true;
 
-        this.ui.hide();
+        this.ui.toggle(false);
         this.interaction.disable();
 
         // Cleanup
@@ -477,17 +480,11 @@ export class DevMode {
 
         if (this.selectedObjects.length === 0) {
             this.gizmo.detach();
-            this.ui.hideProperties();
-            return;
-        }
-
-        this.gizmo.attach(this.selectedObjects);
-
-        if (this.selectedObjects.length > 1) {
-            this.ui.showProperties(this.gizmo.proxy);
         } else {
-            this.ui.showProperties(this.selectedObjects[0]);
+            this.gizmo.attach(this.selectedObjects);
         }
+
+        if (this.ui && this.ui.onSelectionChanged) this.ui.onSelectionChanged();
     }
 
     _handleShortcuts(e) {

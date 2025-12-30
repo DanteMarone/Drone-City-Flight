@@ -1,890 +1,957 @@
-// src/dev/buildUI.js
 import * as THREE from 'three';
-import { EntityRegistry } from '../world/entities/index.js';
-import { TransformCommand, PropertyChangeCommand, WaypointCommand, cloneWaypointState } from './history.js';
+import { EntityRegistry } from '../world/entities/registry.js';
+import { ThumbnailRenderer } from './thumbnailRenderer.js';
+import { TransformCommand, PropertyChangeCommand, WaypointCommand } from './history.js';
 import { AlignTool } from './tools/alignTool.js';
 
 export class BuildUI {
-    constructor(devMode) {
+    constructor() {
+        this.devMode = null;
+        this.container = null;
+        this.outliner = null;
+        this.inspector = null;
+        this.palette = null;
+        this.history = null;
+        this.thumbnailRenderer = new ThumbnailRenderer();
+        this.alignTool = null;
+
+        this.selectedCategory = 'All';
+        this.expandedGroups = new Set(['Infrastructure', 'Residential', 'Vehicles', 'Nature', 'Props', 'Misc']);
+        this.thumbnails = new Map();
+
+        // Inspector State
+        this.inspectorTab = 'Properties'; // 'Properties' | 'World'
+        this.lockScale = false;
+
+        // For polling/updates
+        this.lastHistoryLen = 0;
+        this.needsOutlinerUpdate = true;
+    }
+
+    init(devMode) {
         this.devMode = devMode;
-        this.dom = null;
-        this.propPanel = null;
         this.alignTool = new AlignTool(devMode);
-        this._init();
+
+        // Root
+        this.container = document.createElement('div');
+        this.container.id = 'dev-ui';
+        this.container.style.display = 'none';
+        document.body.appendChild(this.container);
+
+        // Panels
+        this._createTopBar();
+        this._createToolbar();
+        this._createOutliner();
+        this._createHistory();
+        this._createInspector();
+        this._createPalette();
+
+        // Save Indicator
+        const saveInd = document.createElement('div');
+        this.saveInd = saveInd; // Store reference
+        saveInd.className = 'dev-save-indicator';
+        saveInd.id = 'dev-save-indicator';
+        saveInd.textContent = 'Map Saved';
+        this.container.appendChild(saveInd);
+
+        // Initial Refresh
+        this.refreshPalette();
     }
 
-    _init() {
-        const div = document.createElement('div');
-        div.id = 'dev-ui';
-        div.style.cssText = `
-            position: absolute;
-            top: 0;
-            left: 0;
-            bottom: 0;
-            width: 300px;
-            background: rgba(0, 0, 0, 0.8);
-            color: white;
-            padding: 10px;
-            display: none;
-            flex-direction: column;
-            gap: 10px;
-            overflow-y: auto;
-            pointer-events: auto;
-            z-index: 1000;
-        `;
-
-        div.innerHTML = `
-            <h2>Dev Mode</h2>
-            <button id="dev-exit">Exit Dev Mode</button>
-            <hr style="width:100%">
-            <h3>Map</h3>
-            <button id="dev-clear">Clear Map</button>
-            <button id="dev-save">Save Map</button>
-            <label class="file-btn" tabindex="0" role="button" aria-label="Load Custom Map">
-                Load Map
-                <input type="file" id="dev-load" accept=".json" class="visually-hidden" tabindex="-1">
-            </label>
-
-            <hr style="width:100%">
-            <h3>Environment</h3>
-            <div style="display:flex; flex-direction:column; gap:5px; font-size:0.9em;">
-                <div style="background:#222; padding:5px;">
-                    <strong>Time of Day</strong>
-                <label for="dev-time-slider" style="display:flex; justify-content:space-between; margin-top:5px;">
-                        Current Time: <span id="time-display">12:00</span>
-                    </label>
-                    <input type="range" id="dev-time-slider" min="0" max="24" step="0.1" value="12" style="width:100%">
-
-                    <label style="display:flex; justify-content:space-between; margin-top:5px;">
-                        Day Speed
-                        <input type="number" id="dev-day-speed" min="0" max="1000" step="1" style="width:50px">
-                    </label>
-
-                    <label style="display:flex; align-items:center; gap:5px; margin-top:5px;">
-                        <input type="checkbox" id="dev-time-lock"> Lock Time
-                    </label>
-                </div>
-
-                <label for="dev-wind-speed" style="display:flex; justify-content:space-between;">
-                    Wind Speed
-                </label>
-                <input type="number" id="dev-wind-speed" min="0" max="100" value="0">
-
-                <label for="dev-wind-dir" style="display:flex; justify-content:space-between;">
-                    Wind Dir
-                </label>
-                <input type="number" id="dev-wind-dir" min="0" max="360" value="0">
-            </div>
-
-            <hr style="width:100%">
-            <h3>Tools</h3>
-            <label style="display:flex; align-items:center; gap:5px; cursor:pointer;">
-                <input type="checkbox" id="dev-grid-snap"> Grid Snap
-            </label>
-            <!-- Removed Grid Size Input -->
-
-            <div style="display:flex; gap:5px; margin-top:5px;">
-                <button id="dev-mode-trans" style="flex:1; font-size:0.8em;">Move</button>
-                <button id="dev-mode-rot" style="flex:1; font-size:0.8em;">Rotate</button>
-            </div>
-            <div style="display:flex; gap:5px; margin-top:5px;">
-                <button id="dev-tool-road" style="flex:1; font-size:0.8em;">Road Tool</button>
-            </div>
-
-            <div style="display:flex; gap:5px; margin-top:5px;">
-                <button id="dev-undo" style="flex:1; font-size:0.8em;">Undo</button>
-                <button id="dev-redo" style="flex:1; font-size:0.8em;">Redo</button>
-            </div>
-
-            <div style="display:flex; gap:5px; margin-top:5px;">
-                <button id="dev-copy" style="flex:1; font-size:0.8em;">Copy</button>
-                <button id="dev-paste" style="flex:1; font-size:0.8em;">Paste</button>
-                <button id="dev-duplicate" style="flex:1; font-size:0.8em;">Duplicate</button>
-            </div>
-
-            <!-- Properties flyout is created separately via _createPropertyPanel() -->
-
-            <hr style="width:100%">
-            <h3>Objects</h3>
-            <input type="text" id="dev-palette-search" aria-label="Filter objects" placeholder="Search objects..." style="width: 100%; box-sizing: border-box; margin-bottom: 5px; background: #222; color: white; border: 1px solid #444; padding: 5px;">
-            <div class="palette"></div>
-        `;
-
-        // CSS for palette items
-        const style = document.createElement('style');
-        style.textContent = `
-            .palette-item {
-                background: #333;
-                padding: 10px;
-                margin-bottom: 5px;
-                cursor: grab;
-                border: 1px solid #555;
+    toggle(show) {
+        this.container.style.display = show ? 'flex' : 'none';
+        if (show) {
+            this.refreshOutliner();
+            this.refreshHistory();
+            this.refreshInspector();
+            if (this.alignTool && this.alignTool.updateVisibility) {
+                this.alignTool.updateVisibility(this.devMode.selectedObjects);
             }
-            .palette-item:hover { background: #444; }
-            .file-btn {
-                background: #444;
-                padding: 5px;
-                text-align: center;
-                cursor: pointer;
-                border: 1px solid #666;
-                display: block;
-            }
-            .visually-hidden {
-                position: absolute;
-                width: 1px;
-                height: 1px;
-                padding: 0;
-                margin: -1px;
-                overflow: hidden;
-                clip: rect(0, 0, 0, 0);
-                white-space: nowrap;
-                border: 0;
-            }
-            /* Input styling for 7 digits */
-            #dev-ui input[type="number"] {
-                background: #111;
-                color: white;
-                border: 1px solid #444;
-                padding: 2px;
-                min-width: 60px; /* Ensure wide enough */
-            }
-
-            /* Focus Visibility for Accessibility */
-            #dev-ui button:focus-visible,
-            #dev-ui input:focus-visible,
-            .file-btn:focus-visible {
-                outline: 2px solid #22ffaa;
-                outline-offset: -2px;
-            }
-
-            /* Properties Flyout */
-            .dev-prop-flyout {
-                position: fixed;
-                top: 0;
-                right: 0;
-                bottom: 0;
-                width: 350px;
-                background: rgba(0, 0, 0, 0.9);
-                color: white;
-                display: flex;
-                flex-direction: column;
-                gap: 10px;
-                padding: 14px 14px 20px 14px;
-                border-left: 1px solid #444;
-                box-shadow: -4px 0 12px rgba(0,0,0,0.5);
-                transform: translateX(100%);
-                transition: transform 0.25s ease-in-out, opacity 0.25s ease-in-out;
-                opacity: 0;
-                pointer-events: none;
-                z-index: 1500;
-                overflow-y: auto;
-                max-height: 100vh;
-            }
-
-            .dev-prop-flyout.open {
-                transform: translateX(0);
-                opacity: 1;
-                pointer-events: auto;
-            }
-
-            .dev-prop-flyout h4 {
-                margin: 0;
-            }
-
-            .dev-prop-grid {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 5px;
-                align-items: center;
-            }
-
-            .dev-prop-pair {
-                display: flex;
-                align-items: center;
-                gap: 2px;
-                flex: 1 0 auto; /* Allow growing but set base */
-            }
-
-            .dev-prop-input {
-                width: 70px;
-                background: #111;
-                color: white;
-                border: 1px solid #444;
-                padding: 2px;
-            }
-
-            .dev-prop-section {
-                background: #222;
-                border: 1px solid #444;
-                padding: 8px;
-                display: flex;
-                flex-direction: column;
-                gap: 6px;
-            }
-
-            .dev-prop-label {
-                width: 22px;
-                font-size: 0.9em;
-                color: #ccc;
-            }
-
-            .dev-prop-note {
-                font-size: 0.8em;
-                color: #aaa;
-            }
-        `;
-        document.head.appendChild(style);
-
-        document.body.appendChild(div);
-        this.dom = div;
-        this.propPanel = this._createPropertyPanel();
-
-        this._buildPalette();
-        this._bindEvents();
+        }
     }
 
-    _createPropertyPanel() {
-        const flyout = document.createElement('div');
-        flyout.id = 'prop-panel';
-        flyout.className = 'dev-prop-flyout';
-        flyout.setAttribute('aria-hidden', 'true');
+    update(dt) {
+        if (this.container.style.display === 'none') return;
 
-        flyout.innerHTML = `
-            <h4>Properties</h4>
-            <div class="dev-prop-note" id="prop-id"></div>
-
-            <div class="dev-prop-section">
-                <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label for="prop-x" class="dev-prop-label">X</label> <input id="prop-x" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label for="prop-y" class="dev-prop-label">Y</label> <input id="prop-y" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label for="prop-z" class="dev-prop-label">Z</label> <input id="prop-z" class="dev-prop-input" type="number" step="1"></div>
-                </div>
-                <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label for="prop-rx" class="dev-prop-label">RX</label> <input id="prop-rx" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label for="prop-ry" class="dev-prop-label">RY</label> <input id="prop-ry" class="dev-prop-input" type="number" step="1"></div>
-                    <div class="dev-prop-pair"><label for="prop-rz" class="dev-prop-label">RZ</label> <input id="prop-rz" class="dev-prop-input" type="number" step="1"></div>
-                </div>
-
-                <div class="dev-prop-grid">
-                    <div class="dev-prop-pair"><label for="prop-sx" class="dev-prop-label">SX</label> <input id="prop-sx" class="dev-prop-input" type="number" step="0.1"></div>
-                    <div class="dev-prop-pair"><label for="prop-sy" class="dev-prop-label">SY</label> <input id="prop-sy" class="dev-prop-input" type="number" step="0.1"></div>
-                    <div class="dev-prop-pair"><label for="prop-sz" class="dev-prop-label">SZ</label> <input id="prop-sz" class="dev-prop-input" type="number" step="0.1"></div>
-                </div>
-                <div style="display:flex; align-items:center; gap:5px;">
-                    <input type="checkbox" id="prop-scale-lock" checked> <label for="prop-scale-lock" style="font-size:0.85em">Lock Aspect Ratio</label>
-                </div>
-            </div>
-
-            <div id="car-controls" class="dev-prop-section" style="display:none;">
-                 <button id="btn-add-waypoint">Add Waypoint</button>
-                 <div id="waypoint-list" style="display:flex; flex-direction:column; gap:2px;"></div>
-                 <button id="btn-remove-waypoint">Remove Last Waypoint</button>
-                 <div id="pickup-controls" style="display:none; flex-direction:column; gap:5px;">
-                    <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
-                        Wait Time (s)
-                        <input id="pickup-wait-time" type="number" min="0" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
-                    </label>
-                 </div>
-            </div>
-
-            <div id="angry-person-controls" class="dev-prop-section" style="display:none;">
-                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
-                     Throw Interval (s)
-                     <input id="angry-throw-interval" type="number" min="0.1" step="0.1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
-                 </label>
-                 <label style="display:flex; align-items:center; gap:5px; font-size:0.85em;">
-                     Throw Distance
-                     <input id="angry-throw-dist" type="number" min="1" step="1" style="flex:1; background:#111; color:#fff; border:1px solid #444;">
-                 </label>
-            </div>
-
-            <button id="dev-delete" style="background:#800; color:#fff;">Delete Object</button>
-        `;
-
-        // Inject Align Tool here
-        // We want to insert it after the main transform properties, but before specialized controls
-        const insertPoint = flyout.querySelector('.dev-prop-section');
-        if (insertPoint && insertPoint.nextSibling) {
-             flyout.insertBefore(this.alignTool.createUI(), insertPoint.nextSibling);
-        } else {
-             flyout.appendChild(this.alignTool.createUI());
+        // Sync Inspector
+        if (this.inspectorTab === 'Properties' && this.devMode.selectedObjects.length > 0) {
+            this._syncInspector();
         }
 
-        document.body.appendChild(flyout);
-        return flyout;
+        // Check History updates
+        if (this.devMode.commandManager &&
+            (this.devMode.commandManager.undoStack.length + this.devMode.commandManager.redoStack.length) !== this.lastHistoryLen) {
+            this.refreshHistory();
+        }
     }
 
-    _formatDisplayName(type, classRef) {
-        if (classRef?.displayName) return classRef.displayName;
-
-        const spaced = type.replace(/([A-Z])/g, ' $1');
-        return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+    onObjectListChanged() {
+        this.refreshOutliner();
     }
 
-    _buildPalette() {
-        const palette = this.dom.querySelector('.palette');
-        if (!palette) return;
+    onSelectionChanged() {
+        // Auto-switch to Properties if object selected
+        if (this.devMode.selectedObjects.length > 0) {
+            this.inspectorTab = 'Properties';
+        }
+        this.refreshInspector();
+        this.refreshOutliner(); // To update selection highlight
 
-        palette.innerHTML = '';
-
-        const entries = Array.from(EntityRegistry.registry.entries());
-        entries
-            .map(([type, classRef]) => ({ type, name: this._formatDisplayName(type, classRef) }))
-            .sort((a, b) => a.name.localeCompare(b.name))
-            .forEach(({ type, name }) => {
-                const item = document.createElement('button');
-                item.className = 'palette-item';
-                item.draggable = true;
-                item.dataset.type = type;
-                item.textContent = name;
-
-                item.addEventListener('dragstart', (e) => {
-                    e.dataTransfer.setData('type', type);
-                    this.devMode.interaction.onDragStart(type);
-                });
-
-                // Add Click handler for Smart Tool mode
-                item.addEventListener('click', (e) => {
-                    // Only for Roads currently
-                    if (type === 'road') {
-                        this.devMode.setPlacementMode(type);
-                        // Optional: Highlight UI
-                    } else {
-                        // For others, maybe select if we support generic placement
-                        // this.devMode.setPlacementMode(type);
-                    }
-                });
-
-                palette.appendChild(item);
-            });
+        if (this.alignTool && this.alignTool.updateVisibility) {
+            this.alignTool.updateVisibility(this.devMode.selectedObjects);
+        }
     }
 
-    _filterPalette(query) {
-        const palette = this.dom.querySelector('.palette');
-        if (!palette) return;
+    updateProperties(obj) {
+        // Compatibility method for high-frequency updates (e.g. dragging)
+        if (this.inspectorTab === 'Properties') {
+            this._syncInspector();
+        }
+    }
 
-        const items = palette.querySelectorAll('.palette-item');
-        const q = query.toLowerCase();
+    // --- Top Bar ---
+    _createTopBar() {
+        const bar = document.createElement('div');
+        bar.className = 'dev-top-bar';
+
+        // Dev Mode Menu
+        this._createMenu(bar, 'Dev Mode', [
+            { label: 'Resume Game', action: () => this.devMode.disable() },
+            { separator: true },
+            { label: 'Save Map', shortcut: 'Ctrl+S', action: () => this.devMode.saveMap() },
+            { label: 'Load Map...', action: () => this._triggerLoad() },
+            { separator: true },
+            { label: 'Clear Map', action: () => { if(confirm('Clear map?')) this.devMode.clearMap(); } },
+            { label: 'Exit Dev Mode', action: () => this.devMode.disable() }
+        ]);
+
+        // Edit Menu
+        this._createMenu(bar, 'Edit', [
+            { label: 'Undo', shortcut: 'Ctrl+Z', action: () => this.devMode.history.undo() },
+            { label: 'Redo', shortcut: 'Ctrl+Y', action: () => this.devMode.history.redo() },
+            { separator: true },
+            { label: 'Copy', shortcut: 'Ctrl+C', action: () => this.devMode.copySelected() },
+            { label: 'Paste', shortcut: 'Ctrl+V', action: () => this.devMode.pasteClipboard() },
+            { label: 'Duplicate', shortcut: 'Ctrl+D', action: () => this.devMode.duplicateSelected() },
+            { label: 'Delete', shortcut: 'Del', action: () => this.devMode.deleteSelected() }
+        ]);
+
+        // View Menu (Tools)
+        this._createMenu(bar, 'View', [
+             { label: 'Toggle Grid', action: () => {
+                 this.devMode.grid.enabled = !this.devMode.grid.enabled;
+                 this.devMode.grid.helper.visible = this.devMode.grid.enabled;
+             }},
+             { label: 'Toggle HUD', action: () => {
+                 const hud = document.querySelector('.hud-container');
+                 if(hud) hud.style.display = hud.style.display === 'none' ? 'block' : 'none';
+             }}
+        ]);
+
+        this.container.appendChild(bar);
+
+        // Close menus when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.dev-menu-btn')) {
+                document.querySelectorAll('.dev-dropdown').forEach(d => d.classList.remove('visible'));
+                document.querySelectorAll('.dev-menu-btn').forEach(b => b.classList.remove('active'));
+            }
+        });
+    }
+
+    _createToolbar() {
+        const bar = document.createElement('div');
+        bar.className = 'dev-toolbar';
+
+        const addBtn = (label, action, title='') => {
+            const btn = document.createElement('div');
+            btn.className = 'dev-tool-btn';
+            btn.textContent = label;
+            btn.title = title;
+            btn.onclick = action;
+            bar.appendChild(btn);
+        };
+
+        addBtn('Exit', () => this.devMode.disable(), 'Exit Dev Mode');
+
+        const sep = document.createElement('div');
+        sep.style.width = '1px';
+        sep.style.height = '20px';
+        sep.style.background = '#555';
+        sep.style.margin = '0 5px';
+        bar.appendChild(sep);
+
+        addBtn('Undo', () => this.devMode.history.undo(), 'Ctrl+Z');
+        addBtn('Redo', () => this.devMode.history.redo(), 'Ctrl+Y');
+
+        const sep2 = sep.cloneNode();
+        bar.appendChild(sep2);
+
+        addBtn('Grid', () => {
+             this.devMode.grid.enabled = !this.devMode.grid.enabled;
+             this.devMode.grid.helper.visible = this.devMode.grid.enabled;
+        }, 'Toggle Grid');
+
+        this.container.appendChild(bar);
+    }
+
+    _createMenu(parent, label, items) {
+        const container = document.createElement('div');
+        container.style.position = 'relative';
+
+        const btn = document.createElement('button');
+        btn.className = 'dev-menu-btn';
+        btn.textContent = label;
+
+        const dropdown = document.createElement('div');
+        dropdown.className = 'dev-dropdown';
+
+        btn.onclick = (e) => {
+            e.stopPropagation();
+            const wasVisible = dropdown.classList.contains('visible');
+            // Close all others
+            document.querySelectorAll('.dev-dropdown').forEach(d => d.classList.remove('visible'));
+            document.querySelectorAll('.dev-menu-btn').forEach(b => b.classList.remove('active'));
+
+            if (!wasVisible) {
+                dropdown.classList.add('visible');
+                btn.classList.add('active');
+            }
+        };
 
         items.forEach(item => {
-            if (item.textContent.toLowerCase().includes(q)) {
-                item.style.display = 'block';
+            if (item.separator) {
+                const sep = document.createElement('div');
+                sep.className = 'dev-dropdown-separator';
+                dropdown.appendChild(sep);
             } else {
-                item.style.display = 'none';
+                const div = document.createElement('div');
+                div.className = 'dev-dropdown-item';
+
+                const span = document.createElement('span');
+                span.textContent = item.label;
+                div.appendChild(span);
+
+                if (item.shortcut) {
+                    const sc = document.createElement('span');
+                    sc.className = 'dev-dropdown-shortcut';
+                    sc.textContent = item.shortcut;
+                    div.appendChild(sc);
+                }
+
+                div.onclick = () => {
+                    item.action();
+                    dropdown.classList.remove('visible');
+                    btn.classList.remove('active');
+                };
+                dropdown.appendChild(div);
             }
         });
+
+        container.appendChild(btn);
+        container.appendChild(dropdown);
+        parent.appendChild(container);
     }
 
-    _bindEvents() {
-        this.dom.querySelector('#dev-exit').onclick = () => this.devMode.disable();
-        this.dom.querySelector('#dev-clear').onclick = () => this.devMode.clearMap();
-        this.dom.querySelector('#dev-save').onclick = () => this.devMode.saveMap();
-
-        // Accessibility: Allow keyboard activation for file input label
-        const loadLabel = this.dom.querySelector('.file-btn');
-        loadLabel.onkeydown = (e) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                this.dom.querySelector('#dev-load').click();
-            }
-        };
-
-        this.dom.querySelector('#dev-load').onchange = (e) => {
+    _triggerLoad() {
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json';
+        fileInput.style.display = 'none';
+        fileInput.onchange = (e) => {
             if (e.target.files.length > 0) {
                 this.devMode.loadMap(e.target.files[0]);
-                e.target.value = ''; // Reset
             }
         };
+        document.body.appendChild(fileInput);
+        fileInput.click();
+        document.body.removeChild(fileInput);
+    }
+
+    // --- Outliner ---
+    _createOutliner() {
+        const panel = this._createPanel('dev-outliner', 'World Outliner');
+        this.outliner = document.createElement('div');
+        this.outliner.className = 'dev-outliner-content';
+        panel.appendChild(this.outliner);
+        this.container.appendChild(panel);
+    }
+
+    refreshOutliner() {
+        if (!this.outliner) return;
+        this.outliner.innerHTML = '';
+
+        const groups = {};
+        const all = this.devMode.app.world.colliders;
+
+        all.forEach(entity => {
+            if (!entity.mesh) return;
+            const cat = this._getCategory(entity.type || entity.constructor.name);
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(entity);
+        });
+
+        Object.keys(groups).sort().forEach(cat => {
+            const groupDiv = document.createElement('div');
+            groupDiv.className = `dev-outliner-group ${this.expandedGroups.has(cat) ? '' : 'collapsed'}`;
+
+            const header = document.createElement('div');
+            header.className = 'dev-outliner-group-header';
+            header.textContent = `${cat} (${groups[cat].length})`;
+            header.onclick = () => {
+                if (this.expandedGroups.has(cat)) this.expandedGroups.delete(cat);
+                else this.expandedGroups.add(cat);
+                this.refreshOutliner();
+            };
+            groupDiv.appendChild(header);
+
+            if (this.expandedGroups.has(cat)) {
+                groups[cat].forEach(entity => {
+                    const item = document.createElement('div');
+                    const isSelected = this.devMode.selectedObjects.includes(entity.mesh);
+                    item.className = `dev-outliner-item ${isSelected ? 'selected' : ''}`;
+
+                    // Allow clicking anywhere on row to select
+                    item.onclick = (e) => {
+                        // Don't trigger if clicked on visibility toggle
+                        if (e.target.classList.contains('dev-outliner-visibility')) return;
+                        // Multi-select with shift
+                        this.devMode.selectObject(entity.mesh, e.shiftKey);
+                    };
+
+                    const name = document.createElement('span');
+                    const displayName = entity.constructor.displayName || entity.type || 'Object';
+                    name.textContent = displayName;
+                    item.appendChild(name);
+
+                    // Visibility Toggle
+                    const vis = document.createElement('div');
+                    vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'is-hidden'}`;
+                    vis.title = 'Toggle Visibility';
+                    vis.onclick = (e) => {
+                        e.stopPropagation();
+                        entity.mesh.visible = !entity.mesh.visible;
+                        vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'is-hidden'}`;
+                    };
+                    item.appendChild(vis);
+
+                    groupDiv.appendChild(item);
+                });
+            }
+            this.outliner.appendChild(groupDiv);
+        });
+    }
+
+    // --- Inspector ---
+    _createInspector() {
+        const panel = this._createPanel('dev-inspector', 'Properties'); // Title will be overwritten by tabs
+        // Clear header to insert tabs
+        panel.innerHTML = '';
+
+        // Tabs Container
+        const tabs = document.createElement('div');
+        tabs.className = 'dev-inspector-tabs';
+
+        ['Properties', 'World'].forEach(t => {
+            const tab = document.createElement('div');
+            tab.className = `dev-inspector-tab`;
+            tab.textContent = t;
+            tab.dataset.tab = t;
+            tab.onclick = () => {
+                this.inspectorTab = t;
+                this.refreshInspector();
+            };
+            tabs.appendChild(tab);
+        });
+        panel.appendChild(tabs);
+
+        const content = document.createElement('div');
+        content.className = 'dev-inspector-content';
+        panel.appendChild(content);
+
+        this.inspectorPanel = panel; // Reference to full panel if needed
+        this.inspector = content; // Content area
+        this.container.appendChild(panel);
+    }
+
+    refreshInspector() {
+        if (!this.inspector) return;
+        this.inspector.innerHTML = '';
+
+        // Update Tabs Active State
+        const tabs = this.container.querySelectorAll('.dev-inspector-tab');
+        tabs.forEach(t => {
+            if (t.dataset.tab === this.inspectorTab) t.classList.add('active');
+            else t.classList.remove('active');
+        });
+
+        if (this.inspectorTab === 'Properties') {
+            this._renderProperties();
+        } else {
+            this._renderWorldControls();
+        }
+    }
+
+    _renderProperties() {
+        const selection = this.devMode.selectedObjects;
+        if (!selection || selection.length === 0) {
+            this.inspector.innerHTML = '<div style="color:#666; font-style:italic;">No object selected</div>';
+            return;
+        }
+
+        const obj = selection[0];
+
+        // Header
+        const header = document.createElement('div');
+        header.className = 'dev-prop-title';
+        header.textContent = selection.length > 1 ? `${selection.length} Objects Selected` : (obj.userData.type || 'Object');
+        this.inspector.appendChild(header);
+
+        // Transform
+        if (selection.length === 1) {
+            this._addPropGroup('Transform', [
+                this._createVectorInput('Position', obj.position, (v) => this._applyTransform(obj, 'position', v)),
+                this._createVectorInput('Rotation', obj.rotation, (v) => this._applyTransform(obj, 'rotation', v), true),
+                this._createScaleInput(obj)
+            ]);
+        } else {
+             this.inspector.innerHTML += '<div style="color:#888;">Use Gizmo to transform selection.</div>';
+        }
+
+        // Align Tool Integration
+        if (this.alignTool && this.alignTool.createUI) {
+            const alignUI = this.alignTool.createUI();
+            if (alignUI) {
+                this._addPropGroup('Alignment', [alignUI]);
+            }
+        }
+
+        // Params (Single Object only)
+        if (selection.length === 1) {
+            if (obj.userData.params) {
+                const ignoredParams = new Set(['uuid', 'type', 'x', 'y', 'z', 'rotX', 'rotY', 'rotZ', 'width', 'height', 'depth', 'scale', 'waypoints', 'isVehicle', 'waitTime']);
+
+                const fields = [];
+                Object.keys(obj.userData.params).forEach(key => {
+                    if (ignoredParams.has(key)) return;
+                    const val = obj.userData.params[key];
+
+                    if (typeof val === 'number') {
+                        fields.push(this._createNumberInput(key, val, (n) => {
+                            this._applyParam(obj, key, n);
+                        }));
+                    } else if (typeof val === 'string') {
+                        fields.push(this._createTextInput(key, val, (s) => {
+                            this._applyParam(obj, key, s);
+                        }));
+                    } else if (typeof val === 'boolean') {
+                        fields.push(this._createCheckbox(key, val, (b) => {
+                            this._applyParam(obj, key, b);
+                        }));
+                    }
+                });
+                if (fields.length > 0) {
+                    this._addPropGroup('Parameters', fields);
+                }
+            }
+
+            // Waypoints (Vehicles)
+            if (obj.userData.isVehicle || obj.userData.type === 'vehicle' || obj.userData.type === 'car' || obj.userData.type === 'truck') {
+                this._renderWaypoints(obj);
+            }
+        }
+
+        // Delete Button
+        const delBtn = document.createElement('button');
+        delBtn.className = 'dev-btn dev-btn-danger';
+        delBtn.textContent = 'Delete Selected';
+        delBtn.style.marginTop = '10px';
+        delBtn.onclick = () => this.devMode.deleteSelected();
+        this.inspector.appendChild(delBtn);
+    }
+
+    _renderWaypoints(obj) {
+        const wpCount = obj.userData.waypoints ? obj.userData.waypoints.length : 0;
+
+        const group = document.createElement('div');
+        group.className = 'dev-prop-group';
+
+        const title = document.createElement('div');
+        title.className = 'dev-prop-title';
+        title.textContent = `Waypoints (${wpCount})`;
+        group.appendChild(title);
+
+        const row = document.createElement('div');
+        row.className = 'dev-btn-row';
+
+        const addBtn = document.createElement('button');
+        addBtn.className = 'dev-btn';
+        addBtn.textContent = 'Add';
+        addBtn.title = 'Add waypoint after selection or at end';
+        addBtn.onclick = () => this.devMode.addWaypointToSelected();
+        row.appendChild(addBtn);
+
+        const removeBtn = document.createElement('button');
+        removeBtn.className = 'dev-btn';
+        removeBtn.textContent = 'Remove Last';
+        removeBtn.onclick = () => this.devMode.removeWaypointFromSelected();
+        row.appendChild(removeBtn);
+
+        group.appendChild(row);
+
+        // Wait Time Control
+        if (obj.userData.waitTime !== undefined) {
+             const waitRow = this._createNumberInput('Wait Time (s)', obj.userData.waitTime, (val) => {
+                 obj.userData.waitTime = val;
+                 if (obj.userData.params) obj.userData.params.waitTime = val;
+             });
+             group.appendChild(waitRow);
+        }
+
+        this.inspector.appendChild(group);
+    }
+
+    _renderWorldControls() {
+        const container = document.createElement('div');
+        container.className = 'dev-system-section';
 
         // Environment
-        const windSpeed = this.dom.querySelector('#dev-wind-speed');
-        const windDir = this.dom.querySelector('#dev-wind-dir');
+        const envGroup = document.createElement('div');
+        envGroup.innerHTML = '<div class="dev-prop-title">Environment</div>';
 
-        // Time Controls
-        const timeSlider = this.dom.querySelector('#dev-time-slider');
-        const timeDisplay = this.dom.querySelector('#time-display');
-        const daySpeedInput = this.dom.querySelector('#dev-day-speed');
-        const timeLockInput = this.dom.querySelector('#dev-time-lock');
+        // Time of Day
+        if (this.devMode.app.world.timeCycle) {
+            const tc = this.devMode.app.world.timeCycle;
 
-        const updateEnvUI = () => {
-            if (this.devMode.app.world.wind) {
-                windSpeed.value = this.devMode.app.world.wind.speed;
-                windDir.value = this.devMode.app.world.wind.direction;
-            }
-            if (this.devMode.app.world.timeCycle) {
-                const tc = this.devMode.app.world.timeCycle;
-                timeSlider.value = tc.time;
-                daySpeedInput.value = tc.speed;
-                timeLockInput.checked = tc.isLocked;
+            // Slider
+            const sliderRow = document.createElement('div');
+            sliderRow.className = 'dev-prop-row';
+            sliderRow.innerHTML = '<div class="dev-prop-label">Time</div>';
 
-                // Format HH:MM
-                const h = Math.floor(tc.time);
-                const m = Math.floor((tc.time - h) * 60);
-                timeDisplay.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-            }
-        };
-
-        // Hook into show() to update values when opening
-        const originalShow = this.show.bind(this);
-        this.show = () => {
-            originalShow();
-            updateEnvUI();
-        };
-
-        // Hook into internal update or use a timer to update Time Display if game is running?
-        // BuildUI doesn't have an update loop.
-        // We can add a simple interval or just update when slider moves.
-        // If "Lock Time" is off, slider should move?
-        // DevMode update could call this.
-        // For now, let's just update on interaction or show.
-
-        // Time Inputs
-        timeSlider.oninput = (e) => {
-            const val = parseFloat(e.target.value);
-            if (this.devMode.app.world.timeCycle) {
-                this.devMode.app.world.timeCycle.time = val;
-                // Force update display
-                const h = Math.floor(val);
-                const m = Math.floor((val - h) * 60);
-                timeDisplay.textContent = `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}`;
-
-                // Also force a manual update of lighting so we see it while dragging
-                this.devMode.app.world.timeCycle.update(0);
-                // We need to trigger App update logic too?
-                // App.update calls cycle.update(dt), then applies values.
-                // cycle.update(0) updates internal positions/colors.
-                // Then on next frame, App will apply them.
-            }
-        };
-
-        daySpeedInput.onchange = (e) => {
-             const val = parseFloat(e.target.value);
-             if (!isNaN(val) && this.devMode.app.world.timeCycle) {
-                 this.devMode.app.world.timeCycle.speed = val;
-             }
-        };
-
-        timeLockInput.onchange = (e) => {
-            if (this.devMode.app.world.timeCycle) {
-                this.devMode.app.world.timeCycle.isLocked = e.target.checked;
-            }
-        };
-
-        windSpeed.oninput = (e) => {
-            let val = parseInt(e.target.value);
-            if (isNaN(val)) return;
-            // Clamp
-            if (val < 0) val = 0;
-            if (val > 100) val = 100;
-
-            this.devMode.app.world.wind.speed = val;
-        };
-
-        windDir.oninput = (e) => {
-            let val = parseInt(e.target.value);
-            if (isNaN(val)) return;
-             // Clamp
-            if (val < 0) val = 0;
-            if (val > 360) val = 360;
-
-            this.devMode.app.world.wind.direction = val;
-        };
-
-        // Tools
-        const gridCheck = this.dom.querySelector('#dev-grid-snap');
-        gridCheck.onchange = (e) => {
-            if (this.devMode.grid) {
-                this.devMode.grid.setEnabled(e.target.checked);
-                this.devMode.gizmo.updateSnapping(this.devMode.grid);
-            }
-        };
-
-        // Grid Size Removed
-
-        this.dom.querySelector('#dev-mode-trans').onclick = () => {
-            this.devMode.gizmo.control.setMode('translate');
-        };
-        this.dom.querySelector('#dev-mode-rot').onclick = () => {
-            this.devMode.gizmo.control.setMode('rotate');
-        };
-
-        this.dom.querySelector('#dev-tool-road').onclick = () => {
-            this.devMode.setPlacementMode('road');
-        };
-
-        this.dom.querySelector('#dev-undo').onclick = () => {
-            this.devMode.history.undo();
-        };
-
-        this.dom.querySelector('#dev-redo').onclick = () => {
-            this.devMode.history.redo();
-        };
-
-        this.dom.querySelector('#dev-copy').onclick = () => {
-            if (this.devMode.copySelected) this.devMode.copySelected();
-        };
-
-        this.dom.querySelector('#dev-paste').onclick = () => {
-            if (this.devMode.pasteClipboard) this.devMode.pasteClipboard();
-        };
-
-        this.dom.querySelector('#dev-duplicate').onclick = () => {
-            if (this.devMode.duplicateSelected) this.devMode.duplicateSelected();
-        };
-
-        const searchInput = this.dom.querySelector('#dev-palette-search');
-        if (searchInput) {
-            searchInput.oninput = (e) => {
-                this._filterPalette(e.target.value);
+            const slider = document.createElement('input');
+            slider.type = 'range';
+            slider.min = '0';
+            slider.max = '24';
+            slider.step = '0.1';
+            slider.style.flex = '1';
+            slider.value = tc.time;
+            slider.oninput = (e) => {
+                tc.time = parseFloat(e.target.value);
             };
-        }
+            sliderRow.appendChild(slider);
+            envGroup.appendChild(sliderRow);
 
-        // Properties Input Bindings
-        const toRad = (deg) => deg * (Math.PI / 180);
-        let transformStart = null;
-        let focusedObjectUUIDs = null;
+            // Time Speed
+            const speedRow = this._createNumberInput('Speed', tc.speed, (v) => tc.speed = v);
+            envGroup.appendChild(speedRow);
 
-        ['x', 'y', 'z', 'rx', 'ry', 'rz', 'sx', 'sy', 'sz'].forEach(axis => {
-            const input = this.propPanel.querySelector(`#prop-${axis}`);
-            if (input) {
-                input.onfocus = () => {
-                    transformStart = this.devMode.captureTransforms(this.devMode.selectedObjects);
-                    focusedObjectUUIDs = this.devMode.selectedObjects.map(obj => obj.userData.uuid || obj.uuid);
-                };
-
-                input.onchange = (e) => {
-                    const val = parseFloat(e.target.value);
-                    if (isNaN(val)) return;
-
-                    // Verify selection hasn't changed
-                    const currentUUIDs = this.devMode.selectedObjects.map(obj => obj.userData.uuid || obj.uuid);
-                    const selectionChanged = !focusedObjectUUIDs ||
-                        currentUUIDs.length !== focusedObjectUUIDs.length ||
-                        !currentUUIDs.every((uuid, i) => uuid === focusedObjectUUIDs[i]);
-
-                    if (selectionChanged) {
-                        console.warn("BuildUI: Selection changed while editing property. Aborting update to prevent applying to wrong object.");
-                        // Reset input value to avoid confusion? Or just ignore.
-                        // Ignoring is safer. The UI will update when next selected.
-                        transformStart = null;
-                        focusedObjectUUIDs = null;
-                        return;
-                    }
-
-                    const beforeStates = transformStart || this.devMode.captureTransforms(this.devMode.selectedObjects);
-
-                    // We need to act on the Gizmo PROXY, regardless of single or multi-select
-                    // GizmoManager logic handles propagating proxy changes to objects.
-                    const proxy = this.devMode.gizmo.proxy;
-
-                    if (proxy && this.devMode.selectedObjects.length > 0) {
-                        // Position
-                        if (axis === 'x') proxy.position.x = val;
-                        if (axis === 'y') proxy.position.y = val;
-                        if (axis === 'z') proxy.position.z = val;
-
-                        // Rotation: Inputs are Degrees, convert to Radians for Three.js
-                        if (axis === 'rx') proxy.rotation.x = toRad(val);
-                        if (axis === 'ry') proxy.rotation.y = toRad(val);
-                        if (axis === 'rz') proxy.rotation.z = toRad(val);
-
-                        // Scale
-                        if (['sx', 'sy', 'sz'].includes(axis)) {
-                            const lock = this.propPanel.querySelector('#prop-scale-lock').checked;
-                            const ratio = val / (axis === 'sx' ? proxy.scale.x : axis === 'sy' ? proxy.scale.y : proxy.scale.z);
-
-                            if (lock) {
-                                proxy.scale.multiplyScalar(ratio);
-                            } else {
-                                if (axis === 'sx') proxy.scale.x = val;
-                                if (axis === 'sy') proxy.scale.y = val;
-                                if (axis === 'sz') proxy.scale.z = val;
-                            }
-
-                            // Update UI to reflect locked changes
-                            if (lock) this.updateProperties(proxy);
-                        }
-
-                        // Sync proxy change to objects
-                        if (this.devMode.gizmo) {
-                            this.devMode.gizmo.syncProxyToObjects();
-                        }
-
-                        // Update Physics Bodies
-                        if (this.devMode.app.colliderSystem) {
-                            this.devMode.selectedObjects.forEach(obj => {
-                                this.devMode.app.colliderSystem.updateBody(obj);
-                            });
-                        }
-
-                        const afterStates = this.devMode.captureTransforms(this.devMode.selectedObjects);
-                        if (this.devMode.history && this.devMode._transformsChanged(beforeStates, afterStates)) {
-                            this.devMode.history.push(new TransformCommand(this.devMode, beforeStates, afterStates, 'Property transform'));
-                        }
-                        transformStart = null;
-                        // Do NOT clear focusedObjectUUIDs here, as the input might still be focused for subsequent edits.
-                    }
-                };
-            }
-        });
-
-        this.propPanel.querySelector('#dev-delete').onclick = () => {
-            this.devMode.deleteSelected();
-        };
-
-        this.propPanel.querySelector('#btn-add-waypoint').onclick = () => {
-            if (this.devMode.addWaypointToSelected) this.devMode.addWaypointToSelected();
-        };
-
-        this.propPanel.querySelector('#btn-remove-waypoint').onclick = () => {
-            if (this.devMode.removeWaypointFromSelected) this.devMode.removeWaypointFromSelected();
-        };
-
-        const pickupWaitInput = this.propPanel.querySelector('#pickup-wait-time');
-        if (pickupWaitInput) {
-            let waitStart = null;
-            pickupWaitInput.onfocus = () => {
-                const sel = this.devMode.selectedObjects[0];
-                const vehicle = sel.userData.type === 'waypoint' ? sel.userData.vehicle : sel;
-                if (this.devMode.selectedObjects.length === 1 && (sel.userData.isVehicle || sel.userData.type === 'waypoint')) {
-                    waitStart = vehicle.userData.waitTime ?? vehicle.userData.params?.waitTime ?? 0;
-                }
-            };
-            pickupWaitInput.onchange = (e) => {
-                const val = parseFloat(e.target.value);
-                if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
-
-                const sel = this.devMode.selectedObjects[0];
-                const vehicle = sel.userData.type === 'waypoint' ? sel.userData.vehicle : sel;
-
-                if (!vehicle || !vehicle.userData.isVehicle) return;
-
-                const before = waitStart ?? vehicle.userData.waitTime ?? vehicle.userData.params?.waitTime ?? 0;
-                const next = Math.max(0, val);
-                const applyWait = (value) => {
-                    vehicle.userData.waitTime = Math.max(0, value);
-                    if (vehicle.userData.params) vehicle.userData.params.waitTime = vehicle.userData.waitTime;
-                    this.updateProperties(sel); // Update the selection (might be waypoint)
-                };
-
-                applyWait(next);
-                // Use PropertyChangeCommand for persistence
-                this.devMode.history.push(new PropertyChangeCommand(
-                    this.devMode,
-                    vehicle.userData.uuid,
-                    'waitTime',
-                    before,
-                    next,
-                    'Update pickup wait time'
-                ));
-                waitStart = null;
-            };
-        }
-
-        // Angry Person Bindings
-        const angryIntervalInput = this.propPanel.querySelector('#angry-throw-interval');
-        const angryDistInput = this.propPanel.querySelector('#angry-throw-dist');
-
-        const bindAngryInput = (input, key, label) => {
-            let startVal = null;
-            input.onfocus = () => {
-                if (this.devMode.selectedObjects.length === 1 && this.devMode.selectedObjects[0].userData.type === 'angryPerson') {
-                    const sel = this.devMode.selectedObjects[0];
-                    startVal = sel.userData.params?.[key] ?? (key === 'throwInterval' ? 3.0 : 10);
-                }
-            };
-            input.onchange = (e) => {
-                const val = parseFloat(e.target.value);
-                if (isNaN(val) || this.devMode.selectedObjects.length !== 1) return;
-                const sel = this.devMode.selectedObjects[0];
-                if (sel.userData.type !== 'angryPerson') return;
-
-                const before = startVal ?? sel.userData.params?.[key] ?? (key === 'throwInterval' ? 3.0 : 10);
-                const next = val;
-
-                if (!sel.userData.params) sel.userData.params = {};
-                sel.userData.params[key] = next;
-
-                this.updateProperties(sel);
-
-                this.devMode.history.push(new PropertyChangeCommand(
-                    this.devMode,
-                    sel.userData.uuid,
-                    key,
-                    before,
-                    next,
-                    label
-                ));
-                startVal = null;
-            };
-        };
-
-        if (angryIntervalInput) bindAngryInput(angryIntervalInput, 'throwInterval', 'Update throw interval');
-        if (angryDistInput) bindAngryInput(angryDistInput, 'firingRange', 'Update firing range');
-
-    }
-
-    show() {
-        this.dom.style.display = 'flex';
-        // Reset state
-        const gridCheck = this.dom.querySelector('#dev-grid-snap');
-        if (this.devMode.grid) {
-             gridCheck.checked = this.devMode.grid.enabled;
-        }
-    }
-
-    hide() {
-        this.dom.style.display = 'none';
-    }
-
-    showProperties(object) {
-        const info = this.propPanel.querySelector('#prop-id');
-
-        // Use selected objects array to determine title
-        const count = this.devMode.selectedObjects.length;
-        if (count > 1) {
-            info.textContent = `Multiple Selection (${count} items)`;
-        } else if (count === 1) {
-            info.textContent = `Type: ${this.devMode.selectedObjects[0].userData.type || 'Unknown'}`;
-        } else {
-            info.textContent = '';
-        }
-
-        this.updateProperties(object);
-        this.alignTool.updateVisibility(this.devMode.selectedObjects);
-
-        this.propPanel.classList.add('open');
-        this.propPanel.setAttribute('aria-hidden', 'false');
-    }
-
-    updateProperties(object) {
-        if (!object) return;
-        const setVal = (id, val) => {
-            const el = this.propPanel.querySelector(`#prop-${id}`);
-            if (el && document.activeElement !== el) {
-                el.value = val.toFixed(2);
-            }
-        };
-
-        const toDeg = (rad) => rad * (180 / Math.PI);
-
-        setVal('x', object.position.x);
-        setVal('y', object.position.y);
-        setVal('z', object.position.z);
-
-        // Rotation: Convert Radians to Degrees for Display
-        setVal('rx', toDeg(object.rotation.x));
-        setVal('ry', toDeg(object.rotation.y));
-        setVal('rz', toDeg(object.rotation.z));
-
-        // Scale
-        setVal('sx', object.scale.x);
-        setVal('sy', object.scale.y);
-        setVal('sz', object.scale.z);
-
-        // Car Controls
-        const carControls = this.propPanel.querySelector('#car-controls');
-        const pickupControls = this.propPanel.querySelector('#pickup-controls');
-        const angryControls = this.propPanel.querySelector('#angry-person-controls');
-
-        // Show specific controls only if SINGLE selection and correct type
-        if (this.devMode.selectedObjects.length === 1) {
-            const sel = this.devMode.selectedObjects[0];
-            const type = sel.userData.type;
-
-            // Reset all special controls
-            carControls.style.display = 'none';
-            pickupControls.style.display = 'none';
-            if (angryControls) angryControls.style.display = 'none';
-
-            if (sel.userData.isVehicle || type === 'waypoint') {
-                carControls.style.display = 'flex';
-                // If it's a waypoint, we need the parent vehicle for the list and controls
-                const vehicle = type === 'waypoint' ? sel.userData.vehicle : sel;
-
-                if (vehicle) {
-                    this._updateWaypointList(vehicle);
-
-                    // Show Wait Time controls if the vehicle supports it
-                    const hasWaitTime = vehicle.userData.waitTime !== undefined || (vehicle.userData.params && vehicle.userData.params.waitTime !== undefined);
-
-                    if (hasWaitTime) {
-                        pickupControls.style.display = 'flex';
-                        const waitInput = this.propPanel.querySelector('#pickup-wait-time');
-                        if (waitInput && document.activeElement !== waitInput) {
-                            const wait = vehicle.userData.waitTime ?? vehicle.userData.params?.waitTime ?? 10;
-                            waitInput.value = wait;
-                        }
-                    }
-                }
-            } else if (type === 'angryPerson') {
-                if (angryControls) {
-                    angryControls.style.display = 'flex';
-                    const intervalInput = this.propPanel.querySelector('#angry-throw-interval');
-                    const distInput = this.propPanel.querySelector('#angry-throw-dist');
-
-                    const params = sel.userData.params || {};
-                    if (intervalInput && document.activeElement !== intervalInput) {
-                        intervalInput.value = params.throwInterval !== undefined ? params.throwInterval : 3.0;
-                    }
-                    if (distInput && document.activeElement !== distInput) {
-                        distInput.value = params.firingRange !== undefined ? params.firingRange : 10;
-                    }
-                }
-            }
-        } else {
-            // Hide for multi-select (per user requirement to hide incompatible options)
-            carControls.style.display = 'none';
-            pickupControls.style.display = 'none';
-            if (angryControls) angryControls.style.display = 'none';
-        }
-    }
-
-    _updateWaypointList(car) {
-        const container = this.propPanel.querySelector('#waypoint-list');
-        container.innerHTML = ''; // Clear
-
-        if (!car.userData.waypoints) return;
-
-        car.userData.waypoints.forEach((wp, index) => {
-            const row = document.createElement('div');
-            row.style.cssText = 'display:flex; gap:2px; align-items:center; font-size:0.8em;';
-            row.innerHTML = `<label style="width:15px">${index+1}</label>`;
-
-            ['x', 'y', 'z'].forEach(axis => {
-                const input = document.createElement('input');
-                input.type = 'number';
-                input.step = '0.5';
-                input.style.cssText = 'flex:1; width: 30px; background:#111; color:#fff; border:1px solid #444;';
-                input.value = wp[axis].toFixed(2);
-
-                input.onchange = (e) => {
-                    const val = parseFloat(e.target.value);
-                    if (isNaN(val)) return;
-                    const before = cloneWaypointState(car);
-                    wp[axis] = val;
-
-                    if (this.devMode._syncWaypointVisuals) {
-                        this.devMode._syncWaypointVisuals(car);
-                    }
-                    if (this.devMode.app.colliderSystem) {
-                        this.devMode.app.colliderSystem.updateBody(car);
-                    }
-
-                    const after = cloneWaypointState(car);
-                    this.devMode.history.push(new WaypointCommand(this.devMode, [before], [after], 'Move waypoint'));
-                };
-                row.appendChild(input);
+            // Time Locked
+            const lockedRow = this._createCheckbox('Time Locked', tc.isLocked, (b) => {
+                tc.isLocked = b;
             });
-            container.appendChild(row);
+            envGroup.appendChild(lockedRow);
+        }
+
+        // Wind
+        if (this.devMode.app.world.wind) {
+            envGroup.appendChild(document.createElement('br'));
+            envGroup.innerHTML += '<div class="dev-prop-title">Wind</div>';
+
+            const wind = this.devMode.app.world.wind;
+            envGroup.appendChild(this._createNumberInput('Speed', wind.speed, (v) => wind.speed = v));
+            envGroup.appendChild(this._createNumberInput('Direction', wind.direction, (v) => wind.direction = v));
+        }
+
+        container.appendChild(envGroup);
+        this.inspector.appendChild(container);
+    }
+
+    _syncInspector() {
+        const selection = this.devMode.selectedObjects;
+        if (!selection || selection.length === 0) return;
+        const obj = selection[0];
+
+        if (selection.length === 1) {
+            this._syncVectorInput('Position', obj.position);
+            this._syncVectorInput('Rotation', obj.rotation, true);
+            this._syncVectorInput('Scale', obj.scale);
+        }
+    }
+
+    // --- Palette ---
+    _createPalette() {
+        const container = document.createElement('div');
+        container.className = 'dev-palette-container dev-panel';
+
+        // Tabs
+        const header = document.createElement('div');
+        header.className = 'dev-panel-header';
+        header.style.padding = '0';
+        header.style.justifyContent = 'flex-start';
+
+        const tabsDiv = document.createElement('div');
+        tabsDiv.className = 'dev-palette-tabs';
+        this.tabsDiv = tabsDiv;
+        header.appendChild(tabsDiv);
+
+        container.appendChild(header);
+
+        this.palette = document.createElement('div');
+        this.palette.className = 'dev-palette-grid';
+        container.appendChild(this.palette);
+
+        this.container.appendChild(container); // Append panel to root
+    }
+
+    refreshPalette() {
+        if (!this.palette) return;
+        this.tabsDiv.innerHTML = '';
+        this.palette.innerHTML = '';
+
+        const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
+        categories.forEach(cat => {
+            const tab = document.createElement('div');
+            tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
+            tab.textContent = cat;
+            tab.onclick = () => {
+                this.selectedCategory = cat;
+                this.refreshPalette();
+            };
+            this.tabsDiv.appendChild(tab);
+        });
+
+        // Populate Grid
+        EntityRegistry.registry.forEach((Cls, type) => {
+            const cat = this._getCategory(type);
+            if (this.selectedCategory !== 'All' && cat !== this.selectedCategory) return;
+
+            const item = document.createElement('div');
+            item.className = 'dev-palette-item';
+            item.draggable = true;
+
+            // Thumbnail
+            const img = document.createElement('img');
+            img.className = 'dev-palette-thumb';
+            if (this.thumbnails.has(type)) {
+                img.src = this.thumbnails.get(type);
+            } else {
+                // Generate async
+                setTimeout(() => {
+                   const url = this.thumbnailRenderer.generate(Cls);
+                   if (url) {
+                       this.thumbnails.set(type, url);
+                       img.src = url;
+                   }
+                }, 0);
+            }
+            item.appendChild(img);
+
+            // Label
+            const label = document.createElement('div');
+            label.className = 'dev-palette-name';
+            label.textContent = Cls.displayName || type;
+            item.appendChild(label);
+
+            // Drag Events
+            item.ondragstart = (e) => {
+                e.dataTransfer.setData('text/plain', type);
+                e.dataTransfer.setData('type', type);
+                if (this.devMode.interaction) {
+                    this.devMode.interaction.onDragStart(type);
+                }
+            };
+            item.ondragend = () => {
+                // this.devMode.interaction.onDragEnd(); // if needed
+            };
+
+            // Click to create (fallback)
+            item.onclick = () => {
+                this.devMode.setPlacementMode(type);
+            };
+
+            this.palette.appendChild(item);
         });
     }
 
-    hideProperties() {
-        if (this.propPanel.contains(document.activeElement)) {
-            document.activeElement.blur();
+    // --- History ---
+    _createHistory() {
+        const panel = this._createPanel('dev-history', 'Timeline');
+        this.history = document.createElement('div');
+        this.history.className = 'dev-history-list';
+        panel.appendChild(this.history);
+        this.container.appendChild(panel);
+    }
+
+    refreshHistory() {
+        if (!this.history || !this.devMode.commandManager) return;
+        this.history.innerHTML = '';
+
+        const stack = this.devMode.commandManager.undoStack;
+        this.lastHistoryLen = stack.length + this.devMode.commandManager.redoStack.length;
+
+        // Show last 10
+        const start = Math.max(0, stack.length - 10);
+        for (let i = stack.length - 1; i >= start; i--) {
+            const cmd = stack[i];
+            const item = document.createElement('div');
+            item.className = 'dev-history-item';
+            item.textContent = cmd.description || 'Unknown Action';
+            this.history.appendChild(item);
         }
-        this.propPanel.classList.remove('open');
-        this.propPanel.setAttribute('aria-hidden', 'true');
+    }
+
+    showSaveIndicator() {
+        const ind = document.getElementById('dev-save-indicator');
+        if (ind) {
+            ind.style.display = 'block';
+            ind.style.animation = 'none';
+            ind.offsetHeight; /* trigger reflow */
+            ind.style.animation = 'fadeOut 2s forwards 2s';
+        }
+    }
+
+    // --- Helpers ---
+
+    _createPanel(cls, title) {
+        const p = document.createElement('div');
+        p.className = `dev-panel ${cls}`;
+        if (title) { // Allow optional title
+            const h = document.createElement('div');
+            h.className = 'dev-panel-header';
+            h.textContent = title;
+            p.appendChild(h);
+        }
+        return p;
+    }
+
+    _getCategory(type) {
+        type = type.toLowerCase();
+        if (type.includes('house') || type.includes('apartment') || type.includes('residential')) return 'Residential';
+        if (type.includes('road') || type.includes('sidewalk') || type.includes('infra') || type.includes('light') || type.includes('fire') || type.includes('bridge') || type.includes('runway')) return 'Infrastructure';
+        if (type.includes('car') || type.includes('vehicle') || type.includes('bus') || type.includes('truck') || type.includes('scooter')) return 'Vehicles';
+        if (type.includes('tree') || type.includes('rock') || type.includes('pond') || type.includes('mushroom') || type.includes('lotus')) return 'Nature';
+        if (type.includes('sign') || type.includes('billboard') || type.includes('barrier') || type.includes('stall') || type.includes('vending') || type.includes('tower') || type.includes('antenna') || type.includes('hvac')) return 'Props';
+        return 'Misc';
+    }
+
+    _addPropGroup(title, elements) {
+        const group = document.createElement('div');
+        group.className = 'dev-prop-group';
+        const t = document.createElement('div');
+        t.className = 'dev-prop-title';
+        t.textContent = title;
+        group.appendChild(t);
+        elements.forEach(el => group.appendChild(el));
+        this.inspector.appendChild(group);
+    }
+
+    _createVectorInput(label, vec, callback, isEuler=false) {
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+        const l = document.createElement('div');
+        l.className = 'dev-prop-label';
+        l.textContent = label;
+        row.appendChild(l);
+
+        const div = document.createElement('div');
+        div.className = 'dev-prop-vector';
+
+        ['x', 'y', 'z'].forEach(axis => {
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.step = isEuler ? '1' : '0.1';
+            inp.className = 'dev-prop-input';
+            inp.id = `insp-${label}-${axis}`;
+
+            let val = vec[axis];
+            if (isEuler) val = THREE.MathUtils.radToDeg(val);
+            inp.value = val.toFixed(2);
+
+            inp.onchange = (e) => {
+                const n = parseFloat(e.target.value);
+                const current = isEuler ? THREE.MathUtils.radToDeg(vec[axis]) : vec[axis];
+                if (Math.abs(n - current) < 0.001) return;
+
+                const newVec = vec.clone();
+                if (isEuler) {
+                    const eClone = vec.clone();
+                    if (axis === 'x') eClone.x = THREE.MathUtils.degToRad(n);
+                    if (axis === 'y') eClone.y = THREE.MathUtils.degToRad(n);
+                    if (axis === 'z') eClone.z = THREE.MathUtils.degToRad(n);
+                    callback(eClone);
+                } else {
+                    newVec[axis] = n;
+                    callback(newVec);
+                }
+            };
+            div.appendChild(inp);
+        });
+        row.appendChild(div);
+        return row;
+    }
+
+    _createScaleInput(obj) {
+        const label = 'Scale';
+        const vec = obj.scale;
+
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+
+        // Label + Lock Checkbox
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'dev-prop-label';
+        labelDiv.style.display = 'flex';
+        labelDiv.style.flexDirection = 'column';
+
+        const txt = document.createElement('span');
+        txt.textContent = label;
+        labelDiv.appendChild(txt);
+
+        const lockLabel = document.createElement('label');
+        lockLabel.className = 'dev-prop-checkbox-label';
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = this.lockScale;
+        check.style.width = '10px';
+        check.style.height = '10px';
+        check.onchange = (e) => this.lockScale = e.target.checked;
+        lockLabel.appendChild(check);
+        lockLabel.appendChild(document.createTextNode('Lock'));
+        labelDiv.appendChild(lockLabel);
+
+        row.appendChild(labelDiv);
+
+        const div = document.createElement('div');
+        div.className = 'dev-prop-vector';
+
+        ['x', 'y', 'z'].forEach(axis => {
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.step = '0.1';
+            inp.className = 'dev-prop-input';
+            inp.id = `insp-${label}-${axis}`;
+            inp.value = vec[axis].toFixed(2);
+
+            inp.onchange = (e) => {
+                const n = parseFloat(e.target.value);
+                if (Math.abs(n - vec[axis]) < 0.001) return;
+
+                if (this.lockScale) {
+                    const newVec = new THREE.Vector3(n, n, n);
+                    this._applyTransform(obj, 'scale', newVec);
+                } else {
+                    const newVec = vec.clone();
+                    newVec[axis] = n;
+                    this._applyTransform(obj, 'scale', newVec);
+                }
+            };
+            div.appendChild(inp);
+        });
+        row.appendChild(div);
+        return row;
+    }
+
+    _syncVectorInput(label, vec, isEuler=false) {
+        ['x', 'y', 'z'].forEach(axis => {
+            const inp = document.getElementById(`insp-${label}-${axis}`);
+            if (inp && document.activeElement !== inp) {
+                let val = vec[axis];
+                if (isEuler) val = THREE.MathUtils.radToDeg(val);
+                inp.value = val.toFixed(2);
+            }
+        });
+    }
+
+    _createNumberInput(key, val, cb) {
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+        const l = document.createElement('div');
+        l.className = 'dev-prop-label';
+        l.textContent = key;
+        row.appendChild(l);
+
+        const inp = document.createElement('input');
+        inp.type = 'number';
+        inp.className = 'dev-prop-input';
+        inp.value = val;
+        inp.onchange = (e) => cb(parseFloat(e.target.value));
+        row.appendChild(inp);
+        return row;
+    }
+
+    _createTextInput(key, val, cb) {
+         const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+        const l = document.createElement('div');
+        l.className = 'dev-prop-label';
+        l.textContent = key;
+        row.appendChild(l);
+
+        const inp = document.createElement('input');
+        inp.type = 'text';
+        inp.className = 'dev-prop-input';
+        inp.value = val;
+        inp.onchange = (e) => cb(e.target.value);
+        row.appendChild(inp);
+        return row;
+    }
+
+    _createCheckbox(key, val, cb) {
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+        const l = document.createElement('div');
+        l.className = 'dev-prop-label';
+        l.textContent = key;
+        row.appendChild(l);
+
+        const inp = document.createElement('input');
+        inp.type = 'checkbox';
+        inp.checked = val;
+        inp.onchange = (e) => cb(e.target.checked);
+        row.appendChild(inp);
+        return row;
+    }
+
+    _applyTransform(obj, prop, val) {
+        // Snapshot before
+        const before = [{
+            object: obj,
+            position: obj.position.clone(),
+            rotation: obj.rotation.clone(),
+            scale: obj.scale.clone()
+        }];
+
+        // Apply locally
+        if (prop === 'position') obj.position.copy(val);
+        if (prop === 'rotation') obj.rotation.copy(val);
+        if (prop === 'scale') obj.scale.copy(val);
+
+        obj.updateMatrixWorld();
+        if (this.devMode.gizmo) this.devMode.gizmo.attach(obj); // Refresh gizmo
+        if (this.devMode.app.colliderSystem) this.devMode.app.colliderSystem.updateBody(obj);
+
+        // Snapshot after
+        const after = [{
+            object: obj,
+            position: obj.position.clone(),
+            rotation: obj.rotation.clone(),
+            scale: obj.scale.clone()
+        }];
+
+        this.devMode.commandManager.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
+    }
+
+    _applyParam(obj, key, val) {
+        const oldVal = obj.userData.params[key];
+        obj.userData.params[key] = val;
+
+        this.devMode.commandManager.push(new PropertyChangeCommand(
+             this.devMode,
+             obj.userData.uuid || obj.uuid,
+             key,
+             oldVal,
+             val,
+             `Set ${key}`
+        ));
     }
 }

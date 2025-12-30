@@ -278,8 +278,6 @@ body {
     color: #ffff00;
     text-shadow: 0 0 5px orange;
     transform-origin: center center;
-    /* Unicode arrow points right by default? No, usually Up or Right depending on char */
-    /* ➤ Black Right-Pointing Pointer. Rotate -90 to point Up */
 }
 
 .compass-dist {
@@ -415,3 +413,474 @@ body {
     pointer-events: none;
     transition: opacity 0.1s ease-out;
 }
+
+/* Dev Mode UI 2.0 */
+#dev-ui {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    z-index: 2000; /* Ensure above everything */
+    font-family: 'Consolas', 'Monaco', monospace;
+    font-size: 12px;
+}
+
+/* Checkbox alignment */
+.dev-prop-checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    font-size: 10px;
+    color: #888;
+    cursor: pointer;
+}
+
+/* Top Bar */
+.dev-top-bar {
+    pointer-events: auto;
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 32px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #444;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 4px;
+    z-index: 2001;
+}
+
+.dev-menu-btn {
+    background: transparent;
+    border: none;
+    color: #ddd;
+    padding: 4px 8px;
+    cursor: pointer;
+    font-size: 12px;
+    position: relative;
+    border-radius: 3px;
+}
+
+.dev-menu-btn:hover {
+    background: #444;
+    color: #fff;
+}
+
+.dev-menu-btn.active {
+    background: #2196F3;
+    color: white;
+}
+
+.dev-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: #2a2a2a;
+    border: 1px solid #444;
+    min-width: 150px;
+    display: none;
+    flex-direction: column;
+    padding: 4px 0;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.5);
+    z-index: 2002;
+}
+
+.dev-dropdown.visible {
+    display: flex;
+}
+
+.dev-dropdown-item {
+    padding: 6px 16px;
+    cursor: pointer;
+    color: #ccc;
+    display: flex;
+    justify-content: space-between;
+}
+
+.dev-dropdown-item:hover {
+    background: #2196F3;
+    color: white;
+}
+
+.dev-dropdown-separator {
+    height: 1px;
+    background: #444;
+    margin: 4px 0;
+}
+
+.dev-dropdown-shortcut {
+    color: #666;
+    font-size: 10px;
+    margin-left: 10px;
+}
+.dev-dropdown-item:hover .dev-dropdown-shortcut {
+    color: #ddd;
+}
+
+/* Toolbar */
+.dev-toolbar {
+    position: absolute;
+    top: 32px; /* Below top bar */
+    left: 0;
+    right: 0;
+    height: 36px;
+    background: rgba(40, 40, 40, 0.9);
+    border-bottom: 1px solid #444;
+    display: flex;
+    align-items: center;
+    padding: 0 10px;
+    gap: 8px;
+    pointer-events: auto;
+    z-index: 2000;
+}
+
+.dev-tool-btn {
+    background: #333;
+    border: 1px solid #555;
+    color: #ccc;
+    padding: 4px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 11px;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+.dev-tool-btn:hover { background: #444; color: white; }
+.dev-tool-btn:active { background: #2196F3; border-color: #2196F3; }
+
+
+/* Common Panel Styles */
+.dev-panel {
+    pointer-events: auto;
+    background: rgba(20, 20, 20, 0.9);
+    color: #eee;
+    border: 1px solid #444;
+    display: flex;
+    flex-direction: column;
+    backdrop-filter: blur(4px);
+    box-shadow: 0 4px 6px rgba(0,0,0,0.3);
+}
+
+.dev-panel-header {
+    padding: 8px 10px;
+    background: #2a2a2a;
+    border-bottom: 1px solid #444;
+    font-weight: bold;
+    color: #aaa;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    user-select: none;
+    text-transform: uppercase;
+    font-size: 11px;
+    letter-spacing: 1px;
+}
+
+/* Integrated World Outliner (Left) */
+.dev-outliner {
+    position: absolute;
+    left: 10px;
+    top: 80px; /* Shifted down for top bar + toolbar */
+    bottom: 240px; /* Space for palette */
+    width: 260px;
+    border-radius: 4px;
+}
+
+.dev-outliner-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 5px;
+}
+
+.dev-outliner-group {
+    margin-bottom: 5px;
+}
+
+.dev-outliner-group-header {
+    padding: 4px;
+    background: #333;
+    cursor: pointer;
+    font-weight: bold;
+    display: flex;
+    align-items: center;
+    color: #ddd;
+}
+
+.dev-outliner-group-header::before {
+    content: '▼';
+    font-size: 8px;
+    margin-right: 6px;
+    transition: transform 0.2s;
+    color: #888;
+}
+
+.dev-outliner-group.collapsed .dev-outliner-group-header::before {
+    transform: rotate(-90deg);
+}
+
+.dev-outliner-item {
+    padding: 4px 8px 4px 16px;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #333;
+    font-size: 11px;
+    color: #bbb;
+}
+
+.dev-outliner-item:hover {
+    background: #333;
+    color: #fff;
+}
+
+.dev-outliner-item.selected {
+    background: #2196F3;
+    color: white;
+}
+
+.dev-outliner-visibility {
+    width: 14px;
+    height: 14px;
+    border: 1px solid #555;
+    border-radius: 50%;
+    cursor: pointer;
+    background: #666;
+}
+.dev-outliner-visibility:hover { background: #888; }
+.dev-outliner-visibility.is-hidden { background: transparent; border-color: #444; }
+
+/* Dynamic Property Inspector (Right) */
+.dev-inspector {
+    position: absolute;
+    right: 10px;
+    top: 80px; /* Shifted down for top bar + toolbar */
+    bottom: 60px;
+    width: 280px;
+    border-radius: 4px;
+}
+
+.dev-inspector-content {
+    padding: 10px;
+    overflow-y: auto;
+    flex: 1;
+}
+
+.dev-prop-group {
+    margin-bottom: 15px;
+    border-bottom: 1px solid #333;
+    padding-bottom: 10px;
+}
+
+.dev-prop-title {
+    font-size: 11px;
+    color: #888;
+    margin-bottom: 8px;
+    text-transform: uppercase;
+}
+
+.dev-prop-row {
+    display: flex;
+    align-items: center;
+    margin-bottom: 6px;
+}
+
+.dev-prop-label {
+    width: 80px;
+    color: #ccc;
+    font-size: 11px;
+}
+
+.dev-prop-input {
+    flex: 1;
+    background: #222;
+    border: 1px solid #444;
+    color: #fff;
+    padding: 4px;
+    font-family: inherit;
+    font-size: 11px;
+}
+.dev-prop-input:focus { border-color: #2196F3; outline: none; }
+
+.dev-prop-vector {
+    display: flex;
+    gap: 4px;
+    flex: 1;
+}
+.dev-prop-vector input {
+    width: 100%;
+    min-width: 0;
+}
+
+/* Visual Asset Palette (Bottom) */
+.dev-palette-container {
+    position: absolute;
+    left: 10px;
+    right: 300px; /* Space for inspector */
+    bottom: 10px;
+    height: 220px;
+    display: flex;
+    flex-direction: column;
+}
+
+.dev-palette-tabs {
+    display: flex;
+    background: #222;
+    border-bottom: 1px solid #444;
+}
+
+.dev-palette-tab {
+    padding: 6px 12px;
+    cursor: pointer;
+    border-right: 1px solid #444;
+    color: #888;
+}
+.dev-palette-tab:hover { background: #333; color: #fff; }
+.dev-palette-tab.active { background: #333; color: white; border-bottom: 2px solid #2196F3; }
+
+.dev-palette-grid {
+    flex: 1;
+    overflow-y: auto;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    padding: 8px;
+    gap: 8px;
+    background: #1a1a1a;
+}
+
+.dev-palette-item {
+    width: 80px;
+    height: 100px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    cursor: grab;
+    background: #222;
+    border: 1px solid #333;
+    padding: 4px;
+    transition: background 0.2s, transform 0.1s;
+}
+
+.dev-palette-item:hover {
+    background: #333;
+    border-color: #555;
+    transform: translateY(-2px);
+}
+
+.dev-palette-thumb {
+    width: 70px;
+    height: 70px;
+    object-fit: contain;
+    background: #000;
+    margin-bottom: 4px;
+    border: 1px solid #333;
+}
+
+.dev-palette-name {
+    font-size: 10px;
+    text-align: center;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    width: 100%;
+    white-space: nowrap;
+    color: #ccc;
+}
+
+/* History Controller */
+.dev-history {
+    position: absolute;
+    left: 280px;
+    top: 80px; /* Shifted */
+    width: 200px;
+    max-height: 200px;
+    overflow: hidden;
+}
+
+.dev-history-list {
+    flex: 1;
+    overflow-y: auto;
+    font-size: 11px;
+}
+
+.dev-history-item {
+    padding: 4px 8px;
+    border-bottom: 1px solid #333;
+    color: #666;
+}
+.dev-history-item.active {
+    color: #fff;
+    background: rgba(33, 150, 243, 0.2);
+    border-left: 2px solid #2196F3;
+}
+
+.dev-save-indicator {
+    position: absolute;
+    top: 50px; /* Shifted */
+    right: 320px;
+    background: #222;
+    padding: 5px 10px;
+    border-radius: 4px;
+    color: #4CAF50;
+    display: none;
+    border: 1px solid #444;
+    font-size: 11px;
+    animation: fadeOut 2s forwards;
+    animation-delay: 2s;
+    pointer-events: auto;
+}
+
+@keyframes fadeOut {
+    to { opacity: 0; visibility: hidden; }
+}
+
+/* Inspector Tabs */
+.dev-inspector-tabs {
+    display: flex;
+    background: #2a2a2a;
+    border-bottom: 1px solid #444;
+}
+.dev-inspector-tab {
+    flex: 1;
+    text-align: center;
+    padding: 8px;
+    cursor: pointer;
+    font-size: 11px;
+    color: #888;
+    text-transform: uppercase;
+}
+.dev-inspector-tab:hover { background: #333; }
+.dev-inspector-tab.active {
+    color: #fff;
+    border-bottom: 2px solid #2196F3;
+    background: #333;
+}
+
+/* System/World Controls */
+.dev-system-section {
+    padding: 10px;
+}
+.dev-btn-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.dev-btn {
+    flex: 1;
+    padding: 6px;
+    background: #333;
+    border: 1px solid #555;
+    color: #eee;
+    cursor: pointer;
+    font-size: 11px;
+    text-align: center;
+}
+.dev-btn:hover { background: #444; }
+.dev-btn:active { background: #2196F3; }
+.dev-btn-danger { background: #522; border-color: #833; }
+.dev-btn-danger:hover { background: #733; }

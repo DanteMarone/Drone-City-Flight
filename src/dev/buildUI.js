@@ -332,7 +332,7 @@ export class BuildUI {
             .map(([type, classRef]) => ({ type, name: this._formatDisplayName(type, classRef) }))
             .sort((a, b) => a.name.localeCompare(b.name))
             .forEach(({ type, name }) => {
-                const item = document.createElement('div');
+                const item = document.createElement('button');
                 item.className = 'palette-item';
                 item.draggable = true;
                 item.dataset.type = type;

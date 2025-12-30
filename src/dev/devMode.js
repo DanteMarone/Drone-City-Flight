@@ -439,9 +439,8 @@ export class DevMode {
             if (this.app.colliderSystem) {
                 this.app.colliderSystem.remove(obj);
             }
-            if (this.app.world && this.app.world.colliders) {
-                const idx = this.app.world.colliders.findIndex(c => c.mesh === obj);
-                if (idx !== -1) this.app.world.colliders.splice(idx, 1);
+            if (this.app.world) {
+                this.app.world.removeEntity(obj);
             }
         });
     }

@@ -5,6 +5,7 @@ import { ObjectFactory } from './factory.js';
 import { BirdSystem } from './birdSystem.js';
 import { LightSystem } from './lightSystem.js';
 import { EntityRegistry } from './entities/index.js';
+import { BaseEntity } from './entities/base.js';
 import { TimeCycle } from './timeCycle.js';
 
 export class World {
@@ -17,6 +18,8 @@ export class World {
 
         // this.colliders now holds BaseEntity instances (which match {mesh, box} interface)
         this.colliders = [];
+        // Optimized list for entities that actually need updates
+        this.updatables = [];
         this.ground = null;
 
         this.wind = { ...CONFIG.WORLD.WIND };
@@ -40,6 +43,7 @@ export class World {
 
     _generateWorld() {
         this.colliders = [];
+        this.updatables = [];
 
         // Showcase landmark near spawn so players immediately see the new architecture.
         const landmark = this.factory.createSkyGardenTower({
@@ -56,10 +60,11 @@ export class World {
         if (this.birdSystem) this.birdSystem.update(dt);
         if (this.lightSystem) this.lightSystem.update(dt, camera, this.timeCycle);
 
-        // Update all entities
-        this.colliders.forEach(entity => {
-            if (entity.update) entity.update(dt);
-        });
+        // Update entities that actually have logic
+        const len = this.updatables.length;
+        for (let i = 0; i < len; i++) {
+            this.updatables[i].update(dt);
+        }
     }
 
     // API for collisions
@@ -71,10 +76,37 @@ export class World {
         if (!entity) return;
         this.colliders.push(entity);
 
+        // Optimization: Only add to update list if it overrides the base update method
+        // BaseEntity.prototype.update is empty.
+        if (entity.update !== BaseEntity.prototype.update) {
+            this.updatables.push(entity);
+        }
+
         // Logic specific to types
         if (entity.type === 'bird' && this.birdSystem) {
             this.birdSystem.add(entity.mesh);
         }
+    }
+
+    removeEntity(meshOrEntity) {
+        // Handle both mesh and entity input
+        let mesh = meshOrEntity;
+        if (meshOrEntity.mesh) mesh = meshOrEntity.mesh;
+
+        const index = this.colliders.findIndex(c => c.mesh === mesh);
+        if (index !== -1) {
+            const entity = this.colliders[index];
+            this.colliders.splice(index, 1);
+
+            // Also remove from updatables if present
+            const upIndex = this.updatables.indexOf(entity);
+            if (upIndex !== -1) {
+                this.updatables.splice(upIndex, 1);
+            }
+
+            return entity;
+        }
+        return null;
     }
 
     clear() {
@@ -88,6 +120,7 @@ export class World {
             }
         });
         this.colliders = [];
+        this.updatables = [];
         if (this.birdSystem) this.birdSystem.clear();
         if (this.lightSystem) this.lightSystem.clear();
     }

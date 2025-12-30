@@ -5,6 +5,7 @@
 - **Visual Overhaul**: Updated road texture to `asphalt_v2` with procedural dashed yellow lines.
 - **Physics**: Validated collision scaling for variable length roads.
 - **Grid Snap**: Enforced strict integer length snapping for roads (User Feedback).
+- **Maintenance**: Removed unused verification stubs and organized root directory.
 
 ## Backlog
 - [ ] Add organic curve support for roads (Bezier curves).

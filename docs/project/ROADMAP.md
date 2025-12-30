@@ -1,9 +1,8 @@
 # Project Roadmap
 
 ## 🚀 Next Up
-*   [ ] **Static Intersections** (`docs/specs/001-intersections.md`)
-    *   Implement manual intersection pieces (Cross, T-Junction, Turn) to allow complex road networks.
-    *   *Rationale:* Currently, roads are just straight lines. Intersections are needed for realistic city layouts.
+*   [ ] **Sidewalk Corners**
+    *   Add corner pieces for sidewalks to match the intersection logic.
 
 ## 📋 Backlog
 *   [ ] **Sidewalk Corners**
@@ -16,6 +15,10 @@
     *   Re-implement traffic but using the new Entity/Waypoint system (Basic pathing is in, but autonomous traffic management is missing).
 
 ## ✅ Completed
+*   **Static Intersections**
+    *   Implemented `IntersectionEntity` with 4-way, 3-way, and Turn variants.
+    *   Added `createAsphaltBlank` texture for clean junctions.
+    *   Docs: `docs/features/intersections.md`
 *   **Smart Road Tool**
     *   Implemented "Anchor & Stretch" placement in `src/dev/interaction.js`.
     *   Added axis locking (North/South, East/West).

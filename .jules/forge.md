@@ -68,3 +68,12 @@ Simple translucent materials on primitives can effectively simulate plastic mate
 
 **Action:**
 Added `PortaPottyEntity` to `src/world/entities/portaPotty.js`.
+
+## 2024-05-26 - Hot Air Balloon (Forge)
+**Learning:**
+Vertical scaling of standard primitives can create complex organic shapes cheaply.
+- **Pattern:** `SphereGeometry` scaled on the Y-axis (e.g., `scale(1, 1.3, 1)`) creates a convincing teardrop/envelope shape for balloons without needing custom geometry or lathe generation.
+- **Technique:** A cached `CanvasTexture` with random vertical stripes creates a high-fidelity "fabric" look that is cheap to render.
+
+**Action:**
+Added `HotAirBalloonEntity` to `src/world/entities/hotAirBalloon.js`.

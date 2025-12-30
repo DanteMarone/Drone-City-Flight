@@ -1,5 +1,6 @@
 import * as THREE from 'three';
 import { BaseEntity } from './base.js';
+import { EntityRegistry } from './registry.js';
 
 export class HotAirBalloonEntity extends BaseEntity {
     static get displayName() {
@@ -172,3 +173,5 @@ export class HotAirBalloonEntity extends BaseEntity {
         return tex;
     }
 }
+
+EntityRegistry.register('hotAirBalloon', HotAirBalloonEntity);

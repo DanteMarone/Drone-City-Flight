@@ -13,10 +13,17 @@ graph TD
     Interaction --> DevMode[DevMode Controller]
 
     DevMode --> Gizmo[GizmoManager]
-    DevMode --> BuildUI[BuildUI HTML/CSS]
+    DevMode --> BuildUI[BuildUI Coordinator]
     DevMode --> History[CommandManager]
     DevMode --> Grid[GridSystem]
     DevMode --> Cam[DevCameraController]
+
+    BuildUI --> TopBar
+    BuildUI --> Toolbar
+    BuildUI --> Outliner
+    BuildUI --> Inspector
+    BuildUI --> Palette
+    BuildUI --> HistoryPanel
 
     Gizmo --> Proxy[Transform Proxy]
     Gizmo --> Controls[TransformControls]
@@ -43,9 +50,13 @@ Wraps Three.js `TransformControls` to provide visual translation, rotation, and 
 *   **Sync**: The `updateObjectsFromProxy()` method calculates the offset of each selected object relative to the Proxy and applies the new transform, enabling group manipulation.
 
 #### 4. BuildUI (`src/dev/buildUI.js`)
-Manages the DOM-based overlay.
-*   **Palette**: dynamic list of objects generated from `EntityRegistry`.
-*   **Properties Panel**: A "flyout" panel that shows precise numerical inputs for the selected object(s). It handles two-way binding: modifying the UI updates the object, and dragging the Gizmo updates the UI.
+The UI Coordinator. It manages the lifecycle of the DOM-based overlay components located in `src/dev/ui/`.
+*   **TopBar (`src/dev/ui/topBar.js`)**: Main menu (File, Edit, View).
+*   **Toolbar (`src/dev/ui/toolbar.js`)**: Quick access buttons (Undo/Redo, Grid).
+*   **Outliner (`src/dev/ui/outliner.js`)**: Scene graph list showing categorized entities.
+*   **Inspector (`src/dev/ui/inspector.js`)**: Properties panel for selected objects and environment settings.
+*   **Palette (`src/dev/ui/palette.js`)**: Asset browser for drag-and-drop object creation.
+*   **HistoryPanel (`src/dev/ui/historyPanel.js`)**: Visual list of undo/redo stack.
 
 #### 5. CommandManager (`src/dev/history.js`)
 Implements the Command Pattern for Undo/Redo functionality.

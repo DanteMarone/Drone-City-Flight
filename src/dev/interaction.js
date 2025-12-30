@@ -149,8 +149,8 @@ export class InteractionManager {
                 this.dragPlane.setComponents(0, 1, 0, -this.dragTarget.position.y);
 
                 const intersect = new THREE.Vector3();
-                this.raycaster.ray.intersectPlane(this.dragPlane, intersect);
-                if (intersect) {
+                const hit = this.raycaster.ray.intersectPlane(this.dragPlane, intersect);
+                if (hit) {
                     this.dragOffset.subVectors(this.dragTarget.position, intersect);
                 }
             } else {
@@ -257,8 +257,12 @@ export class InteractionManager {
         }
 
         let len = diff.length();
+        let angle = 0;
+        if (diff.lengthSq() > 0.01) {
+            angle = Math.atan2(diff.x, diff.z);
+        }
 
-        // Road Specific: Enforce whole unit length
+        // Road Specific: Enforce whole unit length and midpoint logic
         if (this.activePlacement.type === 'road') {
             // Ensure integer lengths (1.0, 2.0, 3.0...)
             len = Math.round(len);
@@ -271,20 +275,19 @@ export class InteractionManager {
                 // Default direction if length was zero
                 diff.set(0, 0, len);
             }
+
+            // Road stretches from anchor to currentPoint
+            const finalPos = new THREE.Vector3().addVectors(anchor, diff.clone().multiplyScalar(0.5));
+            this.ghostMesh.position.copy(finalPos);
+            this.ghostMesh.rotation.y = angle;
+            this.ghostMesh.scale.z = len;
         } else {
-            len = Math.max(1, len);
+            // Standard Objects: Pivot at Anchor
+            // Object stays at anchor, rotates to face currentPoint
+            this.ghostMesh.position.copy(anchor);
+            this.ghostMesh.rotation.y = angle;
+            this.ghostMesh.scale.set(1, 1, 1);
         }
-
-        let angle = 0;
-        if (diff.lengthSq() > 0.01) {
-            angle = Math.atan2(diff.x, diff.z);
-        }
-
-        const finalPos = new THREE.Vector3().addVectors(anchor, diff.clone().multiplyScalar(0.5));
-
-        this.ghostMesh.position.copy(finalPos);
-        this.ghostMesh.rotation.y = angle;
-        this.ghostMesh.scale.z = len;
     }
 
     _onMouseUp(e) {

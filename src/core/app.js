@@ -37,6 +37,7 @@ export class App {
         this.input = new InputManager();
         this.hud = new HUD();
         this.menu = new MenuSystem(this);
+        this.hud.onPause = () => this.menu.toggle();
         this.audio = new AudioManager();
 
         this._setupLights();

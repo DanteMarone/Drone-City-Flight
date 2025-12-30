@@ -56,6 +56,13 @@ body {
     gap: 5px;
 }
 
+.hud-top-right {
+    position: absolute;
+    top: 20px;
+    right: 20px;
+    pointer-events: auto;
+}
+
 .hud-row {
     background: rgba(0, 0, 0, 0.3);
     padding: 5px 10px;

@@ -17,3 +17,6 @@
 ## 2025-05-24 - Interactive Palette Accessibility
 **Learning:** In creative tools, "palette" items are often implemented as draggable divs, which excludes keyboard users from selecting or "picking up" tools. Converting these to `<button>` elements immediately provides tab focus and "click" events (via Enter/Space) for free, enabling alternative interaction modes (like "click to select tool" vs "drag to place") without complex custom key handlers.
 **Action:** Implement palette/toolbar items as `<button>` elements by default, even if their primary interaction is drag-and-drop, to ensure a baseline of keyboard accessibility.
+## 2025-05-24 - Visible Pause Controls
+**Learning:** Users, especially on touch devices or those unfamiliar with keyboard shortcuts (Esc), struggle to find how to pause or access menus if no visible control exists. Relying solely on keyboard events excludes these users and can leave them "stuck" in the game loop.
+**Action:** Always provide a visible, accessible UI control for primary system actions like Pause/Menu. Ensure these controls have `pointer-events: auto` if they are placed within overlay layers that default to `pointer-events: none` to prevent "unclickable" phantom buttons.

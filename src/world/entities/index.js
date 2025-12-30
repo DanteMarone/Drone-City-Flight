@@ -46,6 +46,7 @@ export { FoodTruckEntity } from './foodTruck.js';
 export { LighthouseEntity } from './lighthouse.js';
 export { ShippingContainerEntity } from './shippingContainer.js';
 export { DumpsterEntity } from './dumpster.js';
+export { RingEntity } from './ring.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

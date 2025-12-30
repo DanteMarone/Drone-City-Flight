@@ -1,6 +1,7 @@
 // src/gameplay/rings.js
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
+import { RingEntity } from '../world/entities/ring.js';
 
 export class RingManager {
     constructor(scene, drone, colliderSystem) {
@@ -9,10 +10,6 @@ export class RingManager {
         this.colliderSystem = colliderSystem;
         this.rings = [];
         this.collectedCount = 0;
-
-        // Geometry shared
-        this.geo = new THREE.TorusGeometry(1.5, 0.2, 8, 16);
-        this.mat = new THREE.MeshBasicMaterial({ color: 0xffff00 });
 
         // Spawn timer
         this.spawnTimer = 0;
@@ -23,12 +20,20 @@ export class RingManager {
     }
 
     clear() {
-        this.rings.forEach(r => this.scene.remove(r.mesh));
+        this.rings.forEach(r => {
+            if (r.entity) {
+                window.app.world.removeEntity(r.entity);
+            } else if (r.mesh) {
+                this.scene.remove(r.mesh);
+            }
+        });
         this.rings = [];
         this.collectedCount = 0;
     }
 
     loadRings(ringsData) {
+        // Deprecated: Rings are now entities saved in world.objects
+        // But for compatibility with old saves or dedicated ring management:
         this.clear();
         if (!ringsData) return;
         ringsData.forEach(rData => {
@@ -37,26 +42,49 @@ export class RingManager {
     }
 
     spawnRingAt(pos, rot) {
-        const mesh = new THREE.Mesh(this.geo, this.mat);
-        mesh.position.set(pos.x, pos.y, pos.z);
-        if (rot) mesh.rotation.set(rot.x, rot.y, rot.z);
-        else {
-            mesh.rotation.x = 0;
-            mesh.rotation.y = Math.random() * Math.PI;
+        // Use RingEntity
+        const params = {
+            x: pos.x,
+            y: pos.y,
+            z: pos.z
+        };
+        const ringEntity = new RingEntity(params);
+        ringEntity.init(window.app.world);
+
+        // Manual override for rotation if provided (Entity system defaults to 0)
+        if (rot) {
+            ringEntity.mesh.rotation.set(rot.x, rot.y, rot.z);
+            ringEntity.mesh.updateMatrix();
+        } else {
+             ringEntity.mesh.rotation.set(0, Math.random() * Math.PI, 0);
+             ringEntity.mesh.updateMatrix();
         }
 
-        // Metadata for saving
-        mesh.userData.type = 'ring';
+        window.app.world.addEntity(ringEntity);
+        // Do NOT add to colliderSystem as static. Rings are triggers managed by RingEntity.
+        // this.colliderSystem.addStatic([ringEntity]);
 
-        this.scene.add(mesh);
-        this.rings.push({ mesh });
+        // this.rings.push({ entity: ringEntity, mesh: ringEntity.mesh });
+        // RingEntity.postInit calls this.add(ringEntity)
+    }
+
+    add(entity) {
+        if (!this.rings.find(r => r.entity === entity)) {
+            this.rings.push({ entity: entity, mesh: entity.mesh });
+        }
+    }
+
+    remove(entity) {
+        const idx = this.rings.findIndex(r => r.entity === entity);
+        if (idx > -1) this.rings.splice(idx, 1);
     }
 
     exportRings() {
-        return this.rings.map(r => ({
-            position: { x: r.mesh.position.x, y: r.mesh.position.y, z: r.mesh.position.z },
-            rotation: { x: r.mesh.rotation.x, y: r.mesh.rotation.y, z: r.mesh.rotation.z }
-        }));
+        // Rings are now part of world.objects so we return empty to avoid duplication in save file
+        // Or if we want to maintain separation...
+        // The user wants rings to be vehicles. Vehicles are entities.
+        // So they should be managed by World.
+        return [];
     }
 
     update(dt) {
@@ -67,23 +95,27 @@ export class RingManager {
             this.spawnTimer = 0;
         }
 
-        // Animation & Collision
+        // Check Collection
         const toRemove = [];
 
+        // Filter out rings that might have been deleted by Dev Mode or other systems
+        this.rings = this.rings.filter(r => r.mesh.parent !== null);
+
         this.rings.forEach(ring => {
-            // Spin: Removed as per request (Rings should not rotate)
-            // ring.mesh.rotation.y += 2.0 * dt;
+            if (!ring.mesh) return;
 
             // Check Collection: Must pass through center
-            // Simple check: Distance to center is small, AND aligned with plane?
-            // Better: Physics check handles collision with rim.
-            // We just need to check if we are inside the 'hole'.
-            // Hole radius ~ 1.5 - 0.2 = 1.3. Drone radius 0.5.
-            // So if distance < 1.3, we are inside?
-            // BUT we must be "inside" the torus plane thickness too.
-            // We can check if distance to center < 1.0 (safe margin) AND distance to plane < 0.5.
-
             // Transform drone pos to Ring Local Space
+            // Note: RingEntity has a modelGroup inside mesh, but mesh is the top level wrapper.
+            // The Torus geometry is inside modelGroup.
+            // RingEntity creates mesh -> modelGroup -> torusMesh
+            // We need to check relative to the Torus.
+
+            // Access inner torus mesh for correct local space?
+            // RingEntity structure: mesh (Group) -> modelGroup (Group) -> mesh (Torus)
+            // But matrixWorld of the top group is enough if modelGroup and torus are identity/aligned.
+            // Let's use the top mesh.
+
             const localPos = this.drone.position.clone().applyMatrix4(ring.mesh.matrixWorld.clone().invert());
 
             // Torus is in XY plane. Z is normal.
@@ -97,7 +129,7 @@ export class RingManager {
 
         if (toRemove.length > 0) {
             toRemove.forEach(r => this.collectRing(r));
-            return true; // Return true if collection happened (for audio/battery)
+            return true;
         }
         return false;
     }
@@ -106,11 +138,9 @@ export class RingManager {
         // Attempt to find a valid position
         let x, y, z;
         let valid = false;
-        const ringRadius = 2.0; // Slightly larger than 1.7 (1.5+0.2)
+        const ringRadius = 2.0;
 
         for (let i = 0; i < 10; i++) {
-            // Range: +/- 200 (District bounds)
-            // Height: 5 - 40
             x = (Math.random() - 0.5) * 400;
             z = (Math.random() - 0.5) * 400;
             y = 5 + Math.random() * 35;
@@ -118,15 +148,11 @@ export class RingManager {
             if (this.colliderSystem) {
                 const pos = new THREE.Vector3(x, y, z);
                 const hits = this.colliderSystem.checkCollisions(pos, ringRadius);
-                // checkCollisions returns hits including ground if y < radius.
-                // At min height 5, y > radius (2), so ground hit shouldn't happen unless terrain is high?
-                // But checkCollisions only checks infinite plane at y=0.
                 if (hits.length === 0) {
                     valid = true;
                     break;
                 }
             } else {
-                // No collider system (e.g. init or tests), assume valid
                 valid = true;
                 break;
             }
@@ -136,21 +162,16 @@ export class RingManager {
             console.warn("RingManager: Could not find valid spawn position after 10 attempts. Spawning at last generated pos.");
         }
 
-        const mesh = new THREE.Mesh(this.geo, this.mat);
-        mesh.position.set(x, y, z);
-        mesh.rotation.x = Math.PI / 2; // Face up? Or face forward?
-        // Torus is XY plane. We want it vertical usually?
-        // Let's make it vertical facing random direction
-        mesh.rotation.x = 0;
-        mesh.rotation.y = Math.random() * Math.PI;
-
-        this.scene.add(mesh);
-
-        this.rings.push({ mesh });
+        this.spawnRingAt({x, y, z});
     }
 
     collectRing(ring) {
-        this.scene.remove(ring.mesh);
+        if (ring.entity) {
+            window.app.world.removeEntity(ring.entity);
+        } else if (ring.mesh) {
+            this.scene.remove(ring.mesh);
+        }
+
         const idx = this.rings.indexOf(ring);
         if (idx > -1) this.rings.splice(idx, 1);
 
@@ -158,9 +179,7 @@ export class RingManager {
     }
 
     reset() {
-        this.rings.forEach(r => this.scene.remove(r.mesh));
-        this.rings = [];
-        this.collectedCount = 0;
+        this.clear();
         this.spawnRing();
     }
 }

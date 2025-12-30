@@ -66,6 +66,35 @@ export const TextureGenerator = {
         return tex;
     },
 
+    createAsphaltBlank: () => {
+        const key = 'asphalt_blank';
+        if (textureCache.has(key)) return textureCache.get(key).clone();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = 256;
+        canvas.height = 256;
+        const ctx = canvas.getContext('2d');
+
+        // Dark Asphalt Background
+        ctx.fillStyle = '#1a1a1a';
+        ctx.fillRect(0, 0, 256, 256);
+
+        // Noise (Grain)
+        for (let i = 0; i < 8000; i++) {
+            const v = Math.floor(Math.random() * 40) + 10;
+            ctx.fillStyle = `rgba(${v},${v},${v}, 0.1)`;
+            ctx.fillRect(Math.random() * 256, Math.random() * 256, 2, 2);
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.colorSpace = THREE.SRGBColorSpace;
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+
+        textureCache.set(key, tex);
+        return tex;
+    },
+
     createAsphalt: () => {
         const key = 'asphalt_v2';
         if (textureCache.has(key)) return textureCache.get(key).clone();

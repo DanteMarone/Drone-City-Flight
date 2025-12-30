@@ -1,6 +1,8 @@
 import * as THREE from 'three';
 import { EntityRegistry } from '../world/entities/registry.js';
 import { ThumbnailRenderer } from './thumbnailRenderer.js';
+import { TransformCommand, PropertyChangeCommand } from './history.js';
+import { AlignTool } from './tools/alignTool.js';
 
 export class BuildUI {
     constructor() {
@@ -11,6 +13,7 @@ export class BuildUI {
         this.palette = null;
         this.history = null;
         this.thumbnailRenderer = new ThumbnailRenderer();
+        this.alignTool = null;
 
         this.selectedCategory = 'All';
         this.expandedGroups = new Set(['Infrastructure', 'Residential', 'Vehicles', 'Nature', 'Props', 'Misc']);
@@ -27,6 +30,7 @@ export class BuildUI {
 
     init(devMode) {
         this.devMode = devMode;
+        this.alignTool = new AlignTool(devMode);
 
         // Root
         this.container = document.createElement('div');
@@ -59,6 +63,9 @@ export class BuildUI {
             this.refreshOutliner();
             this.refreshHistory();
             this.refreshInspector();
+            if (this.alignTool && this.alignTool.updateVisibility) {
+                this.alignTool.updateVisibility(this.devMode.selectedObjects);
+            }
         }
     }
 
@@ -88,6 +95,10 @@ export class BuildUI {
         }
         this.refreshInspector();
         this.refreshOutliner(); // To update selection highlight
+
+        if (this.alignTool && this.alignTool.updateVisibility) {
+            this.alignTool.updateVisibility(this.devMode.selectedObjects);
+        }
     }
 
     updateProperties(obj) {
@@ -403,9 +414,15 @@ export class BuildUI {
                 this._createScaleInput(obj)
             ]);
         } else {
-             // Multi-select transform handled by gizmo mostly, but could show centroid here?
-             // For now, minimal multi-select UI
              this.inspector.innerHTML += '<div style="color:#888;">Use Gizmo to transform selection.</div>';
+        }
+
+        // Align Tool Integration
+        if (this.alignTool && this.alignTool.createUI) {
+            const alignUI = this.alignTool.createUI();
+            if (alignUI) {
+                this._addPropGroup('Alignment', [alignUI]);
+            }
         }
 
         // Params (Single Object only)
@@ -481,11 +498,10 @@ export class BuildUI {
 
         group.appendChild(row);
 
-        // Wait Time Control (Specific to Vehicles usually)
+        // Wait Time Control
         if (obj.userData.waitTime !== undefined) {
              const waitRow = this._createNumberInput('Wait Time (s)', obj.userData.waitTime, (val) => {
                  obj.userData.waitTime = val;
-                 // Also update params if it exists there to be safe
                  if (obj.userData.params) obj.userData.params.waitTime = val;
              });
              group.appendChild(waitRow);
@@ -531,8 +547,6 @@ export class BuildUI {
             // Time Locked
             const lockedRow = this._createCheckbox('Time Locked', tc.isLocked, (b) => {
                 tc.isLocked = b;
-                // Also update persistent world setting if needed, but TimeCycle is authoritative at runtime
-                // The serialize function reads from tc.isLocked anyway via environment object
             });
             envGroup.appendChild(lockedRow);
         }
@@ -822,14 +836,6 @@ export class BuildUI {
                 if (Math.abs(n - vec[axis]) < 0.001) return;
 
                 if (this.lockScale) {
-                    // Update all axes proportionally or to same value?
-                    // Typically uniform scale means all axes = same value OR all axes multiply by same ratio.
-                    // For simplicity in a game editor, setting one usually sets all if "locked".
-                    const ratio = n / vec[axis]; // Calculate ratio if we wanted proportional, but uniform setting is easier
-                    // Let's set all to 'n' for uniform scaling behavior which is standard for "Scale" usually.
-                    // Actually, proportional is better if object is 1x2x1.
-                    // But here, we usually start at 1,1,1.
-                    // Let's just set all to n.
                     const newVec = new THREE.Vector3(n, n, n);
                     this._applyTransform(obj, 'scale', newVec);
                 } else {
@@ -931,36 +937,20 @@ export class BuildUI {
             scale: obj.scale.clone()
         }];
 
-        this.devMode.commandManager.push({
-            type: 'Transform',
-            description: `Transform ${prop}`,
-            undo: () => {
-                obj.position.copy(before[0].position);
-                obj.rotation.copy(before[0].rotation);
-                obj.scale.copy(before[0].scale);
-                obj.updateMatrixWorld();
-                if (this.devMode.app.colliderSystem) this.devMode.app.colliderSystem.updateBody(obj);
-                this._syncInspector();
-            },
-            redo: () => {
-                obj.position.copy(after[0].position);
-                obj.rotation.copy(after[0].rotation);
-                obj.scale.copy(after[0].scale);
-                obj.updateMatrixWorld();
-                if (this.devMode.app.colliderSystem) this.devMode.app.colliderSystem.updateBody(obj);
-                this._syncInspector();
-            }
-        });
+        this.devMode.commandManager.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
     }
 
     _applyParam(obj, key, val) {
         const oldVal = obj.userData.params[key];
         obj.userData.params[key] = val;
 
-        this.devMode.commandManager.push({
-             description: `Set ${key}`,
-             undo: () => { obj.userData.params[key] = oldVal; this.refreshInspector(); },
-             redo: () => { obj.userData.params[key] = val; this.refreshInspector(); }
-        });
+        this.devMode.commandManager.push(new PropertyChangeCommand(
+             this.devMode,
+             obj.userData.uuid || obj.uuid,
+             key,
+             oldVal,
+             val,
+             `Set ${key}`
+        ));
     }
 }

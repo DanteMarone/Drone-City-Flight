@@ -26,6 +26,7 @@ export class BuildUI {
         // For polling/updates
         this.lastHistoryLen = 0;
         this.needsOutlinerUpdate = true;
+        this.idCounter = 0;
     }
 
     init(devMode) {
@@ -863,14 +864,18 @@ export class BuildUI {
     }
 
     _createNumberInput(key, val, cb) {
+        const id = `prop-num-${this.idCounter++}`;
         const row = document.createElement('div');
         row.className = 'dev-prop-row';
-        const l = document.createElement('div');
+
+        const l = document.createElement('label');
         l.className = 'dev-prop-label';
         l.textContent = key;
+        l.htmlFor = id;
         row.appendChild(l);
 
         const inp = document.createElement('input');
+        inp.id = id;
         inp.type = 'number';
         inp.className = 'dev-prop-input';
         inp.value = val;
@@ -880,14 +885,18 @@ export class BuildUI {
     }
 
     _createTextInput(key, val, cb) {
-         const row = document.createElement('div');
+        const id = `prop-text-${this.idCounter++}`;
+        const row = document.createElement('div');
         row.className = 'dev-prop-row';
-        const l = document.createElement('div');
+
+        const l = document.createElement('label');
         l.className = 'dev-prop-label';
         l.textContent = key;
+        l.htmlFor = id;
         row.appendChild(l);
 
         const inp = document.createElement('input');
+        inp.id = id;
         inp.type = 'text';
         inp.className = 'dev-prop-input';
         inp.value = val;
@@ -897,14 +906,18 @@ export class BuildUI {
     }
 
     _createCheckbox(key, val, cb) {
+        const id = `prop-bool-${this.idCounter++}`;
         const row = document.createElement('div');
         row.className = 'dev-prop-row';
-        const l = document.createElement('div');
+
+        const l = document.createElement('label');
         l.className = 'dev-prop-label';
         l.textContent = key;
+        l.htmlFor = id;
         row.appendChild(l);
 
         const inp = document.createElement('input');
+        inp.id = id;
         inp.type = 'checkbox';
         inp.checked = val;
         inp.onchange = (e) => cb(e.target.checked);

@@ -21,6 +21,7 @@ import { DevMode } from '../dev/devMode.js';
 import { Skybox } from '../world/skybox.js';
 import { CloudSystem } from '../world/clouds.js';
 import { PhotoMode } from '../ui/photoMode.js';
+import { NotificationSystem } from '../ui/notifications.js';
 
 export class App {
     constructor() {
@@ -35,8 +36,10 @@ export class App {
 
         this.renderer = new Renderer(this.container);
         this.input = new InputManager();
+        this.notifications = new NotificationSystem(); // Init Notification System
         this.hud = new HUD();
         this.menu = new MenuSystem(this);
+        this.hud.onPause = () => this.menu.toggle();
         this.audio = new AudioManager();
 
         this._setupLights();
@@ -72,6 +75,8 @@ export class App {
 
         this.devMode = new DevMode(this);
         this.photoMode = new PhotoMode(this);
+
+        this.notifications.show("System Initialized", "info", 2000);
 
         this.running = true;
         this.animate = this.animate.bind(this);
@@ -285,6 +290,7 @@ export class App {
 
     loadMap(data) {
         console.log("Loading Map...", data);
+        this.notifications.show("Loading Map...", "info");
 
         // Load World First (Base/Legacy Objects) so objects exist before reset checks for PlayerStart
 
@@ -370,6 +376,8 @@ export class App {
 
         // Reset Game State AFTER loading objects, so PlayerStart can be found
         this._resetGame();
+
+        this.notifications.show("Map Loaded Successfully", "success");
     }
 
     _updateEnvironment(dt) {

@@ -15,18 +15,36 @@ export class MenuSystem {
 
         const menu = document.createElement('div');
         menu.id = 'pause-menu';
-        menu.className = 'menu-overlay hidden';
+        // Note: 'hidden' class is no longer needed as default state is visibility:hidden in CSS
+        menu.className = 'menu-overlay';
+
+        // Icons
+        const iconPlay = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
+        const iconReset = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>`;
+        const iconCamera = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>`;
+        const iconCode = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>`;
+        const iconFolder = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>`;
+
         menu.innerHTML = `
-            <div class="menu-box">
-                <h1>PAUSED</h1>
-                <button id="btn-resume">RESUME</button>
-                <button id="btn-reset">RESET DRONE</button>
+            <div class="menu-box" role="dialog" aria-modal="true" aria-labelledby="menu-title">
+                <h1 id="menu-title">PAUSED</h1>
+
+                <button id="btn-resume">
+                    <span class="menu-btn-content">${iconPlay} RESUME</span>
+                </button>
+                <button id="btn-reset">
+                    <span class="menu-btn-content">${iconReset} RESET DRONE</span>
+                </button>
 
                 <hr>
-                <button id="btn-photo">PHOTO MODE</button>
-                <button id="btn-dev">DEVELOPER MODE</button>
+                <button id="btn-photo">
+                    <span class="menu-btn-content">${iconCamera} PHOTO MODE</span>
+                </button>
+                <button id="btn-dev">
+                    <span class="menu-btn-content">${iconCode} DEVELOPER MODE</span>
+                </button>
                 <label class="btn-like" tabindex="0" role="button" aria-label="Load Custom Map">
-                    LOAD CUSTOM MAP
+                    <span class="menu-btn-content">${iconFolder} LOAD CUSTOM MAP</span>
                     <input type="file" id="btn-load-map" accept=".json" class="visually-hidden" tabindex="-1">
                 </label>
                 <hr>
@@ -49,6 +67,7 @@ export class MenuSystem {
 
         this.dom = {
             menu: menu,
+            box: menu.querySelector('.menu-box'),
             resume: menu.querySelector('#btn-resume'),
             reset: menu.querySelector('#btn-reset'),
             photo: menu.querySelector('#btn-photo'),
@@ -101,7 +120,11 @@ export class MenuSystem {
                         this.app.loadMap(data);
                         this.hide();
                     } catch (err) {
-                        alert("Error loading map");
+                        if (this.app.notifications) {
+                            this.app.notifications.show("Error loading map", "error");
+                        } else {
+                            alert("Error loading map");
+                        }
                     }
                 };
                 reader.readAsText(file);
@@ -121,6 +144,31 @@ export class MenuSystem {
                 this.app.cameraController.sensitivity = val;
             }
         };
+
+        // Focus Trap Listener
+        this.dom.menu.addEventListener('keydown', (e) => {
+            if (!this.visible) return;
+            if (e.key === 'Tab') {
+                const focusable = this.dom.box.querySelectorAll('button, [href], input, select, textarea, [tabindex]:not([tabindex="-1"])');
+                const first = focusable[0];
+                const last = focusable[focusable.length - 1];
+
+                if (e.shiftKey) {
+                    if (document.activeElement === first) {
+                        e.preventDefault();
+                        last.focus();
+                    }
+                } else {
+                    if (document.activeElement === last) {
+                        e.preventDefault();
+                        first.focus();
+                    }
+                }
+            }
+            if (e.key === 'Escape') {
+                this.hide();
+            }
+        });
     }
 
     toggle() {
@@ -130,27 +178,33 @@ export class MenuSystem {
 
     show() {
         this.visible = true;
-        this.dom.menu.classList.remove('hidden');
+        this.dom.menu.classList.add('visible');
         this.app.paused = true; // Pause Loop
 
         // Trap Focus
         this.lastFocused = document.activeElement;
-        // Small timeout to ensure DOM is ready/visible
-        setTimeout(() => {
+
+        // Ensure initial focus
+        // We use requestAnimationFrame to wait for the transition/visibility update
+        requestAnimationFrame(() => {
             this.dom.resume.focus();
-        }, 50);
+        });
     }
 
     hide() {
         this.visible = false;
-        this.dom.menu.classList.add('hidden');
+        this.dom.menu.classList.remove('visible');
         this.app.paused = false;
 
         // Restore Focus
         if (this.lastFocused && document.body.contains(this.lastFocused)) {
             this.lastFocused.focus();
         } else {
-            document.activeElement.blur();
+            // If previous element is gone, focus body to prevent focus loss
+            document.body.focus();
+            if (document.activeElement !== document.body) {
+                document.activeElement.blur();
+            }
         }
     }
 }

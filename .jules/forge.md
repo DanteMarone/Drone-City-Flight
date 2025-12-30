@@ -44,3 +44,18 @@
 ### 4. Procedural Brick Texture
 * **Technique**: `TextureGenerator.createBrick` generates a brick pattern by looping through rows and columns, drawing offset rectangles.
 * **Detail**: Adding a second pass of random noise (small dark pixels) over the bricks breaks up the "perfect digital" look and adds gritty realism suitable for cottages or old apartments.
+
+### 5. Fast Food Primitives
+* **Combination:** Creating recognizable food items using only primitives is surprisingly effective for signage.
+* **Burger:** Cylinder (Bun Bot) + Cylinder (Patty) + Box (Cheese, rotated 45deg) + Cylinder (Lettuce) + Hemisphere (Bun Top).
+* **Donut:** TorusGeometry is perfect. Adding a second, slightly flatter Torus on top creates "Icing".
+* **Ice Cream:** Inverted Cone + Stacked Spheres.
+
+## 2024-05-23 - Dumpster (Forge)
+**Learning:**
+Composite geometries can create convincing industrial props without external models.
+- **Pattern:** Using a `CanvasTexture` to generate "grime" (random noise + dark patches) significantly improves the look of simple box primitives, breaking up the "clean CG" look.
+- **Technique:** `ctx.globalAlpha` with randomized small rectangles creates a good "rust/dirt" mask.
+
+**Action:**
+Added `DumpsterEntity` to `src/world/entities/dumpster.js`.

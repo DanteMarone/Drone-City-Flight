@@ -24,6 +24,45 @@ export class VehicleEntity extends BaseEntity {
             this.mesh.userData.targetIndex = 1;
             this.mesh.userData.isVehicle = true;
 
+            // Bolt: Pre-calculate local bounding box for modelGroup to avoid
+            // expensive expandByObject() calls every frame.
+            const modelGroup = this.mesh.getObjectByName('modelGroup');
+            if (modelGroup) {
+                // Ensure modelGroup matrix is up to date (it should be at 0,0,0 usually in postInit)
+                modelGroup.updateMatrixWorld(true);
+
+                this._localBox = new THREE.Box3();
+
+                // Helper to compute box relative to modelGroup (origin)
+                // We use expandByObject on modelGroup but transform result to local space
+                // Or simply: since modelGroup is at identity relative to parent,
+                // and if we assume it hasn't moved yet...
+                // Safest: Calculate standard AABB of children in modelGroup space.
+
+                modelGroup.traverse(child => {
+                    if (child.isMesh && child.geometry) {
+                        if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
+                        const childBox = child.geometry.boundingBox.clone();
+
+                        // Transform childBox by child's local matrix (relative to modelGroup)
+                        // If child is direct child of modelGroup, use child.matrix
+                        // If nested, we need matrix relative to modelGroup.
+                        // matrixWorld = modelGroup.matrixWorld * matrixRelativeToModel
+                        // matrixRelativeToModel = inv(modelGroup) * child.matrixWorld
+
+                        // We use the matrixWorld based approach for robustness
+                        // But we need to ensure child matrices are updated
+                        // child.updateMatrixWorld() is called by modelGroup.updateMatrixWorld(true)
+
+                        const invMat = modelGroup.matrixWorld.clone().invert();
+                        const relMat = invMat.multiply(child.matrixWorld);
+
+                        childBox.applyMatrix4(relMat);
+                        this._localBox.union(childBox);
+                    }
+                });
+            }
+
             this._createWaypointVisuals();
         }
     }
@@ -125,9 +164,16 @@ export class VehicleEntity extends BaseEntity {
 
         // Update Box
         if (this.box) {
-            this.box.makeEmpty();
             modelGroup.updateMatrixWorld();
-            this.box.expandByObject(modelGroup);
+
+            if (this._localBox) {
+                // Optimized: Transform cached local box
+                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+            } else {
+                // Fallback
+                this.box.makeEmpty();
+                this.box.expandByObject(modelGroup);
+            }
         }
     }
 
@@ -293,9 +339,15 @@ export class PickupTruckEntity extends CarEntity {
         }
 
         if (this.box) {
-            this.box.makeEmpty();
             modelGroup.updateMatrixWorld();
-            this.box.expandByObject(modelGroup);
+
+            if (this._localBox) {
+                // Optimized: Transform cached local box
+                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+            } else {
+                this.box.makeEmpty();
+                this.box.expandByObject(modelGroup);
+            }
         }
     }
 

@@ -2,6 +2,7 @@
 export class HUD {
     constructor() {
         this.elements = {};
+        this.onPause = null;
         this._createDOM();
     }
 
@@ -27,6 +28,14 @@ export class HUD {
                 </div>
             </div>
 
+            <div class="hud-top-right">
+                <button id="btn-pause" class="pm-btn-icon" aria-label="Pause Game">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor" aria-hidden="true">
+                        <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z"/>
+                    </svg>
+                </button>
+            </div>
+
             <div class="hud-bottom-center">
                  <div class="battery-label" id="batt-label">BATTERY</div>
                  <div class="battery-bar-bg" role="progressbar" aria-labelledby="batt-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="hud-batt-bg">
@@ -49,6 +58,12 @@ export class HUD {
         this.elements.battFill = container.querySelector('#hud-batt-fill');
         this.elements.battText = container.querySelector('#hud-batt-text');
         this.elements.msg = container.querySelector('#hud-msg');
+        this.elements.pauseBtn = container.querySelector('#btn-pause');
+
+        this.elements.pauseBtn.onclick = () => {
+            if (this.onPause) this.onPause();
+            this.elements.pauseBtn.blur();
+        };
     }
 
     setVisible(visible) {

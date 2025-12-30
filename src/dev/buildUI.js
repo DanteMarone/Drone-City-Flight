@@ -1,7 +1,7 @@
 import * as THREE from 'three';
 import { EntityRegistry } from '../world/entities/registry.js';
 import { ThumbnailRenderer } from './thumbnailRenderer.js';
-import { TransformCommand, PropertyChangeCommand } from './history.js';
+import { TransformCommand, PropertyChangeCommand, WaypointCommand } from './history.js';
 import { AlignTool } from './tools/alignTool.js';
 
 export class BuildUI {
@@ -48,6 +48,7 @@ export class BuildUI {
 
         // Save Indicator
         const saveInd = document.createElement('div');
+        this.saveInd = saveInd; // Store reference
         saveInd.className = 'dev-save-indicator';
         saveInd.id = 'dev-save-indicator';
         saveInd.textContent = 'Map Saved';

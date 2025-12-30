@@ -51,6 +51,7 @@ export class DevMode {
 
     enable() {
         console.log("DevMode: Enabled");
+        this.app.notifications.show("Dev Mode Enabled", "info", 2000);
         this.enabled = true;
 
         // 1. Hide Drone
@@ -94,6 +95,7 @@ export class DevMode {
     disable() {
         if (!this.enabled) return;
         console.log("DevMode: Disabled");
+        this.app.notifications.show("Dev Mode Disabled", "info", 2000);
         this.enabled = false;
 
         if (this.app.drone) this.app.drone.mesh.visible = true;
@@ -442,9 +444,8 @@ export class DevMode {
             if (this.app.colliderSystem) {
                 this.app.colliderSystem.remove(obj);
             }
-            if (this.app.world && this.app.world.colliders) {
-                const idx = this.app.world.colliders.findIndex(c => c.mesh === obj);
-                if (idx !== -1) this.app.world.colliders.splice(idx, 1);
+            if (this.app.world) {
+                this.app.world.removeEntity(obj);
             }
         });
     }
@@ -762,6 +763,8 @@ export class DevMode {
         a.download = 'custom_map.json';
         a.click();
         URL.revokeObjectURL(url);
+
+        this.app.notifications.show("Map Exported Successfully", "success");
     }
 
     loadMap(file) {
@@ -774,7 +777,7 @@ export class DevMode {
                 this.app.loadMap(data);
             } catch (err) {
                 console.error("Failed to load map:", err);
-                alert("Invalid map file");
+                this.app.notifications.show("Invalid Map File", "error");
             }
         };
         reader.readAsText(file);

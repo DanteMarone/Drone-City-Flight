@@ -63,7 +63,9 @@ export class PineTreeEntity extends BaseEntity {
 
         // 3. Random Variation
         // Randomize overall scale slightly
-        const scale = 0.9 + Math.random() * 0.4; // 0.9 to 1.3
+        // ATLAS: Disabled internal random scale for template consistency.
+        // BaseEntity/World handles scale via params.
+        const scale = 1.0;
         group.scale.set(scale, scale, scale);
 
         return group;

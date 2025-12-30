@@ -10,6 +10,7 @@ export class Palette {
         this.content = null;
         this.tabsDiv = null;
         this.selectedCategory = 'All';
+        this.searchQuery = '';
         this.thumbnails = new Map();
         this.init();
     }
@@ -23,11 +24,28 @@ export class Palette {
         header.className = 'dev-panel-header';
         header.style.padding = '0';
         header.style.justifyContent = 'flex-start';
+        header.style.alignItems = 'center';
 
         const tabsDiv = document.createElement('div');
         tabsDiv.className = 'dev-palette-tabs';
         this.tabsDiv = tabsDiv;
         header.appendChild(tabsDiv);
+
+        // Search Input
+        const searchInput = document.createElement('input');
+        searchInput.type = 'text';
+        searchInput.id = 'dev-palette-search';
+        searchInput.placeholder = 'Search...';
+        searchInput.ariaLabel = 'Filter objects';
+        searchInput.className = 'dev-prop-input';
+        searchInput.style.width = '120px';
+        searchInput.style.margin = '4px';
+
+        searchInput.oninput = (e) => {
+            this.searchQuery = e.target.value;
+            this.refresh();
+        };
+        header.appendChild(searchInput);
 
         container.appendChild(header);
 
@@ -58,8 +76,16 @@ export class Palette {
 
         // Populate Grid
         EntityRegistry.registry.forEach((Cls, type) => {
+            // Category Filter
             const cat = getCategory(type);
             if (this.selectedCategory !== 'All' && cat !== this.selectedCategory) return;
+
+            // Search Filter
+            if (this.searchQuery) {
+                const query = this.searchQuery.toLowerCase();
+                const name = (Cls.displayName || type).toLowerCase();
+                if (!name.includes(query)) return;
+            }
 
             const item = document.createElement('div');
             item.className = 'dev-palette-item';

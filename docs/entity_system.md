@@ -166,3 +166,4 @@ Some entities require logic that goes beyond simple self-updates or need to inte
 
 *   **[Bird System](./bird_system.md)**: Manages `BirdEntity` instances, handling AI states (Patrol, Chase) and battery interactions.
 *   **[Time Cycle](./time_cycle.md)**: Manages the `Sun` and global lighting, though not strictly an "entity" in the registry sense.
+*   **[World Generation](./world_generation.md)**: Uses the `ObjectFactory` adapter to procedurally generate the initial city layout using `EntityRegistry` types.

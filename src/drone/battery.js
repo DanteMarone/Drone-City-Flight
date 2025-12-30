@@ -11,28 +11,21 @@ export class BatteryManager {
     update(dt, droneVelocity, input) {
         if (this.depleted) return;
 
-        const conf = CONFIG.BATTERY;
-        let drain = 0;
-
-        // Spec 3.4.2 Logic
-        // Hovering drains 0 when no translation and no altitude change.
-        // We approximate "no change" by checking input or velocity?
-        // Spec says "no translation and no altitude change".
-        // Let's use Input for intention + Velocity for effort.
-
-        // Actually, simple rule:
-        // Horizontal Move
-        const hSpeed = Math.sqrt(droneVelocity.x**2 + droneVelocity.z**2);
-        if (hSpeed > 0.1) {
-            drain += conf.DRAIN_MOVE * (hSpeed / CONFIG.DRONE.MAX_SPEED) * dt;
+        let drainRate = CONFIG.BATTERY.DRAIN_RATE;
+        // Use World setting if available
+        if (window.app && window.app.world && window.app.world.batteryDrain !== undefined) {
+            drainRate = window.app.world.batteryDrain;
         }
 
-        // Ascend/Descend
-        // Input y > 0 ascend, < 0 descend
-        if (input.y > 0) {
-            drain += conf.DRAIN_ASCEND * dt;
-        } else if (input.y < 0) {
-            drain += conf.DRAIN_DESCEND * dt;
+        let drain = 0;
+        // Calculate total speed magnitude (3D)
+        const speed = droneVelocity.length();
+
+        // Unified drain logic:
+        // Moving in any direction (Speed > threshold) causes drain.
+        // Rotation and hovering (Speed ~ 0) causes no drain.
+        if (speed > 0.1) {
+            drain = drainRate * dt;
         }
 
         this.current -= drain;

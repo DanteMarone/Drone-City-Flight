@@ -23,6 +23,7 @@ export class World {
         this.ground = null;
 
         this.wind = { ...CONFIG.WORLD.WIND };
+        this.batteryDrain = CONFIG.BATTERY.DRAIN_RATE;
 
         this._initGround();
         this._generateWorld();
@@ -134,6 +135,12 @@ export class World {
             this.wind = { ...CONFIG.WORLD.WIND };
         }
 
+        if (mapData.batteryDrain !== undefined) {
+            this.batteryDrain = mapData.batteryDrain;
+        } else {
+            this.batteryDrain = CONFIG.BATTERY.DRAIN_RATE;
+        }
+
         if (mapData.environment) {
             if (mapData.environment.startTime !== undefined) this.timeCycle.time = mapData.environment.startTime;
             if (mapData.environment.daySpeed !== undefined) this.timeCycle.speed = mapData.environment.daySpeed;
@@ -210,6 +217,7 @@ export class World {
         return {
             version: 1,
             wind: { ...this.wind },
+            batteryDrain: this.batteryDrain,
             environment: {
                 startTime: this.timeCycle.time,
                 daySpeed: this.timeCycle.speed,

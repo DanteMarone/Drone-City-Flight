@@ -23,6 +23,18 @@ export class BuildUI {
         this.history = null;
 
         this.saveInd = null;
+        this.selectedCategory = 'All';
+        this.expandedGroups = new Set(['Infrastructure', 'Residential', 'Vehicles', 'Nature', 'Props', 'Misc']);
+        this.thumbnails = new Map();
+
+        // Inspector State
+        this.inspectorTab = 'Properties'; // 'Properties' | 'World'
+        this.lockScale = false;
+
+        // For polling/updates
+        this.lastHistoryLen = 0;
+        this.needsOutlinerUpdate = true;
+        this.idCounter = 0;
     }
 
     init(devMode) {
@@ -116,5 +128,262 @@ export class BuildUI {
             ind.offsetHeight; /* trigger reflow */
             ind.style.animation = 'fadeOut 2s forwards 2s';
         }
+    }
+
+    // --- Helpers ---
+
+    _createPanel(cls, title) {
+        const p = document.createElement('div');
+        p.className = `dev-panel ${cls}`;
+        if (title) { // Allow optional title
+            const h = document.createElement('div');
+            h.className = 'dev-panel-header';
+            h.textContent = title;
+            p.appendChild(h);
+        }
+        return p;
+    }
+
+    _getCategory(type) {
+        type = type.toLowerCase();
+        if (type.includes('house') || type.includes('apartment') || type.includes('residential')) return 'Residential';
+        if (type.includes('road') || type.includes('sidewalk') || type.includes('infra') || type.includes('light') || type.includes('fire') || type.includes('bridge') || type.includes('runway')) return 'Infrastructure';
+        if (type.includes('car') || type.includes('vehicle') || type.includes('bus') || type.includes('truck') || type.includes('scooter')) return 'Vehicles';
+        if (type.includes('tree') || type.includes('rock') || type.includes('pond') || type.includes('mushroom') || type.includes('lotus')) return 'Nature';
+        if (type.includes('sign') || type.includes('billboard') || type.includes('barrier') || type.includes('stall') || type.includes('vending') || type.includes('tower') || type.includes('antenna') || type.includes('hvac')) return 'Props';
+        return 'Misc';
+    }
+
+    _addPropGroup(title, elements) {
+        const group = document.createElement('div');
+        group.className = 'dev-prop-group';
+        const t = document.createElement('div');
+        t.className = 'dev-prop-title';
+        t.textContent = title;
+        group.appendChild(t);
+        elements.forEach(el => group.appendChild(el));
+        this.inspector.appendChild(group);
+    }
+
+    _createVectorInput(label, vec, callback, isEuler=false) {
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+        const l = document.createElement('div');
+        l.className = 'dev-prop-label';
+        l.textContent = label;
+        row.appendChild(l);
+
+        const div = document.createElement('div');
+        div.className = 'dev-prop-vector';
+
+        ['x', 'y', 'z'].forEach(axis => {
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.step = isEuler ? '1' : '0.1';
+            inp.className = 'dev-prop-input';
+            inp.id = `insp-${label}-${axis}`;
+
+            let val = vec[axis];
+            if (isEuler) val = THREE.MathUtils.radToDeg(val);
+            inp.value = val.toFixed(2);
+
+            inp.onchange = (e) => {
+                const n = parseFloat(e.target.value);
+                const current = isEuler ? THREE.MathUtils.radToDeg(vec[axis]) : vec[axis];
+                if (Math.abs(n - current) < 0.001) return;
+
+                const newVec = vec.clone();
+                if (isEuler) {
+                    const eClone = vec.clone();
+                    if (axis === 'x') eClone.x = THREE.MathUtils.degToRad(n);
+                    if (axis === 'y') eClone.y = THREE.MathUtils.degToRad(n);
+                    if (axis === 'z') eClone.z = THREE.MathUtils.degToRad(n);
+                    callback(eClone);
+                } else {
+                    newVec[axis] = n;
+                    callback(newVec);
+                }
+            };
+            div.appendChild(inp);
+        });
+        row.appendChild(div);
+        return row;
+    }
+
+    _createScaleInput(obj) {
+        const label = 'Scale';
+        const vec = obj.scale;
+
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+
+        // Label + Lock Checkbox
+        const labelDiv = document.createElement('div');
+        labelDiv.className = 'dev-prop-label';
+        labelDiv.style.display = 'flex';
+        labelDiv.style.flexDirection = 'column';
+
+        const txt = document.createElement('span');
+        txt.textContent = label;
+        labelDiv.appendChild(txt);
+
+        const lockLabel = document.createElement('label');
+        lockLabel.className = 'dev-prop-checkbox-label';
+        const check = document.createElement('input');
+        check.type = 'checkbox';
+        check.checked = this.lockScale;
+        check.style.width = '10px';
+        check.style.height = '10px';
+        check.onchange = (e) => this.lockScale = e.target.checked;
+        lockLabel.appendChild(check);
+        lockLabel.appendChild(document.createTextNode('Lock'));
+        labelDiv.appendChild(lockLabel);
+
+        row.appendChild(labelDiv);
+
+        const div = document.createElement('div');
+        div.className = 'dev-prop-vector';
+
+        ['x', 'y', 'z'].forEach(axis => {
+            const inp = document.createElement('input');
+            inp.type = 'number';
+            inp.step = '0.1';
+            inp.className = 'dev-prop-input';
+            inp.id = `insp-${label}-${axis}`;
+            inp.value = vec[axis].toFixed(2);
+
+            inp.onchange = (e) => {
+                const n = parseFloat(e.target.value);
+                if (Math.abs(n - vec[axis]) < 0.001) return;
+
+                if (this.lockScale) {
+                    const newVec = new THREE.Vector3(n, n, n);
+                    this._applyTransform(obj, 'scale', newVec);
+                } else {
+                    const newVec = vec.clone();
+                    newVec[axis] = n;
+                    this._applyTransform(obj, 'scale', newVec);
+                }
+            };
+            div.appendChild(inp);
+        });
+        row.appendChild(div);
+        return row;
+    }
+
+    _syncVectorInput(label, vec, isEuler=false) {
+        ['x', 'y', 'z'].forEach(axis => {
+            const inp = document.getElementById(`insp-${label}-${axis}`);
+            if (inp && document.activeElement !== inp) {
+                let val = vec[axis];
+                if (isEuler) val = THREE.MathUtils.radToDeg(val);
+                inp.value = val.toFixed(2);
+            }
+        });
+    }
+
+    _createNumberInput(key, val, cb) {
+        const id = `prop-num-${this.idCounter++}`;
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+
+        const l = document.createElement('label');
+        l.className = 'dev-prop-label';
+        l.textContent = key;
+        l.htmlFor = id;
+        row.appendChild(l);
+
+        const inp = document.createElement('input');
+        inp.id = id;
+        inp.type = 'number';
+        inp.className = 'dev-prop-input';
+        inp.value = val;
+        inp.onchange = (e) => cb(parseFloat(e.target.value));
+        row.appendChild(inp);
+        return row;
+    }
+
+    _createTextInput(key, val, cb) {
+        const id = `prop-text-${this.idCounter++}`;
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+
+        const l = document.createElement('label');
+        l.className = 'dev-prop-label';
+        l.textContent = key;
+        l.htmlFor = id;
+        row.appendChild(l);
+
+        const inp = document.createElement('input');
+        inp.id = id;
+        inp.type = 'text';
+        inp.className = 'dev-prop-input';
+        inp.value = val;
+        inp.onchange = (e) => cb(e.target.value);
+        row.appendChild(inp);
+        return row;
+    }
+
+    _createCheckbox(key, val, cb) {
+        const id = `prop-bool-${this.idCounter++}`;
+        const row = document.createElement('div');
+        row.className = 'dev-prop-row';
+
+        const l = document.createElement('label');
+        l.className = 'dev-prop-label';
+        l.textContent = key;
+        l.htmlFor = id;
+        row.appendChild(l);
+
+        const inp = document.createElement('input');
+        inp.id = id;
+        inp.type = 'checkbox';
+        inp.checked = val;
+        inp.onchange = (e) => cb(e.target.checked);
+        row.appendChild(inp);
+        return row;
+    }
+
+    _applyTransform(obj, prop, val) {
+        // Snapshot before
+        const before = [{
+            object: obj,
+            position: obj.position.clone(),
+            rotation: obj.rotation.clone(),
+            scale: obj.scale.clone()
+        }];
+
+        // Apply locally
+        if (prop === 'position') obj.position.copy(val);
+        if (prop === 'rotation') obj.rotation.copy(val);
+        if (prop === 'scale') obj.scale.copy(val);
+
+        obj.updateMatrixWorld();
+        if (this.devMode.gizmo) this.devMode.gizmo.attach(obj); // Refresh gizmo
+        if (this.devMode.app.colliderSystem) this.devMode.app.colliderSystem.updateBody(obj);
+
+        // Snapshot after
+        const after = [{
+            object: obj,
+            position: obj.position.clone(),
+            rotation: obj.rotation.clone(),
+            scale: obj.scale.clone()
+        }];
+
+        this.devMode.commandManager.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
+    }
+
+    _applyParam(obj, key, val) {
+        const oldVal = obj.userData.params[key];
+        obj.userData.params[key] = val;
+
+        this.devMode.commandManager.push(new PropertyChangeCommand(
+             this.devMode,
+             obj.userData.uuid || obj.uuid,
+             key,
+             oldVal,
+             val,
+             `Set ${key}`
+        ));
     }
 }

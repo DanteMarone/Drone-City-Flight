@@ -7,9 +7,10 @@ export class SpatialHash {
     }
 
     _getKey(x, z) {
+        // Bolt Optimization: Use bit-packed integers instead of strings to avoid GC
         const xi = Math.floor(x / this.cellSize);
         const zi = Math.floor(z / this.cellSize);
-        return `${xi},${zi}`;
+        return (xi << 16) | (zi & 0xFFFF);
     }
 
     insert(client, aabb) {
@@ -20,7 +21,9 @@ export class SpatialHash {
 
         for (let x = minX; x <= maxX; x++) {
             for (let z = minZ; z <= maxZ; z++) {
-                const key = `${x},${z}`;
+                // Bolt Optimization: Inline key generation (Indices are already calculated)
+                const key = (x << 16) | (z & 0xFFFF);
+
                 if (!this.cells.has(key)) {
                     this.cells.set(key, []);
                 }

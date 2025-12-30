@@ -11,7 +11,7 @@
   "devDependencies": {
     "@playwright/test": "^1.57.0",
     "playwright": "^1.57.0",
-    "vite": "^7.2.7"
+    "vite": "^7.3.0"
   },
   "dependencies": {
     "postprocessing": "^6.38.0",

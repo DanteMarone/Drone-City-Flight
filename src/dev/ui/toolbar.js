@@ -37,6 +37,12 @@ export class Toolbar {
         const sep2 = sep.cloneNode();
         bar.appendChild(sep2);
 
+        addBtn('Road', () => this.devMode.setPlacementMode('road'), 'Place Road');
+        addBtn('River', () => this.devMode.setPlacementMode('river'), 'Place River');
+
+        const sep3 = sep.cloneNode();
+        bar.appendChild(sep3);
+
         addBtn('Grid', () => {
              this.devMode.grid.enabled = !this.devMode.grid.enabled;
              this.devMode.grid.helper.visible = this.devMode.grid.enabled;

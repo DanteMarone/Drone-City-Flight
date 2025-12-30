@@ -6,6 +6,7 @@ import { BirdSystem } from './birdSystem.js';
 import { LightSystem } from './lightSystem.js';
 import { EntityRegistry } from './entities/index.js';
 import { TimeCycle } from './timeCycle.js';
+import { generateUrbanSuburbanMap } from './generation/urban_suburban.js';
 
 export class World {
     constructor(scene) {
@@ -26,6 +27,14 @@ export class World {
     }
 
     _initGround() {
+        // Disabled: Map generator now handles ground creation or we rely on loadMap
+        // But for safety against empty maps, we can leave it or remove it if mapData provides it.
+        // The procedural generator assumes a ground exists or provides it.
+        // Current generator implementation does NOT provide a ground object.
+        // So we KEEP this method.
+        // However, prompts requested generator to create it.
+        // We will move this logic to be conditional or part of the generator sequence.
+
         const geo = new THREE.PlaneGeometry(2000, 2000);
         const mat = new THREE.MeshStandardMaterial({
             color: 0x223322,
@@ -41,15 +50,67 @@ export class World {
     _generateWorld() {
         this.colliders = [];
 
-        // Showcase landmark near spawn so players immediately see the new architecture.
-        const landmark = this.factory.createSkyGardenTower({
-            x: 35,
-            z: -28,
-            width: 28,
-            height: 74,
-            rotY: Math.PI / 8
-        });
-        this.addEntity(landmark);
+        // Use new procedural generation by default
+        const mapData = generateUrbanSuburbanMap();
+
+        // Explicitly load map data here.
+        // We call this.loadMap which is defined below.
+        this.loadMap(mapData);
+    }
+
+    loadMap(mapData) {
+        this.clear();
+
+        if (mapData.wind) {
+            this.wind = { ...mapData.wind };
+        } else {
+            this.wind = { ...CONFIG.WORLD.WIND };
+        }
+
+        if (mapData.environment) {
+            if (mapData.environment.startTime !== undefined) this.timeCycle.time = mapData.environment.startTime;
+            if (mapData.environment.daySpeed !== undefined) this.timeCycle.speed = mapData.environment.daySpeed;
+            if (mapData.environment.timeLocked !== undefined) this.timeCycle.isLocked = mapData.environment.timeLocked;
+        } else {
+            // Defaults
+            this.timeCycle.time = 12.0;
+            this.timeCycle.speed = 0.0;
+            this.timeCycle.isLocked = false;
+        }
+
+        if (mapData.objects) {
+            mapData.objects.forEach(obj => {
+                const params = { ...(obj.params || obj.userData?.params || {}) };
+                if (obj.position) {
+                    params.x = obj.position.x;
+                    params.y = obj.position.y;
+                    params.z = obj.position.z;
+                }
+                if (obj.rotation) {
+                    params.rotX = obj.rotation.x;
+                    params.rotY = obj.rotation.y;
+                    params.rotZ = obj.rotation.z;
+                }
+
+                const entity = EntityRegistry.create(obj.type, params);
+                if (entity) {
+                    this.scene.add(entity.mesh);
+                    this.addEntity(entity);
+
+                if (obj.rotation) {
+                    entity.mesh.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z);
+                }
+
+                if (obj.scale) {
+                    entity.mesh.scale.set(obj.scale.x, obj.scale.y, obj.scale.z);
+                }
+
+                if (entity.box) {
+                     entity.box.setFromObject(entity.mesh);
+                    }
+                }
+            });
+        }
     }
 
     update(dt, camera) {
@@ -92,75 +153,6 @@ export class World {
         if (this.lightSystem) this.lightSystem.clear();
     }
 
-    loadMap(mapData) {
-        this.clear();
-
-        if (mapData.wind) {
-            this.wind = { ...mapData.wind };
-        } else {
-            this.wind = { ...CONFIG.WORLD.WIND };
-        }
-
-        if (mapData.environment) {
-            if (mapData.environment.startTime !== undefined) this.timeCycle.time = mapData.environment.startTime;
-            if (mapData.environment.daySpeed !== undefined) this.timeCycle.speed = mapData.environment.daySpeed;
-            if (mapData.environment.timeLocked !== undefined) this.timeCycle.isLocked = mapData.environment.timeLocked;
-        } else {
-            // Defaults
-            this.timeCycle.time = 12.0;
-            this.timeCycle.speed = 0.0;
-            this.timeCycle.isLocked = false;
-        }
-
-        // We don't strictly need factory here if we use Registry,
-        // but factory adds to scene.
-        // Let's use Registry and manually add to scene/world to be explicit.
-
-        if (mapData.objects) {
-            mapData.objects.forEach(obj => {
-                // Determine params
-                const params = { ...(obj.params || obj.userData?.params || {}) };
-                // Merge transform
-                if (obj.position) {
-                    params.x = obj.position.x;
-                    params.y = obj.position.y;
-                    params.z = obj.position.z;
-                }
-                if (obj.rotation) {
-                    params.rotX = obj.rotation.x;
-                    params.rotY = obj.rotation.y;
-                    params.rotZ = obj.rotation.z;
-                }
-
-                const entity = EntityRegistry.create(obj.type, params);
-                if (entity) {
-                    this.scene.add(entity.mesh);
-                    this.addEntity(entity);
-
-                    // Restore exact transform if serialization was precise
-                    // BaseEntity init sets position from params.
-                    // Should be correct.
-                    // But rotation?
-                if (obj.rotation) {
-                    entity.mesh.rotation.set(obj.rotation.x, obj.rotation.y, obj.rotation.z);
-                }
-
-                if (obj.scale) {
-                    entity.mesh.scale.set(obj.scale.x, obj.scale.y, obj.scale.z);
-                }
-
-                // Recompute box in case rotation changed it
-                if (entity.box) {
-                     entity.box.setFromObject(entity.mesh);
-                         // Handle house roof extension if needed?
-                         // BaseEntity.createCollider handles it based on mesh state.
-                         // But for HouseEntity, createCollider logic is specific.
-                         // It should be fine as long as mesh structure is consistent.
-                    }
-                }
-            });
-        }
-    }
 
     exportMap() {
         const objects = [];

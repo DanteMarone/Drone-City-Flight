@@ -18,31 +18,8 @@
 ### 3. Procedural Hedges
 * **Concept:** BoxGeometry with noise-displaced vertices (if possible) or just a rough normal map creates good hedges. For now, simple green rough boxes work for MVP.
 
-# Forge's Log
-
-## Discoveries
-
-### Composite Shapes
-- **Construction Crane**: Created using a hierarchy of `BoxGeometry` and `CylinderGeometry` within a `THREE.Group`.
-  - **Base**: Static concrete block.
-  - **Mast**: Vertical pillar.
-  - **Rotating Assembly**: Child Group containing Cab, Jib, Counter-Jib, and Counterweights.
-  - **Animation**: Logic in `update(dt)` rotates the assembly layer, keeping the base static.
-- **Industrial HVAC**: Created using `BoxGeometry` (Housing) + `CylinderGeometry` (Recess) + Rotated `BoxGeometry` blades.
-  - **Animation**: Rotates the blade group on the Y-axis.
-- **Radar Dish**: Created using `SphereGeometry` and `CylinderGeometry`.
-  - **Dish**: Used a `SphereGeometry` with `thetaLength` and non-uniform scaling (flattened on Z) to create a parabolic dish effect without complex curve generation.
-  - **Pivot Logic**: Separated `turret` (Y-axis rotation) and `dishPivot` (X-axis elevation) into nested Groups to allow independent, simultaneous 2-axis animation.
-- **Generic NPC**: Created using `CylinderGeometry` (Legs, Torso) + `SphereGeometry` (Head) within a `THREE.Group`.
-  - **Texture**: `CanvasTexture` on the head sphere enables procedural facial expressions without external assets.
-
-### Procedural Patterns
-- **Holographic Signs**: Created using `THREE.CanvasTexture` with a transparent background and `THREE.AdditiveBlending` on a `PlaneGeometry`.
-  - **Technique**: Draw neon strokes and text on a 2D canvas, use as map for `MeshBasicMaterial`.
-  - **Animation**: Randomly modulate `opacity` and `visible` properties in `update(dt)` to simulate glitching.
-
 ### 4. Procedural Brick Texture
-* **Technique**: `TextureGenerator.createBrick` generates a brick pattern by looping through rows and columns, drawing offset rectangles.
+* **Technique:** `TextureGenerator.createBrick` generates a brick pattern by looping through rows and columns, drawing offset rectangles.
 * **Detail**: Adding a second pass of random noise (small dark pixels) over the bricks breaks up the "perfect digital" look and adds gritty realism suitable for cottages or old apartments.
 
 ### 5. Fast Food Primitives
@@ -57,14 +34,14 @@ Composite geometries can create convincing industrial props without external mod
 - **Pattern:** Using a `CanvasTexture` to generate "grime" (random noise + dark patches) significantly improves the look of simple box primitives, breaking up the "clean CG" look.
 - **Technique:** `ctx.globalAlpha` with randomized small rectangles creates a good "rust/dirt" mask.
 
-**Action:**
-Added `DumpsterEntity` to `src/world/entities/dumpster.js`.
-
 ## 2024-05-25 - Porta-Potty (Forge)
 **Learning:**
 Simple translucent materials on primitives can effectively simulate plastic materials often used in urban infrastructure.
 - **Pattern:** `CylinderGeometry` with `thetaLength: Math.PI` (half-cylinder) makes for an excellent curved roof when rotated 90 degrees and scaled non-uniformly to match a rectangular base.
 - **Technique:** Using `transparent: true` and `opacity: 0.9` on the roof material allows it to look like the distinctive white translucent fiberglass tops of real portable toilets.
 
-**Action:**
-Added `PortaPottyEntity` to `src/world/entities/portaPotty.js`.
+## 2024-05-27 - Construction Worker (Forge)
+**Learning:**
+Micro-animations (vibration) on static meshes can create convincing "activity" without complex skeletal rigging.
+- **Pattern:** Simple sine-wave offset on `position.y` effectively simulates the high-frequency motion of a jackhammer.
+- **Technique:** Combining this with low-cost particle emission (reusing the existing particle pool) creates a "working" character that feels alive but remains performance-friendly compared to a fully animated mesh.

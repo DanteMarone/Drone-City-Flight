@@ -120,7 +120,11 @@ export class MenuSystem {
                         this.app.loadMap(data);
                         this.hide();
                     } catch (err) {
-                        alert("Error loading map");
+                        if (this.app.notifications) {
+                            this.app.notifications.show("Error loading map", "error");
+                        } else {
+                            alert("Error loading map");
+                        }
                     }
                 };
                 reader.readAsText(file);

@@ -48,15 +48,24 @@ export class OakTreeEntity extends BaseEntity {
         // Random additional blobs to make it irregular
         // Use a seeded randomness based on params or random if fresh
         // We'll just use random for now (simple)
-        const count = 5 + Math.floor(Math.random() * 3);
-        for (let i = 0; i < count; i++) {
-            const r = 1.0 + Math.random() * 0.8;
-            const blob = new THREE.Mesh(new THREE.SphereGeometry(r, 7, 7), foliageMat);
+        // ATLAS OPTIMIZATION: Use fixed seed-like behavior for template consistency
+        // if instancing is enabled, or fallback to random.
+        // Actually, for Instancing to work, we need a standard geometry.
+        // We will generate a fixed set of blobs.
+        const count = 6;
+        const blobGeo = new THREE.SphereGeometry(1, 7, 7); // Reuse base geometry
 
-            // Random offset around the top
-            const angle = Math.random() * Math.PI * 2;
-            const dist = 0.8 + Math.random() * 1.2;
-            const heightOffset = (Math.random() - 0.2) * 1.5;
+        for (let i = 0; i < count; i++) {
+            // Pseudo-random but deterministic loop
+            const r = 1.0 + (i % 3) * 0.3;
+            const blob = new THREE.Mesh(blobGeo, foliageMat);
+            blob.scale.set(r, r, r); // Scale instead of new geometry
+
+            // Spread around
+            const angle = (i / count) * Math.PI * 2;
+            // ATLAS: Deterministic placement for instancing alignment
+            const dist = 0.8 + (i % 2) * 0.6; // Alternating distance
+            const heightOffset = ((i % 3) - 1) * 0.5; // -0.5, 0, 0.5
 
             blob.position.set(
                 Math.cos(angle) * dist,

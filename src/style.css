@@ -265,24 +265,16 @@ canvas {
     z-index: 100;
 }
 
-/* Grid Layout for Dev UI */
+/* Resizable Layout Variables */
+:root {
+    --dev-left-width: 250px;
+    --dev-right-width: 300px;
+    --dev-bottom-height: 200px;
+}
+
+/* Grid Layout for Dev UI - Deprecated in favor of absolute positioning with variables */
 .dev-layout {
-    display: grid;
-    grid-template-rows: 40px 1fr 200px; /* Header, Main, Bottom */
-    grid-template-columns: 250px 1fr 300px; /* Left Panel, Viewport, Right Panel */
-    grid-template-areas:
-        "header header header"
-        "left viewport right"
-        "left viewport right"; /* Asset browser overlays bottom if needed, or put in left? Let's assume Asset Browser is Bottom Area actually */
-    /* Revised Layout: */
-    /*
-        Header: Top Bar
-        Left: Outliner
-        Right: Inspector
-        Bottom: Asset Browser (spans middle)
-    */
-    width: 100%;
-    height: 100%;
+    display: none;
 }
 
 /* We will handle the layout manually in JS or simplified CSS for now */
@@ -303,51 +295,112 @@ canvas {
     align-items: center;
     padding: 0 10px;
     gap: 10px;
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    z-index: 110;
 }
 
-.dev-main-area {
-    flex: 1;
-    display: flex;
-    overflow: hidden;
-    position: relative;
-}
-
-.dev-left-panel {
+/* Left Panel (Outliner) */
+.dev-outliner {
     pointer-events: auto;
-    width: 250px;
+    position: absolute;
+    top: 40px;
+    left: 0;
+    bottom: 0;
+    width: var(--dev-left-width);
     background: #1e1e1e;
     border-right: 1px solid #333;
     display: flex;
     flex-direction: column;
+    z-index: 105;
 }
 
-.dev-right-panel {
+/* Right Panel (Inspector) */
+.dev-inspector {
     pointer-events: auto;
-    width: 300px;
+    position: absolute;
+    top: 40px;
+    right: 0;
+    bottom: 0;
+    width: var(--dev-right-width);
     background: #1e1e1e;
     border-left: 1px solid #333;
     display: flex;
     flex-direction: column;
     overflow-y: auto;
+    z-index: 105;
 }
 
-.dev-center-panel {
-    flex: 1;
-    position: relative;
-    pointer-events: none; /* Viewport */
-}
-
-.dev-bottom-panel {
+/* Bottom Panel (Palette) */
+.dev-palette-container {
     pointer-events: auto;
-    height: 200px;
-    background: #1e1e1e;
-    border-top: 1px solid #333;
     position: absolute;
     bottom: 0;
-    left: 250px; /* Width of left panel */
-    right: 300px; /* Width of right panel */
+    left: var(--dev-left-width);
+    right: var(--dev-right-width);
+    height: var(--dev-bottom-height);
+    background: #1e1e1e;
+    border-top: 1px solid #333;
     display: flex;
     flex-direction: column;
+    z-index: 105;
+}
+
+/* Resizers */
+.dev-resizer-v {
+    position: absolute;
+    top: 40px;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 200;
+    background: transparent;
+    transition: background 0.2s;
+}
+
+.dev-resizer-v:hover, .dev-resizer-v.active {
+    background: rgba(59, 130, 246, 0.5); /* Blue highlight */
+}
+
+/* Left Resizer specific */
+.dev-resizer-left {
+    left: calc(var(--dev-left-width) - 3px);
+}
+
+/* Right Resizer specific */
+.dev-resizer-right {
+    right: calc(var(--dev-right-width) - 3px);
+}
+
+.dev-resizer-h {
+    position: absolute;
+    left: var(--dev-left-width);
+    right: var(--dev-right-width);
+    bottom: calc(var(--dev-bottom-height) - 3px);
+    height: 6px;
+    cursor: row-resize;
+    z-index: 200;
+    background: transparent;
+    transition: background 0.2s;
+}
+
+.dev-resizer-h:hover, .dev-resizer-h.active {
+    background: rgba(59, 130, 246, 0.5);
+}
+
+/* Maintain legacy classes just in case, mapped to new vars */
+.dev-left-panel {
+    width: var(--dev-left-width);
+}
+.dev-right-panel {
+    width: var(--dev-right-width);
+}
+.dev-bottom-panel {
+    height: var(--dev-bottom-height);
+    left: var(--dev-left-width);
+    right: var(--dev-right-width);
 }
 
 /* Common Components */

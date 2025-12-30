@@ -1,0 +1,36 @@
+# Project Roadmap
+
+## 🚀 Next Up
+*   [ ] **Static Intersections** (`docs/specs/001-intersections.md`)
+    *   Implement manual intersection pieces (Cross, T-Junction, Turn) to allow complex road networks.
+    *   *Rationale:* Currently, roads are just straight lines. Intersections are needed for realistic city layouts.
+
+## 📋 Backlog
+*   [ ] **Sidewalk Corners**
+    *   Add corner pieces for sidewalks to match the intersection logic.
+*   [ ] **Organic Curve Support**
+    *   Implement Bezier curve roads for non-grid layouts.
+*   [ ] **Smart River Tool**
+    *   Adapt the "Anchor & Stretch" logic from roads to rivers.
+*   [ ] **Traffic System**
+    *   Re-implement traffic but using the new Entity/Waypoint system (Basic pathing is in, but autonomous traffic management is missing).
+
+## ✅ Completed
+*   **Smart Road Tool**
+    *   Implemented "Anchor & Stretch" placement in `src/dev/interaction.js`.
+    *   Added axis locking (North/South, East/West).
+*   **Grid Snap & Physics**
+    *   Enforced strict integer snapping for road lengths.
+    *   Verified collision scaling.
+*   **Visual Overhaul**
+    *   Updated `RoadEntity` to use `asphalt_v2` procedural texture.
+*   **Entity System Refactor**
+    *   Migrated specific hardcoded logic to generic `EntityRegistry`.
+*   **Dev Mode Tools**
+    *   Implemented `AlignTool`, `GizmoManager`, `History` (Undo/Redo).
+
+## 🗑️ Obsolete
+*   **Traffic System (Old)**
+    *   *Reason:* The old `src/world/traffic.js` was deleted in favor of the new `VehicleEntity` + Waypoint system.
+*   **2D Map Mode**
+    *   *Reason:* Project pivoted to full 3D simulation.

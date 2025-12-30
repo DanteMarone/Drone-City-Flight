@@ -59,3 +59,12 @@ Composite geometries can create convincing industrial props without external mod
 
 **Action:**
 Added `DumpsterEntity` to `src/world/entities/dumpster.js`.
+
+## 2024-05-25 - Porta-Potty (Forge)
+**Learning:**
+Simple translucent materials on primitives can effectively simulate plastic materials often used in urban infrastructure.
+- **Pattern:** `CylinderGeometry` with `thetaLength: Math.PI` (half-cylinder) makes for an excellent curved roof when rotated 90 degrees and scaled non-uniformly to match a rectangular base.
+- **Technique:** Using `transparent: true` and `opacity: 0.9` on the roof material allows it to look like the distinctive white translucent fiberglass tops of real portable toilets.
+
+**Action:**
+Added `PortaPottyEntity` to `src/world/entities/portaPotty.js`.

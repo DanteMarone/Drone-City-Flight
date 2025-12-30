@@ -386,7 +386,7 @@ export function generateUrbanSuburbanMap() {
              if (zone === 'downtown') {
                  // Skyscrapers
                  h = 30 + Math.random() * 120; // 10-50 stories
-                 type = Math.random() > 0.3 ? 'modern_tower' : 'office_park';
+                 type = Math.random() > 0.3 ? 'skyscraper' : 'office_park';
                  w = 20;
                  d = 20; // Assume square footprint for calculation
 

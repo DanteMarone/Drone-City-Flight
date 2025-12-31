@@ -129,6 +129,40 @@ export class SidewalkEntity extends BaseEntity {
     }
 }
 
+export class SidewalkCornerEntity extends BaseEntity {
+    constructor(params) {
+        super(params);
+        this.type = 'sidewalk_corner';
+    }
+
+    static get displayName() { return 'Sidewalk Corner'; }
+
+    createMesh(params) {
+        // 1 unit wide, 1 unit long (square)
+        const w = 1;
+        const l = 1;
+        const h = 0.2;
+
+        const geo = new THREE.BoxGeometry(w, h, l);
+        geo.translate(0, h / 2, 0); // Sit on ground
+
+        const concreteTex = TextureGenerator.createConcrete();
+
+        // Use plain concrete for all sides, including top
+        const mat = new THREE.MeshStandardMaterial({
+            map: concreteTex,
+            color: 0xaaaaaa,
+            roughness: 0.8
+        });
+
+        const mesh = new THREE.Mesh(geo, mat);
+        mesh.castShadow = true;
+        mesh.receiveShadow = true;
+        return mesh;
+    }
+}
+
 EntityRegistry.register('road', RoadEntity);
 EntityRegistry.register('river', RiverEntity);
 EntityRegistry.register('sidewalk', SidewalkEntity);
+EntityRegistry.register('sidewalk_corner', SidewalkCornerEntity);

@@ -27,6 +27,13 @@ export class Outliner {
 
         all.forEach(entity => {
             if (!entity.mesh) return;
+
+            // Skip objects that are children of a group
+            // We only want to show the GroupEntity itself (or top-level objects)
+            if (entity.mesh.parent && entity.mesh.parent.userData.type === 'group') {
+                return;
+            }
+
             const cat = getCategory(entity.type || entity.constructor.name);
             if (!groups[cat]) groups[cat] = [];
             groups[cat].push(entity);

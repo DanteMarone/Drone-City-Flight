@@ -51,6 +51,7 @@ export { PortaPottyEntity } from './portaPotty.js';
 export { PhoneBoothEntity } from './phoneBooth.js';
 export { TugboatEntity } from './tugboat.js';
 export { HologramKioskEntity } from './hologramKiosk.js';
+export { PlanterBoxEntity } from './planterBox.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

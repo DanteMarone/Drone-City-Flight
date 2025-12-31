@@ -38,6 +38,7 @@ export { ScooterDockEntity } from './scooterDock.js';
 export { BoostGateEntity } from './boostGate.js';
 export { FuturisticMailboxEntity } from './futuristicMailbox.js';
 export { AerialBeaconEntity } from './aerialBeacon.js';
+export { FluxEmitterEntity } from './fluxEmitter.js';
 export { RiverBuoyEntity } from './riverBuoy.js';
 export { PowerTransformerAlternateEntity } from './powerTransformerAlternate.js';
 export { FuturisticEmergencySirenEntity } from './futuristicEmergencySiren.js';
@@ -52,6 +53,11 @@ export { PhoneBoothEntity } from './phoneBooth.js';
 export { TugboatEntity } from './tugboat.js';
 export { HologramKioskEntity } from './hologramKiosk.js';
 export { PlanterBoxEntity } from './planterBox.js';
+export { PulseReactorEntity } from './pulseReactor.js';
+export { GardenPlanterEntity } from './gardenPlanter.js';
+export { RooftopChimneyEntity } from './rooftopChimney.js';
+export { CargoDroneEntity } from './cargoDrone.js';
+export { BikeRackEntity } from './bikeRack.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

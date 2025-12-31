@@ -48,7 +48,7 @@ export { LighthouseEntity } from './lighthouse.js';
 export { ShippingContainerEntity } from './shippingContainer.js';
 export { DumpsterEntity } from './dumpster.js';
 export { PortaPottyEntity } from './portaPotty.js';
-export { HologramKioskEntity } from './hologramKiosk.js';
+export { HologramKiosk2Entity } from './hologramKiosk2.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

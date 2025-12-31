@@ -427,6 +427,13 @@ body {
     font-size: 12px;
 }
 
+/* Resizable Layout Variables */
+:root {
+    --dev-left-width: 260px;
+    --dev-right-width: 280px;
+    --dev-bottom-height: 220px;
+}
+
 /* Checkbox alignment */
 .dev-prop-checkbox-label {
     display: flex;
@@ -584,11 +591,13 @@ body {
 /* Integrated World Outliner (Left) */
 .dev-outliner {
     position: absolute;
-    left: 10px;
-    top: 80px; /* Shifted down for top bar + toolbar */
-    bottom: 240px; /* Space for palette */
-    width: 260px;
+    left: 0;
+    top: 80px;
+    bottom: var(--dev-bottom-height);
+    width: var(--dev-left-width);
     border-radius: 4px;
+    z-index: 105;
+    border-right: 1px solid #444;
 }
 
 .dev-outliner-content {
@@ -658,11 +667,13 @@ body {
 /* Dynamic Property Inspector (Right) */
 .dev-inspector {
     position: absolute;
-    right: 10px;
-    top: 80px; /* Shifted down for top bar + toolbar */
-    bottom: 60px;
-    width: 280px;
+    right: 0;
+    top: 80px;
+    bottom: 0;
+    width: var(--dev-right-width);
     border-radius: 4px;
+    z-index: 105;
+    border-left: 1px solid #444;
 }
 
 .dev-inspector-content {
@@ -720,12 +731,14 @@ body {
 /* Visual Asset Palette (Bottom) */
 .dev-palette-container {
     position: absolute;
-    left: 10px;
-    right: 300px; /* Space for inspector */
-    bottom: 10px;
-    height: 220px;
+    left: var(--dev-left-width);
+    right: var(--dev-right-width);
+    bottom: 0;
+    height: var(--dev-bottom-height);
     display: flex;
     flex-direction: column;
+    z-index: 105;
+    border-top: 1px solid #444;
 }
 
 .dev-palette-tabs {
@@ -884,3 +897,45 @@ body {
 .dev-btn:active { background: #2196F3; }
 .dev-btn-danger { background: #522; border-color: #833; }
 .dev-btn-danger:hover { background: #733; }
+
+/* Resizers */
+.dev-resizer-v {
+    position: absolute;
+    top: 80px;
+    bottom: 0;
+    width: 6px;
+    cursor: col-resize;
+    z-index: 200;
+    background: transparent;
+    transition: background 0.2s;
+    pointer-events: auto;
+}
+
+.dev-resizer-v:hover, .dev-resizer-v.active {
+    background: rgba(59, 130, 246, 0.5); /* Blue highlight */
+}
+
+.dev-resizer-left {
+    left: calc(var(--dev-left-width) - 3px);
+}
+
+.dev-resizer-right {
+    right: calc(var(--dev-right-width) - 3px);
+}
+
+.dev-resizer-h {
+    position: absolute;
+    left: var(--dev-left-width);
+    right: var(--dev-right-width);
+    bottom: calc(var(--dev-bottom-height) - 3px);
+    height: 6px;
+    cursor: row-resize;
+    z-index: 200;
+    background: transparent;
+    transition: background 0.2s;
+    pointer-events: auto;
+}
+
+.dev-resizer-h:hover, .dev-resizer-h.active {
+    background: rgba(59, 130, 246, 0.5);
+}

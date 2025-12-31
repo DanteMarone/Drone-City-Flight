@@ -51,3 +51,9 @@ Micro-animations (vibration) on static meshes can create convincing "activity" w
 Simple primitives can create complex maritime shapes if orientation is handled creatively.
 - **Pattern:** `ConeGeometry` (4 radial segments) rotated 90 degrees on X makes an excellent "Ship Bow" when combined with a Box hull.
 - **Technique:** Separating the visual mesh (`hullGroup`) from the logic mesh (`modelGroup`) allows for complex "Bobbing" animations (Heave/Pitch/Roll) that don't interfere with the parent's pathfinding transform.
+
+## 2024-05-30 - Police Car (Forge)
+**Learning:**
+Cheap emergency lighting effects can be achieved by toggling emissive intensity on simple geometry, avoiding expensive point lights.
+- **Pattern:** Alternating `emissiveIntensity` between 0 and 2.0 on Red/Blue materials in `update(dt)`.
+- **Technique:** This works especially well with the post-processing bloom effect, creating a "flashing siren" feel without adding actual light sources to the scene.

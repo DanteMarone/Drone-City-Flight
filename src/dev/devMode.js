@@ -477,20 +477,26 @@ export class DevMode {
             return;
         }
 
+        // Check if object is part of a group
+        let selectionTarget = object;
+        while (selectionTarget.parent && selectionTarget.parent.userData.type === 'group') {
+            selectionTarget = selectionTarget.parent;
+        }
+
         let nextSelection = [];
 
         if (shiftKey) {
-            const idx = this.selectedObjects.indexOf(object);
+            const idx = this.selectedObjects.indexOf(selectionTarget);
             if (idx !== -1) {
                 nextSelection = [
                     ...this.selectedObjects.slice(0, idx),
                     ...this.selectedObjects.slice(idx + 1),
                 ];
             } else {
-                nextSelection = [...this.selectedObjects, object];
+                nextSelection = [...this.selectedObjects, selectionTarget];
             }
         } else {
-            nextSelection = [object];
+            nextSelection = [selectionTarget];
         }
 
         this.selectObjects(nextSelection);

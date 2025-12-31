@@ -17,6 +17,7 @@ graph TD
     DevMode --> History[CommandManager]
     DevMode --> Grid[GridSystem]
     DevMode --> Cam[DevCameraController]
+    DevMode --> Waypoint[WaypointManager]
 
     BuildUI --> TopBar
     BuildUI --> Toolbar
@@ -64,6 +65,12 @@ Implements the Command Pattern for Undo/Redo functionality.
 *   **Commands**: `TransformCommand`, `CreateObjectCommand`, `DeleteObjectCommand`, `WaypointCommand`.
 *   **Snapshots**: Uses deep cloning (or simplified state objects) to capture the state of objects "before" and "after" an operation.
 
+#### 6. WaypointManager (`src/dev/waypointManager.js`)
+Handles the creation, modification, and visualization of vehicle pathfinding waypoints.
+*   **Logic**: Manages `userData.waypoints` arrays on vehicle entities.
+*   **Visuals**: Renders specific helper geometries (Lines, Spheres) via `waypointGroup` stored on the entity mesh.
+*   **Lifecycle**: Ensures waypoint visuals are only visible when Dev Mode is active, and handles real-time line updates when waypoints are dragged.
+
 ---
 
 ## Key Workflows
@@ -97,8 +104,8 @@ Used for variable-length infrastructure (Roads, Fences) or specific placements a
 ### Waypoint System
 Vehicles (Cars, Pickups) use a waypoint system for pathfinding.
 *   **Visuals**: `VehicleEntity` contains a `waypointGroup` (lines and spheres) stored in `userData`. This group is only visible when Dev Mode is active.
-*   **Editing**: Selecting a car reveals "Add Waypoint" buttons in the `BuildUI` properties panel.
-*   **Logic**: Waypoints are `Vector3`s stored in `userData.waypoints`. The visual line is rebuilt whenever these change.
+*   **Editing**: Selecting a car reveals "Add Waypoint" buttons in the `BuildUI` properties panel, which delegate to `WaypointManager`.
+*   **Logic**: Waypoints are `Vector3`s stored in `userData.waypoints`. The visual line is rebuilt whenever these change via `WaypointManager.updateLine()`.
 
 ---
 

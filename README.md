@@ -4,8 +4,17 @@ A 3D drone flight simulation game built with Three.js.
 
 ## Developer Documentation
 
-### [Developer Tools Architecture](./docs/dev_tools.md)
-A comprehensive guide to the in-game level editor, including selection, history, and object creation workflows.
+### Core Systems
+*   **[Drone System Architecture](./docs/drone_system.md)**: Details on the physics, controls, and battery logic for the player character.
+*   **[Entity System](./docs/entity_system.md)**: Guide to creating and managing world objects.
+*   **[Physics & Collisions](./docs/physics.md)**: Overview of the custom kinematic physics engine and SpatialHash optimization.
+*   **[Developer Tools](./docs/dev_tools.md)**: Guide to the in-game level editor and UI architecture.
+
+### Specialized Gameplay Systems
+*   **[Bird AI System](./docs/bird_system.md)**: Behavior trees for bird NPCs.
+*   **[NPC System](./docs/npc_system.md)**: Logic for active agents like angry residents.
+*   **[Infrastructure](./docs/infrastructure.md)**: Procedural roads and rivers.
+*   **[Time Cycle](./docs/time_cycle.md)**: Day/Night cycle implementation.
 
 ### Adding New Object Types
 

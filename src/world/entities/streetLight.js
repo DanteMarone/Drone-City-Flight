@@ -2,13 +2,16 @@ import * as THREE from 'three';
 import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 
+/**
+ * A tall streetlight with a glowing lamp and subtle flicker.
+ */
 export class StreetLightEntity extends BaseEntity {
-    constructor(params = {}) {
+    constructor(params) {
         super(params);
         this.type = 'streetLight';
-        this._time = 0;
-        this._glowMaterial = null;
-        this._light = null;
+        this.time = Math.random() * Math.PI * 2;
+        this.glowMaterial = null;
+        this.panelMaterial = null;
     }
 
     static get displayName() { return 'Street Light'; }
@@ -16,122 +19,139 @@ export class StreetLightEntity extends BaseEntity {
     createMesh(params) {
         const group = new THREE.Group();
 
-        const poleHeight = params.poleHeight || (7 + Math.random() * 2);
-        const armLength = params.armLength || (2 + Math.random() * 0.5);
-        const poleRadius = params.poleRadius || 0.15;
-        const baseRadius = poleRadius * 1.8;
+        const height = params.height || 4.2 + Math.random() * 0.6;
+        const armLength = params.armLength || 1.1 + Math.random() * 0.3;
+        const baseRadius = 0.22 + Math.random() * 0.05;
+        const poleRadius = baseRadius * 0.35;
 
-        this.params.poleHeight = poleHeight;
+        this.params.height = height;
         this.params.armLength = armLength;
-        this.params.poleRadius = poleRadius;
 
-        // Base block
-        const baseGeo = new THREE.CylinderGeometry(baseRadius, baseRadius, 0.4, 12);
-        const metalMat = new THREE.MeshStandardMaterial({ color: 0x4c566a, roughness: 0.4, metalness: 0.8 });
-        const base = new THREE.Mesh(baseGeo, metalMat);
-        base.position.y = 0.2;
+        const baseGeo = new THREE.CylinderGeometry(baseRadius * 1.1, baseRadius, 0.28, 12);
+        const baseMat = new THREE.MeshStandardMaterial({ color: 0x2e2e32, roughness: 0.7, metalness: 0.4 });
+        const base = new THREE.Mesh(baseGeo, baseMat);
+        base.position.y = 0.14;
         base.castShadow = true;
         base.receiveShadow = true;
         group.add(base);
 
-        // Vertical pole
-        const poleGeo = new THREE.CylinderGeometry(poleRadius, poleRadius * 1.05, poleHeight, 16);
-        const pole = new THREE.Mesh(poleGeo, metalMat);
-        pole.position.y = poleHeight / 2 + 0.4;
+        const poleGeo = new THREE.CylinderGeometry(poleRadius, poleRadius * 1.05, height, 12);
+        const poleMat = new THREE.MeshStandardMaterial({ color: 0x3a3f4a, roughness: 0.6, metalness: 0.5 });
+        const pole = new THREE.Mesh(poleGeo, poleMat);
+        pole.position.y = height / 2 + 0.2;
         pole.castShadow = true;
         pole.receiveShadow = true;
         group.add(pole);
 
-        // Decorative ring
-        const ringGeo = new THREE.TorusGeometry(poleRadius * 1.4, poleRadius * 0.25, 8, 16);
-        const ring = new THREE.Mesh(ringGeo, metalMat);
-        ring.rotation.x = Math.PI / 2;
-        ring.position.y = pole.position.y + poleHeight * 0.35;
-        group.add(ring);
-
-        // Arm and lamp head
-        const armGeo = new THREE.CylinderGeometry(poleRadius * 0.7, poleRadius * 0.7, armLength, 8);
-        const arm = new THREE.Mesh(armGeo, metalMat);
-        arm.rotation.z = Math.PI / 2;
-        arm.position.set(armLength / 2 + poleRadius * 0.8, poleHeight + 0.2, 0);
-        arm.castShadow = true;
-        arm.receiveShadow = true;
-        group.add(arm);
-
-        const capGeo = new THREE.ConeGeometry(poleRadius * 1.4, poleRadius * 2.5, 12);
-        const cap = new THREE.Mesh(capGeo, metalMat);
-        cap.rotation.z = -Math.PI / 2;
-        cap.position.set(arm.position.x + armLength / 2 + poleRadius * 0.5, arm.position.y, 0);
+        const capGeo = new THREE.CylinderGeometry(poleRadius * 1.1, poleRadius * 0.7, 0.2, 10);
+        const cap = new THREE.Mesh(capGeo, poleMat);
+        cap.position.y = pole.position.y + height / 2 + 0.1;
         cap.castShadow = true;
-        cap.receiveShadow = true;
         group.add(cap);
 
-        const glassGeo = new THREE.SphereGeometry(poleRadius * 1.2, 12, 12);
-        this._glowMaterial = new THREE.MeshStandardMaterial({
-            color: 0xfff7d1,
-            emissive: new THREE.Color(0xffe9a3),
-            emissiveIntensity: 0.6,
-            roughness: 0.3,
+        const armGeo = new THREE.BoxGeometry(armLength, poleRadius * 1.4, poleRadius * 1.4);
+        const arm = new THREE.Mesh(armGeo, poleMat);
+        arm.position.set(armLength / 2, cap.position.y - 0.08, 0);
+        arm.castShadow = true;
+        group.add(arm);
+
+        const housingGeo = new THREE.BoxGeometry(0.45, 0.18, 0.28);
+        const housingMat = new THREE.MeshStandardMaterial({ color: 0x414854, roughness: 0.5, metalness: 0.45 });
+        const housing = new THREE.Mesh(housingGeo, housingMat);
+        housing.position.set(arm.position.x + armLength / 2 - 0.18, arm.position.y - 0.1, 0);
+        housing.castShadow = true;
+        group.add(housing);
+
+        const panelTexture = this.createPanelTexture();
+        this.panelMaterial = new THREE.MeshStandardMaterial({
+            color: 0xffe6b0,
+            emissive: 0xffd27d,
+            emissiveIntensity: 1.2,
+            roughness: 0.2,
             metalness: 0.1,
-            transparent: true,
-            opacity: 0.95
+            map: panelTexture
         });
-        const glass = new THREE.Mesh(glassGeo, this._glowMaterial);
-        glass.position.set(cap.position.x + poleRadius * 1.2, cap.position.y, 0);
-        glass.castShadow = true;
-        glass.receiveShadow = false;
-        group.add(glass);
 
-        // Light source registration
-        // We defer registration to postInit or check if world exists,
-        // but typically entities are created after world init.
-        // However, we can't easily access app.world from here without window.app
-        // Also, we need the world position, but here we are in local group space.
-        // Virtual Lights need world position.
-        // We will skip adding PointLight here and register in postInit or handle in update.
+        const panelGeo = new THREE.BoxGeometry(0.35, 0.04, 0.22);
+        const panel = new THREE.Mesh(panelGeo, this.panelMaterial);
+        panel.position.set(housing.position.x, housing.position.y - 0.11, housing.position.z);
+        panel.castShadow = false;
+        group.add(panel);
 
-        // Let's store the local light position relative to group
-        this._lightLocalPos = glass.position.clone().add(new THREE.Vector3(0.1, -poleRadius * 0.2, 0));
-        this._virtualLight = null;
+        this.glowMaterial = new THREE.MeshStandardMaterial({
+            color: 0xfff2c2,
+            emissive: 0xffe0a3,
+            emissiveIntensity: 1.5,
+            roughness: 0.2,
+            transparent: true,
+            opacity: 0.85
+        });
+
+        const bulbGeo = new THREE.SphereGeometry(0.08, 12, 12);
+        const bulb = new THREE.Mesh(bulbGeo, this.glowMaterial);
+        bulb.position.set(housing.position.x, housing.position.y - 0.18, housing.position.z);
+        group.add(bulb);
+
+        const controlGeo = new THREE.BoxGeometry(0.22, 0.28, 0.16);
+        const controlMat = new THREE.MeshStandardMaterial({ color: 0x30343c, roughness: 0.7, metalness: 0.3 });
+        const controlBox = new THREE.Mesh(controlGeo, controlMat);
+        controlBox.position.set(-poleRadius * 1.2, height * 0.35, poleRadius * 0.6);
+        controlBox.castShadow = true;
+        group.add(controlBox);
+
+        const cableGeo = new THREE.CylinderGeometry(0.015, 0.015, 0.45, 6);
+        const cableMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 0.9 });
+        const cable = new THREE.Mesh(cableGeo, cableMat);
+        cable.position.set(controlBox.position.x + 0.03, controlBox.position.y - 0.28, controlBox.position.z - 0.02);
+        cable.rotation.z = Math.PI / 2.8;
+        group.add(cable);
 
         return group;
     }
 
-    postInit() {
-        if (window.app && window.app.world && window.app.world.lightSystem) {
-            // Register virtual light
-            // Integrated LightSystem for performance optimization
-            this.mesh.updateMatrixWorld(true);
-            const worldPos = this._lightLocalPos.clone().applyMatrix4(this.mesh.matrixWorld);
+    createPanelTexture() {
+        const canvas = document.createElement('canvas');
+        canvas.width = 128;
+        canvas.height = 128;
+        const ctx = canvas.getContext('2d');
 
-            // Now register returns the source object reference
-            const intensity = this.params.lightIntensity || 4.0;
-            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xffe9a3, intensity, 25);
+        ctx.fillStyle = '#f7d99c';
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-            // Attach parent mesh for moving light support
-            if (this._virtualLight) {
-                this._virtualLight.parentMesh = this.mesh;
-            }
+        ctx.strokeStyle = 'rgba(120, 90, 50, 0.35)';
+        ctx.lineWidth = 6;
+        for (let y = 12; y < canvas.height; y += 28) {
+            ctx.beginPath();
+            ctx.moveTo(8, y);
+            ctx.lineTo(canvas.width - 8, y);
+            ctx.stroke();
         }
+
+        ctx.strokeStyle = 'rgba(140, 100, 60, 0.5)';
+        ctx.lineWidth = 2;
+        for (let x = 18; x < canvas.width; x += 24) {
+            ctx.beginPath();
+            ctx.moveTo(x, 8);
+            ctx.lineTo(x, canvas.height - 8);
+            ctx.stroke();
+        }
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.wrapS = THREE.ClampToEdgeWrapping;
+        texture.wrapT = THREE.ClampToEdgeWrapping;
+        texture.anisotropy = 4;
+        return texture;
     }
 
     update(dt) {
-        this._time += dt;
-        // Calculate flicker
-        const pulse = 0.15 * Math.sin(this._time * 2.5 + (this.params.seed || 0));
-        const flicker = 0.05 * Math.sin(this._time * 17.0);
-        const dynamicIntensityMod = pulse + flicker;
-
-        if (this._glowMaterial) {
-            const intensity = 0.7 + dynamicIntensityMod;
-            this._glowMaterial.emissiveIntensity = THREE.MathUtils.clamp(intensity, 0.4, 1.1);
+        this.time += dt;
+        const pulse = 1 + Math.sin(this.time * 2.6) * 0.12;
+        const flicker = 0.92 + Math.sin(this.time * 10.5) * 0.04;
+        if (this.glowMaterial) {
+            this.glowMaterial.emissiveIntensity = 1.4 * pulse * flicker;
         }
-
-        // Update virtual light intensity if registered
-        if (this._virtualLight) {
-             const baseIntensity = this.params.lightIntensity || 4.0;
-             // Apply flicker to the light source too
-             this._virtualLight.intensity = THREE.MathUtils.clamp(baseIntensity + dynamicIntensityMod * 2, baseIntensity * 0.5, baseIntensity * 1.3);
+        if (this.panelMaterial) {
+            this.panelMaterial.emissiveIntensity = 1.1 * pulse * flicker;
         }
     }
 }

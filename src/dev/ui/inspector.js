@@ -11,6 +11,7 @@ export class Inspector {
         this.inspectorTab = 'Properties'; // 'Properties' | 'World'
         this.lockScale = false;
         this.content = null;
+        this.idCounter = 0;
         this.init();
     }
 
@@ -319,6 +320,7 @@ export class Inspector {
             inp.step = isEuler ? '1' : '0.1';
             inp.className = 'dev-prop-input';
             inp.id = `insp-${label}-${axis}`;
+            inp.setAttribute('aria-label', `${label} ${axis.toUpperCase()}`);
 
             let val = vec[axis];
             if (isEuler) val = THREE.MathUtils.radToDeg(val);
@@ -364,9 +366,13 @@ export class Inspector {
         txt.textContent = label;
         labelDiv.appendChild(txt);
 
+        const lockId = `prop-lock-${this.idCounter++}`;
         const lockLabel = document.createElement('label');
         lockLabel.className = 'dev-prop-checkbox-label';
+        lockLabel.htmlFor = lockId;
+
         const check = document.createElement('input');
+        check.id = lockId;
         check.type = 'checkbox';
         check.checked = this.lockScale;
         check.style.width = '10px';
@@ -387,6 +393,7 @@ export class Inspector {
             inp.step = '0.1';
             inp.className = 'dev-prop-input';
             inp.id = `insp-${label}-${axis}`;
+            inp.setAttribute('aria-label', `${label} ${axis.toUpperCase()}`);
             inp.value = vec[axis].toFixed(2);
 
             inp.onchange = (e) => {
@@ -428,14 +435,18 @@ export class Inspector {
     }
 
     _createNumberInput(key, val, cb) {
+        const id = `prop-num-${this.idCounter++}`;
         const row = document.createElement('div');
         row.className = 'dev-prop-row';
-        const l = document.createElement('div');
+
+        const l = document.createElement('label');
         l.className = 'dev-prop-label';
         l.textContent = key;
+        l.htmlFor = id;
         row.appendChild(l);
 
         const inp = document.createElement('input');
+        inp.id = id;
         inp.type = 'number';
         inp.className = 'dev-prop-input';
         inp.value = val;
@@ -445,14 +456,18 @@ export class Inspector {
     }
 
     _createTextInput(key, val, cb) {
-         const row = document.createElement('div');
+        const id = `prop-text-${this.idCounter++}`;
+        const row = document.createElement('div');
         row.className = 'dev-prop-row';
-        const l = document.createElement('div');
+
+        const l = document.createElement('label');
         l.className = 'dev-prop-label';
         l.textContent = key;
+        l.htmlFor = id;
         row.appendChild(l);
 
         const inp = document.createElement('input');
+        inp.id = id;
         inp.type = 'text';
         inp.className = 'dev-prop-input';
         inp.value = val;
@@ -462,14 +477,18 @@ export class Inspector {
     }
 
     _createCheckbox(key, val, cb) {
+        const id = `prop-bool-${this.idCounter++}`;
         const row = document.createElement('div');
         row.className = 'dev-prop-row';
-        const l = document.createElement('div');
+
+        const l = document.createElement('label');
         l.className = 'dev-prop-label';
         l.textContent = key;
+        l.htmlFor = id;
         row.appendChild(l);
 
         const inp = document.createElement('input');
+        inp.id = id;
         inp.type = 'checkbox';
         inp.checked = val;
         inp.onchange = (e) => cb(e.target.checked);

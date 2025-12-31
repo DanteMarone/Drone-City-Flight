@@ -248,4 +248,4 @@ export class PlasmaSpireEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register(PlasmaSpireEntity);
+EntityRegistry.register('plasmaSpire', PlasmaSpireEntity);

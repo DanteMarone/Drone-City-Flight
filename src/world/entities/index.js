@@ -52,6 +52,9 @@ export { PhoneBoothEntity } from './phoneBooth.js';
 export { TugboatEntity } from './tugboat.js';
 export { HologramKioskEntity } from './hologramKiosk.js';
 export { GardenPlanterEntity } from './gardenPlanter.js';
+export { RooftopChimneyEntity } from './rooftopChimney.js';
+export { CargoDroneEntity } from './cargoDrone.js';
+export { BikeRackEntity } from './bikeRack.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

@@ -355,10 +355,18 @@ export const TextureGenerator = {
 
                 ctx.fillRect(bx, by, bw, bh);
 
-                // Noise overlay
+                // Noise overlay (per brick variation)
                 ctx.fillStyle = `rgba(0,0,0, ${Math.random() * 0.2})`;
                 ctx.fillRect(bx, by, bw, bh);
             }
+        }
+
+        // Second pass: Global pixel noise for "gritty realism"
+        for (let i = 0; i < 4000; i++) {
+            const nx = Math.random() * width;
+            const ny = Math.random() * height;
+            ctx.fillStyle = `rgba(0,0,0, ${Math.random() * 0.3})`;
+            ctx.fillRect(nx, ny, 1, 1);
         }
 
         const tex = new THREE.CanvasTexture(canvas);

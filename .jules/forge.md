@@ -45,3 +45,9 @@ Simple translucent materials on primitives can effectively simulate plastic mate
 Micro-animations (vibration) on static meshes can create convincing "activity" without complex skeletal rigging.
 - **Pattern:** Simple sine-wave offset on `position.y` effectively simulates the high-frequency motion of a jackhammer.
 - **Technique:** Combining this with low-cost particle emission (reusing the existing particle pool) creates a "working" character that feels alive but remains performance-friendly compared to a fully animated mesh.
+
+## 2024-05-28 - Tugboat (Forge)
+**Learning:**
+Simple primitives can create complex maritime shapes if orientation is handled creatively.
+- **Pattern:** `ConeGeometry` (4 radial segments) rotated 90 degrees on X makes an excellent "Ship Bow" when combined with a Box hull.
+- **Technique:** Separating the visual mesh (`hullGroup`) from the logic mesh (`modelGroup`) allows for complex "Bobbing" animations (Heave/Pitch/Roll) that don't interfere with the parent's pathfinding transform.

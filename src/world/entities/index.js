@@ -38,6 +38,7 @@ export { ScooterDockEntity } from './scooterDock.js';
 export { BoostGateEntity } from './boostGate.js';
 export { FuturisticMailboxEntity } from './futuristicMailbox.js';
 export { AerialBeaconEntity } from './aerialBeacon.js';
+export { FluxEmitterEntity } from './fluxEmitter.js';
 export { RiverBuoyEntity } from './riverBuoy.js';
 export { PowerTransformerAlternateEntity } from './powerTransformerAlternate.js';
 export { FuturisticEmergencySirenEntity } from './futuristicEmergencySiren.js';

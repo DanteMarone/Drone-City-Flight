@@ -52,6 +52,7 @@ export { PortaPottyEntity } from './portaPotty.js';
 export { PhoneBoothEntity } from './phoneBooth.js';
 export { TugboatEntity } from './tugboat.js';
 export { HologramKioskEntity } from './hologramKiosk.js';
+export { CourierDroneEntity } from './courierDrone.js';
 export { PulseReactorEntity } from './pulseReactor.js';
 export { GardenPlanterEntity } from './gardenPlanter.js';
 export { RooftopChimneyEntity } from './rooftopChimney.js';

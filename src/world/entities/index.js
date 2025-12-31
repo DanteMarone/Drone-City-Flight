@@ -52,6 +52,7 @@ export { PortaPottyEntity } from './portaPotty.js';
 export { PhoneBoothEntity } from './phoneBooth.js';
 export { TugboatEntity } from './tugboat.js';
 export { HologramKioskEntity } from './hologramKiosk.js';
+export { SpectralBeaconEntity } from './spectralBeacon.js';
 export { GardenLanternEntity } from './gardenLantern.js';
 export { PlanterBoxEntity } from './planterBox.js';
 export { PorchLightEntity } from './porchLight.js';

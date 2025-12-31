@@ -35,6 +35,9 @@ export class NeonSignEntity extends BaseEntity {
     constructor(params) {
         super(params);
         this.type = 'neonSign';
+        // Add default color if not present
+        if (this.params.color === undefined) this.params.color = 0xff00ff;
+
         this.flickerTimer = 0;
         this.isGlitching = false;
         this._virtualLight = null;
@@ -77,8 +80,10 @@ export class NeonSignEntity extends BaseEntity {
             const worldPos = new THREE.Vector3(0, 0, 1).applyMatrix4(this.mesh.matrixWorld);
             // Cyan/Pink mix - let's go with Magenta/Pink as dominant
             const intensity = this.params.lightIntensity || 4.0;
+            const color = this.params.color !== undefined ? this.params.color : 0xff00ff;
+
             this._baseIntensity = intensity;
-            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xff00ff, intensity, 25);
+            this._virtualLight = window.app.world.lightSystem.register(worldPos, color, intensity, 25);
             if (this._virtualLight) {
                 this._virtualLight.parentMesh = this.mesh;
             }
@@ -86,6 +91,13 @@ export class NeonSignEntity extends BaseEntity {
     }
 
     update(dt) {
+        // Update light color if param changed
+        if (this._virtualLight && this.params.color !== undefined) {
+             if (this._virtualLight.color.getHex() !== this.params.color) {
+                 this._virtualLight.color.setHex(this.params.color);
+             }
+        }
+
         this.flickerTimer -= dt;
 
         if (this.flickerTimer <= 0) {

@@ -675,3 +675,15 @@ canvas {
         transform: translateX(20px);
     }
 }
+
+/* Color Picker Widget */
+.dev-color-swatch {
+    transition: transform 0.1s;
+}
+.dev-color-swatch:hover {
+    transform: scale(1.1);
+}
+.dev-color-picker-container input[type="text"] {
+    font-family: monospace;
+    text-transform: uppercase;
+}

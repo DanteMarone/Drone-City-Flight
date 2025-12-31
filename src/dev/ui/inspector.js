@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { createPanel } from './domUtils.js';
 import { TransformCommand, PropertyChangeCommand } from '../history.js';
+import { ColorPickerWidget } from './widgets/colorPicker.js';
 
 export class Inspector {
     constructor(devMode, container, alignTool) {
@@ -126,8 +127,16 @@ export class Inspector {
                 Object.keys(obj.userData.params).forEach(key => {
                     if (ignoredParams.has(key)) return;
                     const val = obj.userData.params[key];
+                    const isColor = key.toLowerCase().includes('color') ||
+                                    (typeof val === 'string' && val.startsWith('#') && val.length === 7) ||
+                                    (typeof val === 'number' && key.toLowerCase().includes('color')); // Heuristic
 
-                    if (typeof val === 'number') {
+                    if (isColor) {
+                        const widget = new ColorPickerWidget(key, val, (newVal) => {
+                            this._applyParam(obj, key, newVal);
+                        });
+                        fields.push(widget.element);
+                    } else if (typeof val === 'number') {
                         fields.push(this._createNumberInput(key, val, (n) => {
                             this._applyParam(obj, key, n);
                         }));

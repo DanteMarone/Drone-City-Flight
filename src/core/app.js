@@ -63,9 +63,6 @@ export class App {
         this.tutorial = new TutorialManager(this);
         this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
 
-        this.skybox = new Skybox(this.renderer.scene);
-        this.cloudSystem = new CloudSystem(this.renderer.scene);
-
         this.cameraController = new CameraController(this.renderer.camera, this.drone);
 
         this.post = new PostProcessing(this.renderer.threeRenderer, this.renderer.scene, this.renderer.camera);
@@ -119,21 +116,29 @@ export class App {
         if (this.devMode && this.devMode.enabled) {
             this.devMode.update(dt);
             // Even in Dev Mode, we want to update environment visuals
-            if (this.skybox) {
-                this.skybox.update(this.renderer.camera.position, this.world.timeCycle);
-            }
-            if (this.cloudSystem) {
-                this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
-            }
-            // Update light system even in Dev Mode for accurate visuals
+            // world.update handles environment (sky, clouds, lights)
             if (this.world) {
-                // We use world.update's signature, but in Dev Mode main world update is skipped.
-                // We should manually update lightSystem if needed, or allow it to update.
-                // However, world.update(dt) updates all entities which we might want paused.
-                // So we explicitly call lightSystem update here.
-                if (this.world.lightSystem) {
-                    this.world.lightSystem.update(dt, this.renderer.camera, this.world.timeCycle);
-                }
+                // We pass camera for view-dependent updates (Skybox, Lights)
+                // World.update checks if it should run game logic or just environment?
+                // World.update updates everything. We might need to separate environment update.
+                // But Skybox/TimeCycle/Clouds are "Environment".
+                // Let's modify World.update to handle environment regardless of pause?
+                // Or just manually call them here since we removed references from App.
+
+                // Better approach: Let World expose an updateEnvironment method, or just call update but
+                // maybe World needs a paused flag?
+                // Currently World.update calls birdSystem.update and updatables.update.
+                // We don't want birds moving in Dev Mode?
+                // Previously, App manually updated Skybox/CloudSystem.
+
+                // For now, let's manually call the environment systems on world,
+                // since World.update runs game logic too.
+
+                if (this.world.skybox) this.world.skybox.update(dt, this.renderer.camera, this.world.timeCycle);
+                if (this.world.timeCycle) this.world.timeCycle.update(dt); // Time keeps moving or UI controls it
+                if (this.world.weather) this.world.weather.update(dt, this.renderer.camera);
+                if (this.world.clouds) this.world.clouds.update(dt, null, this.renderer.camera, this.world.wind, this.world.timeCycle);
+                if (this.world.lightSystem) this.world.lightSystem.update(dt, this.renderer.camera, this.world.timeCycle);
             }
 
             // Allow basic input processing if needed, but skip game logic
@@ -248,15 +253,6 @@ export class App {
         }
 
         // Environment update is now handled at start of frame
-
-        if (this.skybox) {
-            // Skybox needs to know time/sun info
-            this.skybox.update(this.renderer.camera.position, this.world.timeCycle);
-        }
-
-        if (this.cloudSystem) {
-            this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
-        }
 
         this.input.resetFrame();
     }

@@ -19,7 +19,8 @@ uniform vec3 uSunColor;
 uniform vec3 uAmbientColor;
 uniform vec2 uWind;
 uniform vec3 uCloudColor;
-uniform vec3 uCameraPosition; // We need to pass camera pos manually or use cameraPosition (built-in)
+uniform float uCover; // 0.0 (clear) to 1.0 (overcast)
+uniform vec3 uCameraPosition;
 
 varying vec2 vUv;
 varying vec3 vWorldPosition;
@@ -66,12 +67,19 @@ void main() {
     float n = fbm(coord);
 
     // Shape the clouds
-    // Cloud cover control
-    float cover = 0.5;
-    float density = smoothstep(cover - 0.2, cover + 0.2, n);
+    // uCover varies from 0.0 (sunny) to 1.0 (overcast)
+    // We map uCover to the threshold.
+    // Sunny (0.0) -> threshold 1.0 (no clouds)
+    // Cloudy (0.5) -> threshold 0.5
+    // Overcast (1.0) -> threshold 0.2
+
+    float threshold = mix(1.2, 0.3, uCover); // 1.2 ensures clear sky at uCover=0
+
+    // Smoothstep for density
+    float density = smoothstep(threshold - 0.1, threshold + 0.1, n);
 
     // Soft edges
-    if (density < 0.05) discard;
+    if (density < 0.01) discard;
 
     // Lighting
     vec3 viewDir = normalize(cameraPosition - vWorldPosition);
@@ -85,9 +93,7 @@ void main() {
     float scatter = pow(sunDot, 12.0);
     vec3 scatterColor = uSunColor * scatter * 2.0;
 
-    // Distance Fade (Soft Circle Mask)
-    // Fade out edges of the plane so we don't see a square in the sky
-    // Plane is 4000 wide, radius 2000.
+    // Distance Fade
     float dist = distance(vWorldPosition.xz, cameraPosition.xz);
     float fadeRadius = 1500.0;
     float distFade = smoothstep(fadeRadius + 400.0, fadeRadius, dist);
@@ -104,9 +110,12 @@ void main() {
 export class CloudSystem {
     constructor(scene) {
         this.scene = scene;
+        this.currentCover = 0.5;
+        this.targetCover = 0.5;
+        this.currentCloudColor = new THREE.Color(1, 1, 1);
+        this.targetCloudColor = new THREE.Color(1, 1, 1);
 
         // Overhead Plane
-        // Large enough to cover the view to the horizon/fog
         this.geometry = new THREE.PlaneGeometry(4000, 4000);
 
         this.uniforms = {
@@ -115,9 +124,8 @@ export class CloudSystem {
             uSunColor: { value: new THREE.Color(1, 1, 1) },
             uAmbientColor: { value: new THREE.Color(0.5, 0.5, 0.5) },
             uWind: { value: new THREE.Vector2(0.1, 0) },
-            uCloudColor: { value: new THREE.Color(1.0, 1.0, 1.0) }
-            // cameraPosition is auto-uniform in ShaderMaterial? No, only in RawShaderMaterial it's missing.
-            // ShaderMaterial provides 'cameraPosition' (world pos of camera).
+            uCloudColor: { value: new THREE.Color(1.0, 1.0, 1.0) },
+            uCover: { value: 0.5 }
         };
 
         this.material = new THREE.ShaderMaterial({
@@ -125,41 +133,68 @@ export class CloudSystem {
             fragmentShader: fragmentShader,
             uniforms: this.uniforms,
             transparent: true,
-            side: THREE.DoubleSide, // View from below
+            side: THREE.DoubleSide,
             depthWrite: false
         });
 
         this.mesh = new THREE.Mesh(this.geometry, this.material);
         this.mesh.frustumCulled = false;
-
-        // Orient horizontally
         this.mesh.rotation.x = -Math.PI / 2;
 
         this.scene.add(this.mesh);
     }
 
+    setWeather(type) {
+        // WEATHER_TYPES strings match logic in WeatherSystem
+        switch (type) {
+            case 'Sunny':
+                this.targetCover = 0.0;
+                this.targetCloudColor.setHex(0xffffff);
+                break;
+            case 'Cloudy':
+                this.targetCover = 0.6;
+                this.targetCloudColor.setHex(0xffffff);
+                break;
+            case 'Rainy':
+                this.targetCover = 0.8;
+                this.targetCloudColor.setHex(0x555555); // Dark grey
+                break;
+            case 'Snowy':
+                this.targetCover = 0.8;
+                this.targetCloudColor.setHex(0xaaaaaa); // Light grey
+                break;
+        }
+    }
+
     update(dt, playerPosition, camera, windConfig, timeCycle) {
+        // Lerp Cover and Color
+        const lerpSpeed = dt * 0.5; // Slow transition
+        this.currentCover = THREE.MathUtils.lerp(this.currentCover, this.targetCover, lerpSpeed);
+        this.currentCloudColor.lerp(this.targetCloudColor, lerpSpeed);
+
+        this.uniforms.uCover.value = this.currentCover;
+        this.uniforms.uCloudColor.value.copy(this.currentCloudColor);
+
         // Update Time
         this.uniforms.uTime.value += dt;
 
         // Update Wind
         if (windConfig) {
              const rad = windConfig.direction * (Math.PI / 180);
-             const speed = Math.max(windConfig.speed, 5); // Ensure some movement
+             const speed = Math.max(windConfig.speed, 5);
              const wx = Math.sin(rad) * (speed / 20.0);
              const wy = -Math.cos(rad) * (speed / 20.0);
              this.uniforms.uWind.value.set(wx, wy);
         }
 
-        // Update Lighting from TimeCycle
+        // Update Lighting
         if (timeCycle) {
             this.uniforms.uSunPosition.value.copy(timeCycle.sunPosition).normalize();
             this.uniforms.uSunColor.value.copy(timeCycle.sunColor);
             this.uniforms.uAmbientColor.value.copy(timeCycle.ambientColor);
         }
 
-        // Follow camera on XZ, keep Y fixed High
-        // 200m is safely above 120m limit
+        // Follow camera
         this.mesh.position.set(camera.position.x, 200, camera.position.z);
     }
 }

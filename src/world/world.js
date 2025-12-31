@@ -8,6 +8,9 @@ import { InstancedEntitySystem } from './instancing.js';
 import { EntityRegistry } from './entities/index.js';
 import { BaseEntity } from './entities/base.js';
 import { TimeCycle } from './timeCycle.js';
+import { CloudSystem } from './clouds.js';
+import { WeatherSystem } from './weather.js';
+import { Skybox } from './skybox.js';
 
 export class World {
     constructor(scene) {
@@ -17,6 +20,9 @@ export class World {
         this.instancer = new InstancedEntitySystem(scene);
         this.factory = new ObjectFactory(scene);
         this.timeCycle = new TimeCycle();
+        this.skybox = new Skybox(scene);
+        this.clouds = new CloudSystem(scene);
+        this.weather = new WeatherSystem(this);
 
         // this.colliders now holds BaseEntity instances (which match {mesh, box} interface)
         this.colliders = [];
@@ -60,6 +66,10 @@ export class World {
     }
 
     update(dt, camera) {
+        if (this.skybox) this.skybox.update(dt, camera, this.timeCycle);
+        if (this.timeCycle) this.timeCycle.update(dt);
+        if (this.weather) this.weather.update(dt, camera);
+        if (this.clouds) this.clouds.update(dt, null, camera, this.wind, this.timeCycle);
         if (this.birdSystem) this.birdSystem.update(dt);
         if (this.lightSystem) this.lightSystem.update(dt, camera, this.timeCycle);
 
@@ -155,6 +165,14 @@ export class World {
             this.timeCycle.isLocked = false;
         }
 
+        if (mapData.weather) {
+            if (mapData.weather.current) this.weather.setWeather(mapData.weather.current);
+            if (mapData.weather.cycleDuration) this.weather.setCycleDuration(mapData.weather.cycleDuration);
+            if (mapData.weather.patterns) {
+                this.weather.selectedPatterns = new Set(mapData.weather.patterns);
+            }
+        }
+
         // We don't strictly need factory here if we use Registry,
         // but factory adds to scene.
         // Let's use Registry and manually add to scene/world to be explicit.
@@ -241,6 +259,11 @@ export class World {
                 startTime: this.timeCycle.time,
                 daySpeed: this.timeCycle.speed,
                 timeLocked: this.timeCycle.isLocked
+            },
+            weather: {
+                current: this.weather.currentWeather,
+                cycleDuration: this.weather.cycleDuration,
+                patterns: Array.from(this.weather.selectedPatterns)
             },
             objects
         };

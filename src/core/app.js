@@ -29,6 +29,16 @@ export class App {
         this.lastTime = 0;
         this.running = false;
         this.paused = false;
+
+        // Ambient System helpers
+        this._ambienceTimer = 0;
+        this._natureFactor = 0;
+        // Optimized set for O(1) nature checks
+        this._natureTypes = new Set([
+            'oakTree', 'pineTree', 'willowTree', 'palmTree', 'cherryBlossomTree',
+            'parkNatureSmall', 'parkPlaysetSmall', 'parkWaterLarge', 'gazebo',
+            'lilyPond', 'lotusPond', 'mushroomPatch'
+        ]);
     }
 
     init() {
@@ -221,6 +231,7 @@ export class App {
             });
             const speed = this.drone.velocity.length();
             this.audio.update(speed);
+            this._updateAmbience(dt);
 
             const alt = this.drone.position.y;
             let statusMsg = "";
@@ -259,6 +270,68 @@ export class App {
         }
 
         this.input.resetFrame();
+    }
+
+    _updateAmbience(dt) {
+        if (!this.audio || !this.drone || !this.colliderSystem) return;
+
+        // 1. Calculate Altitude Factor
+        // 0 to 60m: 0.0
+        // 60 to 120m: 0.0 -> 1.0
+        const alt = Math.max(0, this.drone.position.y);
+        const altThreshold = 60.0;
+        const altMax = 120.0;
+        let altFactor = 0;
+
+        if (alt > altThreshold) {
+            altFactor = Math.min((alt - altThreshold) / (altMax - altThreshold), 1.0);
+        }
+
+        // 2. Calculate Nature Factor (Park vs City)
+        // Check surrounding entities every 1s (60 frames approx, or use dt accumulator)
+        this._ambienceTimer += dt;
+        if (this._ambienceTimer > 1.0) {
+            this._ambienceTimer = 0;
+
+            // Query nearby objects (radius 50m matches bird chase radius)
+            // Spatial Hash returns a list of objects in the same cell(s)
+            // Cell size is 100. Let's just query current cell.
+            const nearby = this.colliderSystem.spatialHash.query(this.drone.position.x, this.drone.position.z);
+
+            let natureCount = 0;
+            let totalCount = 0;
+
+            // Sample up to 20 objects to keep it cheap
+            const sample = nearby.length > 20 ? nearby.slice(0, 20) : nearby;
+
+            for (const obj of sample) {
+                // Ignore roads/ground/rings for ratio calculation to focus on "landmarks"
+                if (obj.type === 'road' || obj.type === 'ring' || obj.type === 'ground') continue;
+
+                totalCount++;
+                if (this._natureTypes.has(obj.type)) {
+                    natureCount++;
+                }
+            }
+
+            // Smooth transition for nature factor?
+            // Actually, we just update the target value, let audio manager fade it.
+            // If totalCount is low (empty space), default to City (0) or neutral?
+            // Let's say empty space = City (distant traffic/rumble default).
+            if (totalCount > 0) {
+                this._natureFactor = natureCount / totalCount;
+            } else {
+                this._natureFactor = 0; // Default to city if empty
+            }
+
+            // Debug:
+            // console.log(`Ambience: Alt=${altFactor.toFixed(2)}, Nature=${this._natureFactor.toFixed(2)}`);
+        }
+
+        this.audio.updateAmbience(dt, {
+            altitudeFactor: altFactor,
+            natureFactor: this._natureFactor
+        });
     }
 
     _resetGame() {

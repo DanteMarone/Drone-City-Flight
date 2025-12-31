@@ -48,6 +48,7 @@ export { LighthouseEntity } from './lighthouse.js';
 export { ShippingContainerEntity } from './shippingContainer.js';
 export { DumpsterEntity } from './dumpster.js';
 export { PortaPottyEntity } from './portaPotty.js';
+export { PhoneBoothEntity } from './phoneBooth.js';
 export { TugboatEntity } from './tugboat.js';
 export { HologramKioskEntity } from './hologramKiosk.js';
 

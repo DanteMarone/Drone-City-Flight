@@ -336,6 +336,97 @@ export class WaypointCommand extends BaseCommand {
     }
 }
 
+export class GroupCommand extends BaseCommand {
+    constructor(devMode, groupUuid, childrenUuids, beforeState = null, afterState = null, description = 'Group objects') {
+        super(description);
+        this.devMode = devMode;
+        this.groupUuid = groupUuid;
+        this.childrenUuids = childrenUuids;
+        this.beforeState = beforeState; // { position, rotation, scale } of group for Redo (if provided)
+    }
+
+    undo() {
+        // Ungroup: Remove group, reparent children to Scene
+        const groupEntity = this.devMode.app.world.colliders.find(c => c.mesh && c.mesh.userData.uuid === this.groupUuid);
+        if (!groupEntity || !groupEntity.mesh) return;
+
+        // Execute ungroup logic without recording history
+        this.devMode._ungroupObject(groupEntity.mesh, false);
+    }
+
+    redo() {
+        // Group: Create group, reparent children to Group
+        // Find objects by UUID
+        const objects = this.childrenUuids.map(uuid => {
+             // Look for entities first
+             let entity = this.devMode.app.world.colliders.find(c => c.mesh && c.mesh.userData.uuid === uuid);
+             return entity ? entity.mesh : null;
+        }).filter(Boolean);
+
+        if (objects.length > 0) {
+            this.devMode._groupObjects(objects, this.groupUuid, this.beforeState, false);
+        }
+    }
+
+    toJSON() {
+        return {
+            type: 'Group',
+            description: this.description,
+            groupUuid: this.groupUuid,
+            childrenUuids: this.childrenUuids,
+            beforeState: this.beforeState
+        };
+    }
+
+    static fromJSON(json, devMode) {
+        return new GroupCommand(devMode, json.groupUuid, json.childrenUuids, json.beforeState, null, json.description);
+    }
+}
+
+export class UngroupCommand extends BaseCommand {
+    constructor(devMode, groupUuid, childrenUuids, groupState, description = 'Ungroup objects') {
+        super(description);
+        this.devMode = devMode;
+        this.groupUuid = groupUuid;
+        this.childrenUuids = childrenUuids;
+        this.groupState = groupState; // { position, rotation, scale } to restore group
+    }
+
+    undo() {
+        // Re-group: Create group, reparent children to Group
+        const objects = this.childrenUuids.map(uuid => {
+             let entity = this.devMode.app.world.colliders.find(c => c.mesh && c.mesh.userData.uuid === uuid);
+             return entity ? entity.mesh : null;
+        }).filter(Boolean);
+
+        if (objects.length > 0) {
+             this.devMode._groupObjects(objects, this.groupUuid, this.groupState, false);
+        }
+    }
+
+    redo() {
+        // Ungroup
+        const groupEntity = this.devMode.app.world.colliders.find(c => c.mesh && c.mesh.userData.uuid === this.groupUuid);
+        if (!groupEntity || !groupEntity.mesh) return;
+
+        this.devMode._ungroupObject(groupEntity.mesh, false);
+    }
+
+    toJSON() {
+        return {
+            type: 'Ungroup',
+            description: this.description,
+            groupUuid: this.groupUuid,
+            childrenUuids: this.childrenUuids,
+            groupState: this.groupState
+        };
+    }
+
+    static fromJSON(json, devMode) {
+        return new UngroupCommand(devMode, json.groupUuid, json.childrenUuids, json.groupState, json.description);
+    }
+}
+
 export function cloneTransform(object) {
     return {
         object,

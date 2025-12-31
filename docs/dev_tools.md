@@ -60,7 +60,7 @@ The UI Coordinator. It manages the lifecycle of the DOM-based overlay components
 
 #### 5. CommandManager (`src/dev/history.js`)
 Implements the Command Pattern for Undo/Redo functionality.
-*   **Commands**: `TransformCommand`, `CreateObjectCommand`, `DeleteObjectCommand`, `WaypointCommand`.
+*   **Commands**: `TransformCommand`, `CreateObjectCommand`, `DeleteObjectCommand`, `WaypointCommand`, `GroupCommand`, `UngroupCommand`.
 *   **Snapshots**: Uses deep cloning (or simplified state objects) to capture the state of objects "before" and "after" an operation.
 
 ---
@@ -93,6 +93,13 @@ Used for variable-length infrastructure (Roads, Fences) or specific placements a
 5.  **Propagate**: Every frame during drag, `syncProxyToObjects()` applies the Proxy's delta matrix to all selected objects.
 6.  **Commit**: On `mouseup`, a `TransformCommand` is pushed to history.
 
+### Grouping System
+Objects can be grouped to act as a single unit.
+*   **Structure**: Uses a `GroupEntity` (a specialized `THREE.Group`) as a container. Child objects are reparented to this group, maintaining their relative transforms.
+*   **Properties**: The Inspector recursively aggregates properties from all children in a group. Modifying a shared property (e.g., "Wait Time") updates all applicable children simultaneously.
+*   **Nesting**: Groups can be nested (groups of groups).
+*   **History**: Grouping and Ungrouping are fully reversible via Undo/Redo.
+
 ### Waypoint System
 Vehicles (Cars, Pickups) use a waypoint system for pathfinding.
 *   **Visuals**: `VehicleEntity` contains a `waypointGroup` (lines and spheres) stored in `userData`. This group is only visible when Dev Mode is active.
@@ -113,7 +120,7 @@ Maps are saved as JSON files. The `DevMode._serializeMesh()` method converts run
   "params": { "width": 2, "height": 2 }
 }
 ```
-When loading, `App.loadMap` clears the world and iterates this list, asking `EntityRegistry` to recreate the entities.
+When loading, `App.loadMap` clears the world and iterates this list, asking `EntityRegistry` to recreate the entities. Groups are serialized recursively via a `children` array.
 
 ---
 
@@ -132,3 +139,4 @@ When loading, `App.loadMap` clears the world and iterates this list, asking `Ent
 | **Ctrl + C** | Copy Selection |
 | **Ctrl + V** | Paste Selection |
 | **Ctrl + D** | Duplicate Selection |
+| **Ctrl + G** | Group / Ungroup Selection |

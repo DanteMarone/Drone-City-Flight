@@ -5,8 +5,8 @@ import { BuildUI } from './buildUI.js';
 import { InteractionManager, setupDragDrop } from './interaction.js';
 import { GridSystem } from './grid.js';
 import { GizmoManager } from './gizmo.js';
-import { EntityRegistry } from '../world/entities/index.js';
-import { CommandManager, CreateObjectCommand, DeleteObjectCommand, TransformCommand, WaypointCommand, cloneTransform, cloneWaypointState } from './history.js';
+import { EntityRegistry, GroupEntity } from '../world/entities/index.js';
+import { CommandManager, CreateObjectCommand, DeleteObjectCommand, TransformCommand, WaypointCommand, GroupCommand, UngroupCommand, cloneTransform, cloneWaypointState } from './history.js';
 
 export class DevMode {
     constructor(app) {
@@ -331,8 +331,20 @@ export class DevMode {
     }
 
     addWaypointToSelected() {
-        const waypoints = this.selectedObjects.filter(o => o.userData.type === 'waypoint');
-        const cars = this.selectedObjects.filter(o => o.userData.isVehicle);
+        let waypoints = this.selectedObjects.filter(o => o.userData.type === 'waypoint');
+        let cars = this.selectedObjects.filter(o => o.userData.isVehicle);
+
+        // Recursive search for vehicles in Groups
+        this.selectedObjects.forEach(obj => {
+            if (obj.userData.type === 'group') {
+                obj.traverse(c => {
+                    if (c.userData.isVehicle) cars.push(c);
+                    // Are we supporting selecting waypoints inside a group?
+                    // Gizmo doesn't let you select inside a group easily unless you double click?
+                    // For now, if group is selected, we assume "add to end" for all cars in group.
+                });
+            }
+        });
 
         // Combine cars and unique cars derived from selected waypoints
         const targets = new Map();
@@ -407,7 +419,16 @@ export class DevMode {
     }
 
     removeWaypointFromSelected() {
-        const cars = this.selectedObjects.filter(o => o.userData.isVehicle);
+        let cars = this.selectedObjects.filter(o => o.userData.isVehicle);
+
+        // Recursive search for vehicles in Groups
+        this.selectedObjects.forEach(obj => {
+            if (obj.userData.type === 'group') {
+                obj.traverse(c => {
+                    if (c.userData.isVehicle) cars.push(c);
+                });
+            }
+        });
 
         const beforeStates = cars.map(cloneWaypointState);
         let changed = false;
@@ -522,6 +543,19 @@ export class DevMode {
             } else if (e.code === 'KeyD') {
                 e.preventDefault();
                 this.duplicateSelected();
+            } else if (e.code === 'KeyG') {
+                e.preventDefault();
+                // Toggle group
+                const isGroup = this.selectedObjects.length === 1 && this.selectedObjects[0].userData.type === 'group';
+                if (isGroup) {
+                    this.ungroupSelected();
+                } else if (this.selectedObjects.length > 0) {
+                    this.groupSelected();
+                }
+            } else if (e.code === 'KeyU') {
+                 // Explicit ungroup shortcut if preferred
+                 e.preventDefault();
+                 this.ungroupSelected();
             }
         }
     }
@@ -541,6 +575,20 @@ export class DevMode {
 
     _serializeMesh(mesh) {
         if (!mesh) return null;
+
+        // If it's a GroupEntity, we need to handle it specifically to persist children relationship
+        if (mesh.userData?.type === 'group') {
+            const entity = this._findEntityByMesh(mesh);
+            if (!entity) return null;
+
+            const data = this._deepClone(entity.serialize());
+
+            // Also serialize all children!
+            const children = mesh.children.filter(c => c.userData.type && c.userData.type !== 'waypoint' && !c.userData.isHelper);
+            data.children = children.map(c => this._serializeMesh(c)).filter(Boolean);
+
+            return data;
+        }
 
         const entity = this._findEntityByMesh(mesh);
         if (entity?.serialize) {
@@ -593,6 +641,51 @@ export class DevMode {
 
     _instantiateFromClipboard(data) {
         if (!data) return null;
+
+        // Recursive instantiation for Groups
+        if (data.type === 'group' && data.children) {
+            // 1. Create the Group
+            const groupParams = this._deepClone(data.params || {});
+            groupParams.uuid = data.params?.uuid || THREE.MathUtils.generateUUID();
+
+            if (data.position) {
+                groupParams.x = data.position.x;
+                groupParams.y = data.position.y;
+                groupParams.z = data.position.z;
+            }
+            if (data.rotation) {
+                groupParams.rotX = data.rotation.x;
+                groupParams.rotY = data.rotation.y;
+                groupParams.rotZ = data.rotation.z;
+            }
+
+            const groupEntity = new GroupEntity(groupParams);
+            groupEntity.init();
+            const groupMesh = groupEntity.mesh;
+
+            if (data.scale) {
+                groupMesh.scale.set(data.scale.x, data.scale.y, data.scale.z);
+            }
+
+            this.app.renderer.scene.add(groupMesh);
+            this.app.world.addEntity(groupEntity);
+             if (this.app.colliderSystem) {
+                this.app.colliderSystem.addStatic([groupEntity]);
+            }
+
+            // 2. Instantiate Children and Attach
+            data.children.forEach(childData => {
+                 const childMesh = this._instantiateFromClipboard(childData);
+                 if (childMesh) {
+                     this.app.renderer.scene.remove(childMesh);
+                     groupMesh.add(childMesh);
+                     childMesh.updateMatrix();
+                 }
+            });
+
+            return groupMesh;
+        }
+
         if (data.type === 'ring' && this.app?.rings) {
             const position = data.position || { x: 0, y: 0, z: 0 };
             const rotation = data.rotation || { x: 0, y: 0, z: 0 };
@@ -672,6 +765,117 @@ export class DevMode {
         const copied = this.copySelected();
         if (!copied) return null;
         return this.pasteClipboard();
+    }
+
+    groupSelected() {
+        if (this.selectedObjects.length < 2) return;
+        this._groupObjects(this.selectedObjects, null, null, true);
+    }
+
+    _groupObjects(objects, forceUuid = null, forceState = null, recordHistory = true) {
+        if (!objects || objects.length < 2) return;
+
+        // 1. Calculate Centroid
+        const centroid = new THREE.Vector3();
+        const worldPos = new THREE.Vector3();
+        centroid.set(0,0,0);
+        objects.forEach(obj => {
+            obj.getWorldPosition(worldPos);
+            centroid.add(worldPos);
+        });
+        centroid.divideScalar(objects.length);
+
+        // 2. Create Group Entity
+        const groupParams = {
+            x: centroid.x,
+            y: centroid.y,
+            z: centroid.z,
+            uuid: forceUuid || THREE.MathUtils.generateUUID()
+        };
+
+        // If we are redoing (forceState provided), use that
+        if (forceState) {
+            groupParams.x = forceState.position.x;
+            groupParams.y = forceState.position.y;
+            groupParams.z = forceState.position.z;
+            groupParams.rotX = forceState.rotation._x;
+            groupParams.rotY = forceState.rotation._y;
+            groupParams.rotZ = forceState.rotation._z;
+        }
+
+        const groupEntity = new GroupEntity(groupParams);
+        groupEntity.init(); // Creates mesh
+        const groupMesh = groupEntity.mesh;
+
+        if (forceState) {
+            groupMesh.scale.copy(forceState.scale);
+        }
+
+        // Add to Scene
+        this.app.renderer.scene.add(groupMesh);
+        this.app.world.addEntity(groupEntity);
+        if (this.app.colliderSystem) {
+             this.app.colliderSystem.addStatic([groupEntity]);
+        }
+
+        // 3. Reparent Objects
+        objects.forEach(obj => {
+            // Use attach to preserve World Transform
+            groupMesh.attach(obj);
+        });
+
+        // 4. Update Selection
+        this.selectObject(groupMesh);
+
+        // 5. History
+        if (recordHistory) {
+            const childrenUuids = objects.map(o => o.userData.uuid);
+            this.history.push(new GroupCommand(this, groupEntity.uuid, childrenUuids, null, null, 'Group objects'));
+        }
+    }
+
+    ungroupSelected() {
+        if (this.selectedObjects.length !== 1) return;
+        const group = this.selectedObjects[0];
+        if (group.userData.type !== 'group') return;
+
+        this._ungroupObject(group, true);
+    }
+
+    _ungroupObject(groupMesh, recordHistory = true) {
+        if (!groupMesh || groupMesh.userData.type !== 'group') return;
+
+        // 1. Capture State for Undo
+        const groupState = {
+            position: groupMesh.position.clone(),
+            rotation: groupMesh.rotation.clone(),
+            scale: groupMesh.scale.clone()
+        };
+        const groupUuid = groupMesh.userData.uuid;
+
+        // 2. Get Children
+        // Create a copy array because we are modifying the hierarchy
+        const children = [...groupMesh.children].filter(c => c.userData.type && c.userData.type !== 'waypoint' && !c.userData.isHelper);
+        const childrenUuids = children.map(c => c.userData.uuid);
+
+        // 3. Reparent to Scene
+        children.forEach(child => {
+            this.app.renderer.scene.attach(child);
+            child.updateMatrixWorld();
+        });
+
+        // 4. Remove Group
+        this.app.renderer.scene.remove(groupMesh);
+        if (this.app.colliderSystem) this.app.colliderSystem.remove(groupMesh);
+        if (this.app.world) this.app.world.removeEntity(groupMesh);
+
+        // 5. Select Children
+        this.selectObjects(children);
+
+        // 6. History
+        if (recordHistory) {
+            this.history.push(new UngroupCommand(this, groupUuid, childrenUuids, groupState, 'Ungroup objects'));
+        }
     }
 
     deleteSelected() {

@@ -102,38 +102,13 @@ export class Inspector {
             }
         }
 
-        // Params (Single Object only)
+        // Params (Single Object or Group)
+        // If Group, we aggregate properties of children
         if (selection.length === 1) {
-            if (obj.userData.params) {
-                const ignoredParams = new Set(['uuid', 'type', 'x', 'y', 'z', 'rotX', 'rotY', 'rotZ', 'width', 'height', 'depth', 'scale', 'waypoints', 'isVehicle', 'waitTime']);
-
-                const fields = [];
-                Object.keys(obj.userData.params).forEach(key => {
-                    if (ignoredParams.has(key)) return;
-                    const val = obj.userData.params[key];
-
-                    if (typeof val === 'number') {
-                        fields.push(this._createNumberInput(key, val, (n) => {
-                            this._applyParam(obj, key, n);
-                        }));
-                    } else if (typeof val === 'string') {
-                        fields.push(this._createTextInput(key, val, (s) => {
-                            this._applyParam(obj, key, s);
-                        }));
-                    } else if (typeof val === 'boolean') {
-                        fields.push(this._createCheckbox(key, val, (b) => {
-                            this._applyParam(obj, key, b);
-                        }));
-                    }
-                });
-                if (fields.length > 0) {
-                    this._addPropGroup('Parameters', fields);
-                }
-            }
-
-            // Waypoints (Vehicles)
-            if (obj.userData.isVehicle || obj.userData.type === 'vehicle' || obj.userData.type === 'car' || obj.userData.type === 'truck') {
-                this._renderWaypoints(obj);
+            if (obj.userData.type === 'group') {
+                this._renderGroupProperties(obj);
+            } else {
+                this._renderSingleObjectProperties(obj);
             }
         }
 
@@ -146,8 +121,138 @@ export class Inspector {
         this.content.appendChild(delBtn);
     }
 
-    _renderWaypoints(obj) {
-        const wpCount = obj.userData.waypoints ? obj.userData.waypoints.length : 0;
+    _renderSingleObjectProperties(obj) {
+        if (obj.userData.params) {
+            const ignoredParams = new Set(['uuid', 'type', 'x', 'y', 'z', 'rotX', 'rotY', 'rotZ', 'width', 'height', 'depth', 'scale', 'waypoints', 'isVehicle', 'waitTime']);
+
+            const fields = [];
+            Object.keys(obj.userData.params).forEach(key => {
+                if (ignoredParams.has(key)) return;
+                const val = obj.userData.params[key];
+
+                if (typeof val === 'number') {
+                    fields.push(this._createNumberInput(key, val, (n) => {
+                        this._applyParam(obj, key, n);
+                    }));
+                } else if (typeof val === 'string') {
+                    fields.push(this._createTextInput(key, val, (s) => {
+                        this._applyParam(obj, key, s);
+                    }));
+                } else if (typeof val === 'boolean') {
+                    fields.push(this._createCheckbox(key, val, (b) => {
+                        this._applyParam(obj, key, b);
+                    }));
+                }
+            });
+            if (fields.length > 0) {
+                this._addPropGroup('Parameters', fields);
+            }
+        }
+
+        // Waypoints (Vehicles)
+        if (obj.userData.isVehicle || obj.userData.type === 'vehicle' || obj.userData.type === 'car' || obj.userData.type === 'truck') {
+            this._renderWaypoints(obj);
+        }
+    }
+
+    _renderGroupProperties(group) {
+        // Collect all children recursively? The prompt says "if a car and a home... are grouped... properties for both".
+        // It implies looking into the group.
+
+        const children = [];
+        group.traverse(c => {
+            // Only direct entities (or sub-groups?)
+            // If we traverse, we might hit sub-entities.
+            // Requirement: "if multiple groups are grouped... they become one group... ungrouped splits".
+            // So we treat the group as a container.
+            if (c !== group && c.userData && c.userData.type && c.userData.type !== 'waypoint' && !c.userData.isHelper) {
+                children.push(c);
+            }
+        });
+
+        const ignoredParams = new Set(['uuid', 'type', 'x', 'y', 'z', 'rotX', 'rotY', 'rotZ', 'width', 'height', 'depth', 'scale', 'waypoints', 'isVehicle', 'waitTime']);
+
+        // Aggregate params: key -> { value, type, objects: [] }
+        const paramMap = new Map();
+
+        children.forEach(child => {
+            if (child.userData.params) {
+                Object.keys(child.userData.params).forEach(key => {
+                    if (ignoredParams.has(key)) return;
+
+                    const val = child.userData.params[key];
+                    if (!paramMap.has(key)) {
+                        paramMap.set(key, { value: val, type: typeof val, objects: [] });
+                    }
+                    const entry = paramMap.get(key);
+                    // Only add if type matches (simple handling)
+                    if (entry.type === typeof val) {
+                        entry.objects.push(child);
+                        // Check if values differ? If so, maybe show "Mixed"?
+                        if (entry.value !== val) entry.mixed = true;
+                    }
+                });
+            }
+        });
+
+        const fields = [];
+        paramMap.forEach((entry, key) => {
+            const displayVal = entry.mixed ? (entry.type === 'number' ? 0 : '') : entry.value;
+            // Better to show first value or blank?
+            // "Only the objects that have those properties will have them set... but all instances... set to same way."
+
+            const callback = (newVal) => {
+                entry.objects.forEach(obj => {
+                     this._applyParam(obj, key, newVal);
+                });
+            };
+
+            if (entry.type === 'number') {
+                fields.push(this._createNumberInput(key, displayVal, callback));
+            } else if (entry.type === 'string') {
+                fields.push(this._createTextInput(key, displayVal, callback));
+            } else if (entry.type === 'boolean') {
+                fields.push(this._createCheckbox(key, displayVal, callback));
+            }
+        });
+
+        if (fields.length > 0) {
+            this._addPropGroup('Group Parameters', fields);
+        }
+
+        // Special handling for Waypoints/Vehicles in group
+        const vehicles = children.filter(c => c.userData.isVehicle || c.userData.type === 'car');
+        if (vehicles.length > 0) {
+            // Show vehicle specific controls for the first vehicle found?
+            // Or aggregate? "properties for the entire group are modified".
+            // "add waypoint and remove last from the car".
+
+            // If multiple cars, maybe show "Vehicles (N)" controls?
+            // "all instances of that object will be set to the same way" implies if we click "Add Waypoint", all cars get one?
+            // That might be chaotic.
+            // Let's implement simpler: Just show properties.
+            // For buttons like "Add Waypoint", the UI currently calls devMode.addWaypointToSelected().
+
+            // We need to support devMode.addWaypointToSelected() logic to look inside the group.
+            // devMode.addWaypointToSelected() uses this.selectedObjects.
+            // If selectedObject is a group, we should probably update that method to recurse.
+
+            // But we can render the buttons here.
+            this._renderWaypoints(null, vehicles); // Pass vehicles explicitly
+        }
+    }
+
+    _renderWaypoints(obj, groupVehicles = null) {
+        let wpCount = 0;
+        let vehicles = [];
+
+        if (obj) {
+            wpCount = obj.userData.waypoints ? obj.userData.waypoints.length : 0;
+            vehicles = [obj];
+        } else if (groupVehicles) {
+            vehicles = groupVehicles;
+            wpCount = vehicles.reduce((acc, v) => acc + (v.userData.waypoints?.length || 0), 0);
+        }
 
         const group = document.createElement('div');
         group.className = 'dev-prop-group';
@@ -163,8 +268,8 @@ export class Inspector {
         const addBtn = document.createElement('button');
         addBtn.className = 'dev-btn';
         addBtn.textContent = 'Add';
-        addBtn.title = 'Add waypoint after selection or at end';
-        addBtn.onclick = () => this.devMode.addWaypointToSelected();
+        addBtn.title = 'Add waypoint to vehicles in selection';
+        addBtn.onclick = () => this.devMode.addWaypointToSelected(); // DevMode needs to handle group selection recursion
         row.appendChild(addBtn);
 
         const removeBtn = document.createElement('button');
@@ -175,11 +280,18 @@ export class Inspector {
 
         group.appendChild(row);
 
-        // Wait Time Control
-        if (obj.userData.waitTime !== undefined) {
-             const waitRow = this._createNumberInput('Wait Time (s)', obj.userData.waitTime, (val) => {
-                 obj.userData.waitTime = val;
-                 if (obj.userData.params) obj.userData.params.waitTime = val;
+        // Wait Time Control (Aggregate)
+        // Check if any has waitTime
+        const hasWaitTime = vehicles.some(v => v.userData.waitTime !== undefined);
+        if (hasWaitTime) {
+             const firstVal = vehicles.find(v => v.userData.waitTime !== undefined).userData.waitTime || 0;
+             const waitRow = this._createNumberInput('Wait Time (s)', firstVal, (val) => {
+                 vehicles.forEach(v => {
+                     if (v.userData.waitTime !== undefined) {
+                         v.userData.waitTime = val;
+                         if (v.userData.params) v.userData.params.waitTime = val;
+                     }
+                 });
              });
              group.appendChild(waitRow);
         }

@@ -64,6 +64,7 @@ export { GardenPlanterEntity } from './gardenPlanter.js';
 export { RooftopChimneyEntity } from './rooftopChimney.js';
 export { CargoDroneEntity } from './cargoDrone.js';
 export { BikeRackEntity } from './bikeRack.js';
+export { StreetPerformerEntity } from './streetPerformer.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

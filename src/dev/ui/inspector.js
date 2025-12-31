@@ -68,6 +68,11 @@ export class Inspector {
         }
     }
 
+    updateProperties(obj) {
+        // Called by GizmoManager when dragging
+        this.sync();
+    }
+
     _renderProperties() {
         const selection = this.devMode.selectedObjects;
         if (!selection || selection.length === 0) {
@@ -91,7 +96,17 @@ export class Inspector {
                 this._createScaleInput(obj)
             ]);
         } else {
-             this.content.innerHTML += '<div style="color:#888;">Use Gizmo to transform selection.</div>';
+            // Group Selection - Use Proxy
+            const proxy = this.devMode.gizmo ? this.devMode.gizmo.proxy : null;
+            if (proxy) {
+                this._addPropGroup('Transform (Group)', [
+                    this._createVectorInput('Position', proxy.position, (v) => this._applyProxyTransform('position', v)),
+                    this._createVectorInput('Rotation', proxy.rotation, (v) => this._applyProxyTransform('rotation', v), true),
+                    this._createScaleInput(proxy, true) // Pass true for isProxy
+                ]);
+            } else {
+                this.content.innerHTML += '<div style="color:#888;">Use Gizmo to transform selection.</div>';
+            }
         }
 
         // Align Tool Integration
@@ -259,12 +274,20 @@ export class Inspector {
     _syncInspector() {
         const selection = this.devMode.selectedObjects;
         if (!selection || selection.length === 0) return;
-        const obj = selection[0];
 
         if (selection.length === 1) {
+            const obj = selection[0];
             this._syncVectorInput('Position', obj.position);
             this._syncVectorInput('Rotation', obj.rotation, true);
             this._syncVectorInput('Scale', obj.scale);
+        } else {
+             // Multi-select: Sync from Proxy
+             const proxy = this.devMode.gizmo ? this.devMode.gizmo.proxy : null;
+             if (proxy) {
+                 this._syncVectorInput('Position', proxy.position);
+                 this._syncVectorInput('Rotation', proxy.rotation, true);
+                 this._syncVectorInput('Scale', proxy.scale);
+             }
         }
     }
 
@@ -324,7 +347,7 @@ export class Inspector {
         return row;
     }
 
-    _createScaleInput(obj) {
+    _createScaleInput(obj, isProxy=false) {
         const label = 'Scale';
         const vec = obj.scale;
 
@@ -372,11 +395,19 @@ export class Inspector {
 
                 if (this.lockScale) {
                     const newVec = new THREE.Vector3(n, n, n);
-                    this._applyTransform(obj, 'scale', newVec);
+                    if (isProxy) {
+                        this._applyProxyTransform('scale', newVec);
+                    } else {
+                        this._applyTransform(obj, 'scale', newVec);
+                    }
                 } else {
                     const newVec = vec.clone();
                     newVec[axis] = n;
-                    this._applyTransform(obj, 'scale', newVec);
+                    if (isProxy) {
+                        this._applyProxyTransform('scale', newVec);
+                    } else {
+                        this._applyTransform(obj, 'scale', newVec);
+                    }
                 }
             };
             div.appendChild(inp);
@@ -473,6 +504,46 @@ export class Inspector {
         }];
 
         this.devMode.commandManager.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
+    }
+
+    _applyProxyTransform(prop, val) {
+        if (!this.devMode.gizmo || !this.devMode.gizmo.proxy) return;
+
+        const proxy = this.devMode.gizmo.proxy;
+        const selection = this.devMode.selectedObjects;
+
+        // Capture start state
+        const before = this.devMode.captureTransforms(selection);
+
+        // Update Proxy
+        if (prop === 'position') proxy.position.copy(val);
+        if (prop === 'rotation') proxy.rotation.copy(val);
+        if (prop === 'scale') proxy.scale.copy(val);
+
+        proxy.updateMatrixWorld();
+
+        // Propagate to objects
+        this.devMode.gizmo.syncProxyToObjects();
+
+        // Update physics
+        if (this.devMode.app.colliderSystem) {
+            selection.forEach(obj => {
+                 let target = obj;
+                 // Handle waypoints/special hierarchies if needed
+                 if (target.userData.type === 'waypoint' && target.parent?.parent?.userData?.isVehicle) {
+                     target = target.parent.parent;
+                 }
+                 this.devMode.app.colliderSystem.updateBody(target);
+            });
+        }
+
+        // Capture end state
+        const after = this.devMode.captureTransforms(selection);
+
+        // Push History
+        if (this.devMode.commandManager) {
+            this.devMode.commandManager.push(new TransformCommand(this.devMode, before, after, `Transform Group ${prop}`));
+        }
     }
 
     _applyParam(obj, key, val) {

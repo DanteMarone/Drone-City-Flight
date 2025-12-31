@@ -61,6 +61,15 @@ export class VehicleEntity extends BaseEntity {
                         this._localBox.union(childBox);
                     }
                 });
+
+                // Bolt: Calculate bounding sphere for faster collision checks
+                this._localSphere = new THREE.Sphere();
+                if (!this._localBox.isEmpty()) {
+                    // Approximate sphere from box
+                    this._localBox.getCenter(this._localSphere.center);
+                    this._localSphere.radius = this._localBox.max.distanceTo(this._localSphere.center);
+                }
+                this.boundingSphere = new THREE.Sphere();
             }
 
             this._createWaypointVisuals();
@@ -163,16 +172,22 @@ export class VehicleEntity extends BaseEntity {
         }
 
         // Update Box
-        if (this.box) {
+        if (this.box || this.boundingSphere) {
             modelGroup.updateMatrixWorld();
 
-            if (this._localBox) {
-                // Optimized: Transform cached local box
-                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
-            } else {
-                // Fallback
-                this.box.makeEmpty();
-                this.box.expandByObject(modelGroup);
+            // Bolt: Optimization - Use Sphere for dynamic update instead of Box
+            // Box3.applyMatrix4 costs ~8 vector transforms. Sphere.applyMatrix4 costs ~1.
+            // ColliderSystem will prefer boundingSphere if available.
+            if (this.boundingSphere && this._localSphere) {
+                this.boundingSphere.copy(this._localSphere).applyMatrix4(modelGroup.matrixWorld);
+            } else if (this.box) {
+                // Legacy/Fallback update
+                if (this._localBox) {
+                    this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+                } else {
+                    this.box.makeEmpty();
+                    this.box.expandByObject(modelGroup);
+                }
             }
         }
     }
@@ -338,15 +353,19 @@ export class PickupTruckEntity extends CarEntity {
             }
         }
 
-        if (this.box) {
+        if (this.box || this.boundingSphere) {
             modelGroup.updateMatrixWorld();
 
-            if (this._localBox) {
-                // Optimized: Transform cached local box
-                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
-            } else {
-                this.box.makeEmpty();
-                this.box.expandByObject(modelGroup);
+            // Bolt: Optimization - Use Sphere for dynamic update
+            if (this.boundingSphere && this._localSphere) {
+                this.boundingSphere.copy(this._localSphere).applyMatrix4(modelGroup.matrixWorld);
+            } else if (this.box) {
+                 if (this._localBox) {
+                    this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+                } else {
+                    this.box.makeEmpty();
+                    this.box.expandByObject(modelGroup);
+                }
             }
         }
     }

@@ -7,6 +7,7 @@ import { EntityRegistry } from './registry.js';
 const boxGeo = new THREE.BoxGeometry(1, 1, 1);
 const coneGeo = new THREE.ConeGeometry(1, 1, 4);
 coneGeo.rotateY(Math.PI / 4); // Align to box edges
+const cylinderGeo = new THREE.CylinderGeometry(1, 1, 1, 12);
 
 /**
  * Modern House: Flat roof, clean lines, large windows, concrete/wood textures.
@@ -236,7 +237,173 @@ export class ApartmentBlockEntity extends BaseEntity {
     }
 }
 
+/**
+ * Porch House: Gabled roof, covered porch, and exterior planters.
+ */
+export class HousePorchEntity extends BaseEntity {
+    constructor(params) {
+        super(params);
+        this.type = 'house_porch';
+        this.vaneMesh = null;
+    }
+
+    static get displayName() { return 'House Porch'; }
+
+    createMesh(params) {
+        const group = new THREE.Group();
+        const w = params.width || 12;
+        const h = params.height || 5.5;
+        const d = params.depth || 10;
+
+        this.params.width = w;
+        this.params.height = h;
+        this.params.depth = d;
+
+        const roofH = h * 0.7;
+        const porchDepth = d * 0.4;
+        const porchHeight = 0.4;
+
+        const wallTexture = TextureGenerator.createBrick({
+            color: '#b0624a',
+            rows: 18,
+            cols: 10
+        });
+        const wallMat = new THREE.MeshStandardMaterial({ map: wallTexture });
+        const trimMat = new THREE.MeshStandardMaterial({ color: 0xefe7dd });
+        const roofMat = new THREE.MeshStandardMaterial({ color: 0x4d3b37 });
+        const woodMat = new THREE.MeshStandardMaterial({ color: 0x7b5a3a });
+        const metalMat = new THREE.MeshStandardMaterial({ color: 0x6b6f78, roughness: 0.6 });
+
+        const body = new THREE.Mesh(boxGeo, wallMat);
+        body.scale.set(w, h, d);
+        body.position.set(0, h / 2, 0);
+        body.castShadow = true;
+        body.receiveShadow = true;
+        group.add(body);
+
+        const roof = new THREE.Mesh(coneGeo, roofMat);
+        roof.scale.set(w * 0.95, roofH, d * 0.95);
+        roof.position.set(0, h + roofH / 2, 0);
+        roof.castShadow = true;
+        group.add(roof);
+
+        const roofTrim = new THREE.Mesh(boxGeo, trimMat);
+        roofTrim.scale.set(w + 0.4, 0.3, d + 0.4);
+        roofTrim.position.set(0, h, 0);
+        group.add(roofTrim);
+
+        const porch = new THREE.Mesh(boxGeo, woodMat);
+        porch.scale.set(w * 0.8, porchHeight, porchDepth);
+        porch.position.set(0, porchHeight / 2, d / 2 + porchDepth / 2 - 0.1);
+        porch.castShadow = true;
+        porch.receiveShadow = true;
+        group.add(porch);
+
+        const step = new THREE.Mesh(boxGeo, woodMat);
+        step.scale.set(w * 0.35, porchHeight * 0.6, porchDepth * 0.25);
+        step.position.set(0, step.scale.y / 2, porch.position.z + porchDepth / 2 + step.scale.z / 2);
+        group.add(step);
+
+        const postOffsetX = w * 0.35;
+        const postY = h * 0.65;
+        const postZ = d / 2 + porchDepth * 0.2;
+        const postScale = 0.35;
+        const postMat = new THREE.MeshStandardMaterial({ color: 0xf3e8dd });
+
+        [-postOffsetX, postOffsetX].forEach((x) => {
+            const post = new THREE.Mesh(cylinderGeo, postMat);
+            post.scale.set(postScale, postY, postScale);
+            post.position.set(x, postY / 2, postZ);
+            post.castShadow = true;
+            group.add(post);
+        });
+
+        const awning = new THREE.Mesh(boxGeo, trimMat);
+        awning.scale.set(w * 0.85, 0.3, porchDepth * 0.7);
+        awning.position.set(0, h * 0.7, d / 2 + porchDepth * 0.2);
+        awning.castShadow = true;
+        group.add(awning);
+
+        const railingMat = new THREE.MeshStandardMaterial({ color: 0xd9d2c4 });
+        const rail = new THREE.Mesh(boxGeo, railingMat);
+        rail.scale.set(w * 0.7, 0.25, 0.15);
+        rail.position.set(0, porchHeight + 0.25, d / 2 + porchDepth * 0.45);
+        group.add(rail);
+
+        const door = new THREE.Mesh(boxGeo, new THREE.MeshStandardMaterial({ color: 0x5a3a26 }));
+        door.scale.set(1.8, 3, 0.2);
+        door.position.set(0, 1.5, d / 2 + 0.1);
+        group.add(door);
+
+        const windowMat = new THREE.MeshStandardMaterial({
+            color: 0x88bbff,
+            roughness: 0.2,
+            metalness: 0.6,
+            emissive: 0x223344,
+            emissiveIntensity: 0.35
+        });
+        const window = new THREE.Mesh(boxGeo, windowMat);
+        window.scale.set(0.2, 2.2, 2.2);
+        window.position.set(-w * 0.3, h * 0.55, d / 2 + 0.05);
+        group.add(window);
+
+        const planterMat = new THREE.MeshStandardMaterial({ color: 0x3f2c23 });
+        const planter = new THREE.Mesh(boxGeo, planterMat);
+        planter.scale.set(2.2, 0.7, 0.6);
+        planter.position.set(w * 0.35, 0.35, porch.position.z + porchDepth * 0.2);
+        group.add(planter);
+
+        const soilMat = new THREE.MeshStandardMaterial({ color: 0x2f1d14 });
+        const soil = new THREE.Mesh(boxGeo, soilMat);
+        soil.scale.set(2, 0.2, 0.5);
+        soil.position.set(planter.position.x, planter.position.y + 0.35, planter.position.z);
+        group.add(soil);
+
+        const shrubMat = new THREE.MeshStandardMaterial({ color: 0x3e7a3b });
+        for (let i = 0; i < 3; i++) {
+            const shrub = new THREE.Mesh(cylinderGeo, shrubMat);
+            shrub.scale.set(0.35, 0.6, 0.35);
+            shrub.position.set(planter.position.x - 0.6 + i * 0.6, soil.position.y + 0.35, planter.position.z);
+            group.add(shrub);
+        }
+
+        const chimney = new THREE.Mesh(boxGeo, wallMat);
+        chimney.scale.set(1.2, h * 0.9, 1.2);
+        chimney.position.set(-w * 0.35, h * 1.1, -d * 0.2);
+        group.add(chimney);
+
+        const vaneGroup = new THREE.Group();
+        const vanePost = new THREE.Mesh(cylinderGeo, metalMat);
+        vanePost.scale.set(0.12, 1.2, 0.12);
+        vanePost.position.set(0, 0.6, 0);
+        vaneGroup.add(vanePost);
+
+        const vaneArrow = new THREE.Mesh(boxGeo, metalMat);
+        vaneArrow.scale.set(1.4, 0.15, 0.2);
+        vaneArrow.position.set(0.4, 1.1, 0);
+        vaneGroup.add(vaneArrow);
+
+        const vaneHead = new THREE.Mesh(coneGeo, metalMat);
+        vaneHead.scale.set(0.25, 0.25, 0.25);
+        vaneHead.position.set(1, 1.1, 0);
+        vaneGroup.add(vaneHead);
+
+        vaneGroup.position.set(w * 0.2, h + roofH + 0.2, 0);
+        group.add(vaneGroup);
+        this.vaneMesh = vaneGroup;
+
+        return group;
+    }
+
+    update(dt) {
+        if (this.vaneMesh) {
+            this.vaneMesh.rotation.y += dt * 0.6;
+        }
+    }
+}
+
 // Register all
 EntityRegistry.register('house_modern', HouseModernEntity);
 EntityRegistry.register('house_cottage', HouseCottageEntity);
 EntityRegistry.register('apartment_block', ApartmentBlockEntity);
+EntityRegistry.register('house_porch', HousePorchEntity);

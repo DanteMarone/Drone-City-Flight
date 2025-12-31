@@ -12,7 +12,7 @@ export { RadarDishEntity } from './radarDish.js';
 export { WoodenFenceEntity, PicketFenceEntity, ChainLinkFenceEntity, CementWallEntity } from './fence.js';
 export { LilyPondEntity } from './lilyPond.js';
 export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commercial.js';
-export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
+export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity, HousePorchEntity } from './residential.js';
 export { SidewalkEntity } from './infrastructure.js';
 export { IntersectionEntity } from './intersections.js';
 export { BusStopEntity } from './busStop.js';

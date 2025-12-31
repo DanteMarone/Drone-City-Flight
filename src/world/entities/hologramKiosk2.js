@@ -3,10 +3,10 @@ import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 import { TextureGenerator } from '../../utils/textures.js';
 
-export class HologramKioskEntity extends BaseEntity {
+export class HologramKiosk2Entity extends BaseEntity {
     constructor(params = {}) {
         super(params);
-        this.type = 'hologramKiosk';
+        this.type = 'hologramKiosk2';
         this._time = 0;
         this._ring = null;
         this._core = null;

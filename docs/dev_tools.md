@@ -55,6 +55,7 @@ The UI Coordinator. It manages the lifecycle of the DOM-based overlay components
 *   **Toolbar (`src/dev/ui/toolbar.js`)**: Quick access buttons (Undo/Redo, Grid).
 *   **Outliner (`src/dev/ui/outliner.js`)**: Scene graph list showing categorized entities.
 *   **Inspector (`src/dev/ui/inspector.js`)**: Properties panel for selected objects and environment settings.
+    *   **Multi-Selection**: When multiple objects are selected, the Inspector displays "Transform (Group)" controls linked to the `GizmoManager` proxy, allowing precise numeric manipulation of the entire group.
 *   **Palette (`src/dev/ui/palette.js`)**: Asset browser for drag-and-drop object creation.
 *   **HistoryPanel (`src/dev/ui/historyPanel.js`)**: Visual list of undo/redo stack.
 

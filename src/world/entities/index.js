@@ -65,6 +65,7 @@ export { RooftopChimneyEntity } from './rooftopChimney.js';
 export { CargoDroneEntity } from './cargoDrone.js';
 export { BikeRackEntity } from './bikeRack.js';
 export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
+export { OilPumpJackEntity } from './oilPumpJack.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

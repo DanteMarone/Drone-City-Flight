@@ -1,7 +1,7 @@
-# Street Performer
+# DJ
 
 ## Overview
-A lively street performer NPC who brings energy to city corners. They bounce to an imagined beat, spin a glowing aura ring, and emit small "music note" particles while recharging nearby drones.
+A lively **DJ** NPC who brings energy to city corners. They bounce to an imagined beat, spin a glowing aura ring, and emit small "music note" particles while recharging nearby drones.
 
 ## Visuals
 - Composite character built from cylinders, boxes, and spheres.

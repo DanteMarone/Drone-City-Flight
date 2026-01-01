@@ -1,20 +1,20 @@
 # Project Roadmap
 
 ## 🚀 Next Up
-*   [ ] **Sidewalk Corners**
-    *   Add corner pieces for sidewalks to match the intersection logic.
-
-## 📋 Backlog
-*   [ ] **Sidewalk Corners**
-    *   Add corner pieces for sidewalks to match the intersection logic.
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
 *   [ ] **Smart River Tool**
     *   Adapt the "Anchor & Stretch" logic from roads to rivers.
+
+## 📋 Backlog
 *   [ ] **Traffic System**
     *   Re-implement traffic but using the new Entity/Waypoint system (Basic pathing is in, but autonomous traffic management is missing).
 
 ## ✅ Completed
+*   **Sidewalk Corners**
+    *   Implemented `SidewalkCornerEntity` (1x1 unit).
+    *   Added `createSidewalkBlank` texture for seamless connections.
+    *   Docs: `docs/features/sidewalk_corners.md`
 *   **Static Intersections**
     *   Implemented `IntersectionEntity` with 4-way, 3-way, and Turn variants.
     *   Added `createAsphaltBlank` texture for clean junctions.

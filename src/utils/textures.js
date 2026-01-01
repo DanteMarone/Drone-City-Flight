@@ -66,6 +66,35 @@ export const TextureGenerator = {
         return tex;
     },
 
+    createSidewalkBlank: (width = 128, height = 128) => {
+        const key = `sidewalk_blank_${width}_${height}`;
+        if (textureCache.has(key)) return textureCache.get(key).clone();
+
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+
+        // Base Concrete (Matching Sidewalk)
+        ctx.fillStyle = '#bbbbbb';
+        ctx.fillRect(0, 0, width, height);
+
+        // Noise
+        for (let i = 0; i < 2000; i++) {
+            const v = Math.floor(Math.random() * 50);
+            ctx.fillStyle = `rgba(${v},${v},${v}, 0.05)`;
+            ctx.fillRect(Math.random() * width, Math.random() * height, 2, 2);
+        }
+
+        const tex = new THREE.CanvasTexture(canvas);
+        tex.wrapS = THREE.RepeatWrapping;
+        tex.wrapT = THREE.RepeatWrapping;
+        tex.colorSpace = THREE.SRGBColorSpace;
+
+        textureCache.set(key, tex);
+        return tex;
+    },
+
     createAsphaltBlank: () => {
         const key = 'asphalt_blank';
         if (textureCache.has(key)) return textureCache.get(key).clone();

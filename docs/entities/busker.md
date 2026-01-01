@@ -1,7 +1,7 @@
 # Street Performer Entity
 
 ## Overview
-The **Street Performer** is a lively NPC musician who strums a guitar while a portable speaker pulses and emits colorful music particles. It adds a human-focused scene with motion and ambient energy.
+The **Busker** is a lively NPC musician who strums a guitar while a portable speaker pulses and emits colorful music particles. It adds a human-focused scene with motion and ambient energy.
 
 ## Visuals
 The entity is built from procedural primitives in a `THREE.Group`:
@@ -18,8 +18,8 @@ The entity is built from procedural primitives in a `THREE.Group`:
 - **pulseSpeed**: Controls the sound ring and speaker light pulse rate.
 
 ## Usage
-- **Class**: `StreetPerformerEntity`
-- **Type Key**: `streetPerformer`
+- **Class**: `BuskerEntity`
+- **Type Key**: `busker`
 - **Registry**: Registered in `src/world/entities/index.js`.
 - **Category**: People / Props
 

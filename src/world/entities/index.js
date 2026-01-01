@@ -16,6 +16,7 @@ export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commer
 export { HouseModernEntity, HouseCottageEntity, HousePorchEntity, ApartmentBlockEntity } from './residential.js';
 export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
 export { SidewalkEntity, SidewalkCornerEntity } from './infrastructure.js';
+export { HouseGardenEntity } from './houseGarden.js';
 export { HouseVerandaEntity } from './houseVeranda.js';
 export { SidewalkEntity } from './infrastructure.js';
 export { IntersectionEntity } from './intersections.js';

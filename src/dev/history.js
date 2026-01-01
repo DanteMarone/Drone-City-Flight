@@ -309,14 +309,14 @@ export class WaypointCommand extends BaseCommand {
     undo() {
         const resolved = this._resolveStates(this.statesBefore);
         if (resolved.length > 0) {
-            this.devMode.applyWaypointSnapshot(resolved);
+            this.devMode.waypoints.applySnapshot(resolved);
         }
     }
 
     redo() {
         const resolved = this._resolveStates(this.statesAfter);
         if (resolved.length > 0) {
-            this.devMode.applyWaypointSnapshot(resolved);
+            this.devMode.waypoints.applySnapshot(resolved);
         }
     }
 

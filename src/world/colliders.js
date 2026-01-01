@@ -138,14 +138,25 @@ export class ColliderSystem {
                 });
             }
 
-        } else if (other.box && other.box.intersectsSphere(sphere)) {
-            // Medium Phase: Check if the main AABB is hit
-            // Now Narrow Phase: Check individual meshes inside the group
-            if (other.mesh) {
-                this._checkMeshRecursively(other.mesh, sphere, hits, other);
-            } else {
-                // Fallback for simple objects without a mesh reference (shouldn't happen for entities)
-                this._addBoxHit(other.box, sphere, other, hits);
+        } else {
+            // Medium Phase: Check Bounding Volume (Sphere or Box)
+            // Bolt: Prefer Sphere for dynamic objects (faster update), fallback to Box
+            let hitMedium = false;
+
+            if (other.boundingSphere) {
+                if (other.boundingSphere.intersectsSphere(sphere)) hitMedium = true;
+            } else if (other.box) {
+                if (other.box.intersectsSphere(sphere)) hitMedium = true;
+            }
+
+            if (hitMedium) {
+                // Narrow Phase: Check individual meshes inside the group
+                if (other.mesh) {
+                    this._checkMeshRecursively(other.mesh, sphere, hits, other);
+                } else if (other.box) {
+                    // Fallback for simple objects without a mesh reference
+                    this._addBoxHit(other.box, sphere, other, hits);
+                }
             }
         }
     }

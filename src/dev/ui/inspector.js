@@ -11,6 +11,7 @@ export class Inspector {
         this.inspectorTab = 'Properties'; // 'Properties' | 'World'
         this.lockScale = false;
         this.content = null;
+        this.idCounter = 0; // For unique IDs
         this.init();
     }
 
@@ -217,15 +218,23 @@ export class Inspector {
             // Slider
             const sliderRow = document.createElement('div');
             sliderRow.className = 'dev-prop-row';
-            sliderRow.innerHTML = '<div class="dev-prop-label">Time</div>';
+
+            const sliderId = `insp-time-${this.idCounter++}`;
+            const label = document.createElement('label');
+            label.className = 'dev-prop-label';
+            label.textContent = 'Time';
+            label.htmlFor = sliderId;
+            sliderRow.appendChild(label);
 
             const slider = document.createElement('input');
+            slider.id = sliderId;
             slider.type = 'range';
             slider.min = '0';
             slider.max = '24';
             slider.step = '0.1';
             slider.style.flex = '1';
             slider.value = tc.time;
+            slider.setAttribute('aria-label', 'Time of Day');
             slider.oninput = (e) => {
                 tc.time = parseFloat(e.target.value);
             };
@@ -319,6 +328,7 @@ export class Inspector {
             inp.step = isEuler ? '1' : '0.1';
             inp.className = 'dev-prop-input';
             inp.id = `insp-${label}-${axis}`;
+            inp.setAttribute('aria-label', `${label} ${axis.toUpperCase()}`);
 
             let val = vec[axis];
             if (isEuler) val = THREE.MathUtils.radToDeg(val);
@@ -366,11 +376,13 @@ export class Inspector {
 
         const lockLabel = document.createElement('label');
         lockLabel.className = 'dev-prop-checkbox-label';
+
         const check = document.createElement('input');
         check.type = 'checkbox';
         check.checked = this.lockScale;
         check.style.width = '10px';
         check.style.height = '10px';
+        check.setAttribute('aria-label', 'Lock Aspect Ratio');
         check.onchange = (e) => this.lockScale = e.target.checked;
         lockLabel.appendChild(check);
         lockLabel.appendChild(document.createTextNode('Lock'));
@@ -387,6 +399,7 @@ export class Inspector {
             inp.step = '0.1';
             inp.className = 'dev-prop-input';
             inp.id = `insp-${label}-${axis}`;
+            inp.setAttribute('aria-label', `${label} ${axis.toUpperCase()}`);
             inp.value = vec[axis].toFixed(2);
 
             inp.onchange = (e) => {
@@ -428,14 +441,18 @@ export class Inspector {
     }
 
     _createNumberInput(key, val, cb) {
+        const id = `prop-num-${this.idCounter++}`;
         const row = document.createElement('div');
         row.className = 'dev-prop-row';
-        const l = document.createElement('div');
+
+        const l = document.createElement('label');
         l.className = 'dev-prop-label';
         l.textContent = key;
+        l.htmlFor = id;
         row.appendChild(l);
 
         const inp = document.createElement('input');
+        inp.id = id;
         inp.type = 'number';
         inp.className = 'dev-prop-input';
         inp.value = val;
@@ -445,14 +462,18 @@ export class Inspector {
     }
 
     _createTextInput(key, val, cb) {
-         const row = document.createElement('div');
+        const id = `prop-text-${this.idCounter++}`;
+        const row = document.createElement('div');
         row.className = 'dev-prop-row';
-        const l = document.createElement('div');
+
+        const l = document.createElement('label');
         l.className = 'dev-prop-label';
         l.textContent = key;
+        l.htmlFor = id;
         row.appendChild(l);
 
         const inp = document.createElement('input');
+        inp.id = id;
         inp.type = 'text';
         inp.className = 'dev-prop-input';
         inp.value = val;
@@ -462,14 +483,18 @@ export class Inspector {
     }
 
     _createCheckbox(key, val, cb) {
+        const id = `prop-bool-${this.idCounter++}`;
         const row = document.createElement('div');
         row.className = 'dev-prop-row';
-        const l = document.createElement('div');
+
+        const l = document.createElement('label');
         l.className = 'dev-prop-label';
         l.textContent = key;
+        l.htmlFor = id;
         row.appendChild(l);
 
         const inp = document.createElement('input');
+        inp.id = id;
         inp.type = 'checkbox';
         inp.checked = val;
         inp.onchange = (e) => cb(e.target.checked);

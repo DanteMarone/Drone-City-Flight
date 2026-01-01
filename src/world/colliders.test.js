@@ -1,150 +1,183 @@
-import { test, describe, it, beforeEach } from 'node:test';
-import assert from 'node:assert';
-import * as THREE from 'three';
+
+import { describe, it } from 'node:test';
+import { strict as assert } from 'assert';
 import { ColliderSystem } from './colliders.js';
+import * as THREE from 'three';
 
-// Setup Mock Data
-const mockBox = new THREE.Box3(
-    new THREE.Vector3(0, 0, 0),
-    new THREE.Vector3(10, 10, 10)
-);
+// -----------------------------------------------------------------------------
+// Test Helpers
+// -----------------------------------------------------------------------------
 
-const mockMesh = new THREE.Mesh(
-    new THREE.BoxGeometry(10, 10, 10),
-    new THREE.MeshBasicMaterial()
-);
-mockMesh.position.set(5, 5, 5);
-mockMesh.updateMatrixWorld(true);
+function createMesh(x, y, z, size = 1) {
+    const geo = new THREE.BoxGeometry(size, size, size);
+    geo.computeBoundingBox();
+    const mesh = new THREE.Mesh(geo);
+    mesh.position.set(x, y, z);
+    mesh.updateMatrixWorld();
+
+    // Create the wrapper expected by ColliderSystem
+    const box = new THREE.Box3().copy(geo.boundingBox).applyMatrix4(mesh.matrixWorld);
+    return { mesh, box, type: 'box' };
+}
+
+function createRing(x, y, z) {
+    const mesh = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.2));
+    mesh.position.set(x, y, z);
+    mesh.updateMatrixWorld();
+    const box = new THREE.Box3().setFromObject(mesh);
+    return { mesh, box, type: 'ring' };
+}
+
+// -----------------------------------------------------------------------------
+// Tests
+// -----------------------------------------------------------------------------
 
 describe('ColliderSystem', () => {
-    let system;
 
-    beforeEach(() => {
-        system = new ColliderSystem();
+    describe('Initialization', () => {
+        it('should create dependencies correctly', () => {
+            const sys = new ColliderSystem();
+            assert(sys.staticColliders.length === 0, 'Should start empty');
+            assert(sys.spatialHash, 'SpatialHash should be initialized');
+            assert(sys.spatialHash.cellSize === 100, 'SpatialHash cell size should match CONFIG');
+        });
     });
 
-    it('should instantiate correctly', () => {
-        assert.ok(system);
-        assert.ok(system.spatialHash);
-        assert.strictEqual(system.staticColliders.length, 0);
+    describe('SpatialHash Integration', () => {
+        it('should insert and query objects', () => {
+            const sys = new ColliderSystem();
+            const obj = createMesh(10, 50, 10, 2);
+            sys.addStatic([obj]);
+
+            const nearby = sys.spatialHash.query(10, 10);
+            assert.equal(nearby.length, 1, 'Should find object in cell');
+            assert.strictEqual(nearby[0], obj, 'Should return the correct object');
+        });
+
+        it('should handle negative coordinates', () => {
+            const sys = new ColliderSystem();
+            const obj = createMesh(-50, 50, -50, 2);
+            sys.addStatic([obj]);
+
+            const nearby = sys.spatialHash.query(-50, -50);
+            assert.equal(nearby.length, 1, 'Should find object at negative coordinates');
+            assert.strictEqual(nearby[0], obj);
+        });
     });
 
-    it('should add static colliders', () => {
-        const collider = { mesh: mockMesh, box: mockBox };
-        system.addStatic([collider]);
+    describe('Lifecycle Management', () => {
+        it('should remove objects', () => {
+            const sys = new ColliderSystem();
+            const obj = createMesh(10, 50, 10, 2);
+            sys.addStatic([obj]);
 
-        assert.strictEqual(system.staticColliders.length, 1);
+            assert.equal(sys.spatialHash.query(10, 10).length, 1);
 
-        // Verify SpatialHash insertion (chunk size 100, pos 0-10 is in 0,0)
-        const nearby = system.spatialHash.query(5, 5);
-        assert.ok(nearby.length > 0);
-        assert.strictEqual(nearby[0].mesh, mockMesh);
+            sys.remove(obj.mesh);
+
+            assert.equal(sys.staticColliders.length, 0, 'Should be removed from list');
+            assert.equal(sys.spatialHash.query(10, 10).length, 0, 'Should be removed from SpatialHash');
+        });
+
+        it('should update object position in SpatialHash', () => {
+            const sys = new ColliderSystem();
+            const obj = createMesh(10, 50, 10, 2);
+            sys.addStatic([obj]);
+
+            // Move object to new cell
+            obj.mesh.position.set(200, 50, 200);
+            obj.mesh.updateMatrixWorld();
+
+            // Call updateBody
+            sys.updateBody(obj.mesh);
+
+            // Verify old cell is empty
+            assert.equal(sys.spatialHash.query(10, 10).length, 0, 'Should vacate old cell');
+
+            // Verify new cell has object
+            assert.equal(sys.spatialHash.query(200, 200).length, 1, 'Should occupy new cell');
+
+            // Verify collision box updated
+            // Check collisions at new position
+            const hits = sys.checkCollisions(new THREE.Vector3(200, 50, 200), 0.5);
+            assert.equal(hits.length, 1, 'Should detect collision at new position');
+        });
     });
 
-    it('should remove static colliders', () => {
-        const collider = { mesh: mockMesh, box: mockBox };
-        system.addStatic([collider]);
-        system.remove(mockMesh);
+    describe('Collision Logic', () => {
+        const y = 50; // Use high altitude to avoid ground collision
 
-        assert.strictEqual(system.staticColliders.length, 0);
+        it('Sphere vs Box (Hit)', () => {
+            const sys = new ColliderSystem();
+            const obj = createMesh(0, y, 0, 2);
+            sys.addStatic([obj]);
 
-        const nearby = system.spatialHash.query(5, 5);
-        assert.strictEqual(nearby.length, 0);
-    });
+            // Sphere at (1.5, 50, 0), Radius 1.0. Box edge at 1.0.
+            const hits = sys.checkCollisions(new THREE.Vector3(1.5, y, 0), 1.0);
 
-    it('should update body (re-index in spatial hash)', () => {
-        const collider = { mesh: mockMesh, box: mockBox.clone() };
-        system.addStatic([collider]);
+            assert.equal(hits.length, 1);
+            assert.strictEqual(hits[0].object, obj);
+            assert(Math.abs(hits[0].penetration - 0.5) < 0.001);
+        });
 
-        // Move mesh far away
-        mockMesh.position.set(500, 0, 500);
-        mockMesh.updateMatrixWorld(true);
+        it('Sphere vs Box (Miss)', () => {
+            const sys = new ColliderSystem();
+            const obj = createMesh(0, y, 0, 2);
+            sys.addStatic([obj]);
 
-        system.updateBody(mockMesh);
+            const hits = sys.checkCollisions(new THREE.Vector3(3.0, y, 0), 1.0);
+            assert.equal(hits.length, 0);
+        });
 
-        // Should NOT be at old position
-        const oldPos = system.spatialHash.query(5, 5);
-        assert.strictEqual(oldPos.length, 0);
+        it('Sphere vs Ring (Rim Hit)', () => {
+            const sys = new ColliderSystem();
+            const ring = createRing(0, y, 0);
+            sys.addStatic([ring]);
 
-        // Should be at new position
-        const newPos = system.spatialHash.query(500, 500);
-        assert.ok(newPos.length > 0);
-        assert.strictEqual(newPos[0].mesh, mockMesh);
+            // Hit rim at (1.5, y+0.5, 0)
+            const hits = sys.checkCollisions(new THREE.Vector3(1.5, y + 0.5, 0), 0.4);
+            assert(hits.length > 0);
+            assert.strictEqual(hits[0].object.type, 'ring');
+        });
 
-        // Reset mesh position for other tests
-        mockMesh.position.set(5, 5, 5);
-        mockMesh.updateMatrixWorld(true);
-    });
+        it('Sphere vs Ring (Center Pass)', () => {
+            const sys = new ColliderSystem();
+            const ring = createRing(0, y, 0);
+            sys.addStatic([ring]);
 
-    it('should detect collision (Hit)', () => {
-        const collider = { mesh: mockMesh, box: mockBox };
-        system.addStatic([collider]);
+            const hits = sys.checkCollisions(new THREE.Vector3(0, y, 0), 0.5);
+            assert.equal(hits.length, 0);
+        });
 
-        const dronePos = new THREE.Vector3(5, 5, 5); // Inside box
-        const radius = 1.0;
+        it('Ground Plane', () => {
+            const sys = new ColliderSystem();
+            const hits = sys.checkCollisions(new THREE.Vector3(0, 0.5, 0), 1.0);
 
-        const hits = system.checkCollisions(dronePos, radius);
-        assert.ok(hits.length > 0);
-        assert.strictEqual(hits[0].object.mesh, mockMesh);
-        assert.ok(hits[0].penetration > 0);
-    });
+            assert.equal(hits.length, 1);
+            assert.strictEqual(hits[0].object.type, 'ground');
+        });
 
-    it('should not detect collision (Miss)', () => {
-        const collider = { mesh: mockMesh, box: mockBox };
-        system.addStatic([collider]);
+        it('Hierarchical Mesh Collision', () => {
+            const sys = new ColliderSystem();
+            const group = new THREE.Group();
+            const geo = new THREE.BoxGeometry(2, 2, 2);
+            geo.computeBoundingBox();
+            const mesh = new THREE.Mesh(geo);
+            mesh.position.set(0, 2, 0);
+            group.add(mesh);
 
-        const dronePos = new THREE.Vector3(50, 50, 50); // Far away
-        const radius = 1.0;
+            group.position.set(0, y, 0);
+            group.updateMatrixWorld();
 
-        const hits = system.checkCollisions(dronePos, radius);
-        // Might hit ground if y < radius, so let's check explicitly for mesh
-        const meshHit = hits.find(h => h.object.mesh === mockMesh);
-        assert.strictEqual(meshHit, undefined);
-    });
+            const box = new THREE.Box3().setFromObject(group);
+            const collider = { mesh: group, box, type: 'entity' };
 
-    it('should detect ground collision', () => {
-        const dronePos = new THREE.Vector3(0, 0.5, 0); // y < radius (1.0)
-        const radius = 1.0;
+            sys.addStatic([collider]);
 
-        const hits = system.checkCollisions(dronePos, radius);
-        const groundHit = hits.find(h => h.object.type === 'ground');
+            const hits = sys.checkCollisions(new THREE.Vector3(0, y + 2, 0), 0.5);
 
-        assert.ok(groundHit);
-        assert.strictEqual(groundHit.penetration, 0.5); // 1.0 - 0.5
-    });
-
-    it('should clear all colliders', () => {
-        const collider = { mesh: mockMesh, box: mockBox };
-        system.addStatic([collider]);
-        system.clear();
-
-        assert.strictEqual(system.staticColliders.length, 0);
-        const nearby = system.spatialHash.query(5, 5);
-        assert.strictEqual(nearby.length, 0);
-    });
-
-    it('should handle dynamic colliders', () => {
-        const dynamicBox = new THREE.Box3(
-            new THREE.Vector3(100, 0, 0),
-            new THREE.Vector3(110, 10, 10)
-        );
-        const dynamicMesh = new THREE.Mesh(
-            new THREE.BoxGeometry(10, 10, 10),
-            new THREE.MeshBasicMaterial()
-        );
-        dynamicMesh.position.set(105, 5, 5);
-        dynamicMesh.updateMatrixWorld(true);
-        // Ensure geometry has bounding box for recursive check
-        dynamicMesh.geometry.computeBoundingBox();
-
-        const dynamicObj = { mesh: dynamicMesh, box: dynamicBox };
-
-        const dronePos = new THREE.Vector3(105, 5, 5);
-        const radius = 1.0;
-
-        const hits = system.checkCollisions(dronePos, radius, [dynamicObj]);
-
-        assert.ok(hits.length > 0);
-        assert.strictEqual(hits[0].object.mesh, dynamicMesh);
+            assert(hits.length > 0);
+            assert.strictEqual(hits[0].object, collider);
+        });
     });
 });

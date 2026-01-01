@@ -1,7 +1,7 @@
-# Mall Directory
+# Kiosk
 
 ## Overview
-A glowing mall directory totem that helps shoppers navigate. It features a slanted, backlit map display, neon accent panels, and a rotating arrow beacon to make it feel interactive and alive.
+A glowing kiosk totem that helps shoppers navigate. It features a slanted, backlit map display, neon accent panels, and a rotating arrow beacon to make it feel interactive and alive.
 
 ## Visuals
 - Cylinder base with a concrete texture for weight.

@@ -50,14 +50,15 @@ Wraps Three.js `TransformControls` to provide visual translation, rotation, and 
 *   **Sync**: The `updateObjectsFromProxy()` method calculates the offset of each selected object relative to the Proxy and applies the new transform, enabling group manipulation.
 
 #### 4. BuildUI (`src/dev/buildUI.js`)
-The UI Coordinator. It manages the lifecycle of the DOM-based overlay components located in `src/dev/ui/`.
-*   **TopBar (`src/dev/ui/topBar.js`)**: Main menu (File, Edit, View).
-*   **Toolbar (`src/dev/ui/toolbar.js`)**: Quick access buttons (Undo/Redo, Grid).
-*   **Outliner (`src/dev/ui/outliner.js`)**: Scene graph list showing categorized entities.
-*   **Inspector (`src/dev/ui/inspector.js`)**: Properties panel for selected objects and environment settings.
-    *   **Multi-Selection**: When multiple objects are selected, the Inspector displays "Transform (Group)" controls linked to the `GizmoManager` proxy, allowing precise numeric manipulation of the entire group.
-*   **Palette (`src/dev/ui/palette.js`)**: Asset browser for drag-and-drop object creation.
-*   **HistoryPanel (`src/dev/ui/historyPanel.js`)**: Visual list of undo/redo stack.
+The UI Coordinator. It manages the lifecycle of the DOM-based overlay components, which are now implemented as internal classes within `src/dev/buildUI.js` (though previously separate files, they are currently bundled for cohesion or re-imported).
+*   **TopBar**: Main menu (File, Edit, View).
+*   **Toolbar**: Quick access buttons (Undo/Redo, Grid).
+*   **Outliner**: Scene graph list showing categorized entities with hierarchical grouping.
+*   **Inspector**: Properties panel for selected objects and environment settings.
+    *   **Dynamic Inputs**: Automatically generates controls for `userData.params` based on type (Number, Boolean, Vector3).
+    *   **Multi-Selection**: When multiple objects are selected, it focuses on the `GizmoManager` proxy for group transforms.
+*   **Palette**: Asset browser with categorized tabs and asynchronous thumbnail generation (`ThumbnailRenderer`).
+*   **HistoryPanel**: Visual list of undo/redo stack.
 
 #### 5. CommandManager (`src/dev/history.js`)
 Implements the Command Pattern for Undo/Redo functionality.

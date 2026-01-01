@@ -57,3 +57,8 @@ Simple primitives can create complex maritime shapes if orientation is handled c
 Cheap emergency lighting effects can be achieved by toggling emissive intensity on simple geometry, avoiding expensive point lights.
 - **Pattern:** Alternating `emissiveIntensity` between 0 and 2.0 on Red/Blue materials in `update(dt)`.
 - **Technique:** This works especially well with the post-processing bloom effect, creating a "flashing siren" feel without adding actual light sources to the scene.
+## 2024-05-31 - Oil Pump Jack (Forge)
+**Learning:**
+Mechanical linkages can be simulated visually without a physics engine by using simple trigonometric relationships.
+- **Pattern:** Using a central "crank" angle (`Math.sin(time)`) to drive multiple independent parts (Beam rotation, Pitman Arm position, Counterweight rotation) creates the illusion of a connected mechanical system.
+- **Technique:** Positioning the "Pitman Arm" at the crank's handle location while setting its rotation to roughly point at the beam pivot is cheaper than solving Inverse Kinematics and looks correct from a distance.

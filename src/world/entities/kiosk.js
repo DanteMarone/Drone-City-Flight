@@ -5,7 +5,7 @@ import { TextureGenerator } from '../../utils/textures.js';
 
 const PANEL_COLORS = [0x2563eb, 0x7c3aed, 0xf97316, 0x14b8a6];
 
-const createDirectoryTexture = (accent = '#38bdf8') => {
+const createKioskTexture = (accent = '#38bdf8') => {
     const canvas = document.createElement('canvas');
     canvas.width = 256;
     canvas.height = 320;
@@ -74,10 +74,10 @@ const createDirectoryTexture = (accent = '#38bdf8') => {
     return texture;
 };
 
-export class MallDirectoryEntity extends BaseEntity {
+export class KioskEntity extends BaseEntity {
     constructor(params = {}) {
         super(params);
-        this.type = 'mallDirectory';
+        this.type = 'kiosk';
         this._time = Math.random() * Math.PI * 2;
         this._screenMaterial = null;
         this._glowMaterials = [];
@@ -85,7 +85,7 @@ export class MallDirectoryEntity extends BaseEntity {
         this._accent = null;
     }
 
-    static get displayName() { return 'Mall Directory'; }
+    static get displayName() { return 'Kiosk'; }
 
     createMesh(params) {
         const group = new THREE.Group();
@@ -146,7 +146,7 @@ export class MallDirectoryEntity extends BaseEntity {
         frame.castShadow = true;
         screenGroup.add(frame);
 
-        const screenTexture = createDirectoryTexture(`#${accent.toString(16).padStart(6, '0')}`);
+        const screenTexture = createKioskTexture(`#${accent.toString(16).padStart(6, '0')}`);
         this._screenMaterial = new THREE.MeshStandardMaterial({
             map: screenTexture,
             emissive: new THREE.Color(0x6ee7ff),
@@ -250,4 +250,4 @@ export class MallDirectoryEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('mallDirectory', MallDirectoryEntity);
+EntityRegistry.register('kiosk', KioskEntity);

@@ -443,14 +443,14 @@ export class BuildUI {
             scale: obj.scale.clone()
         }];
 
-        this.devMode.commandManager.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
+        this.devMode.history.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
     }
 
     _applyParam(obj, key, val) {
         const oldVal = obj.userData.params[key];
         obj.userData.params[key] = val;
 
-        this.devMode.commandManager.push(new PropertyChangeCommand(
+        this.devMode.history.push(new PropertyChangeCommand(
              this.devMode,
              obj.userData.uuid || obj.uuid,
              key,

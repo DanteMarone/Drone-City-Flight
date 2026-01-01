@@ -168,3 +168,9 @@ Some entities require logic that goes beyond simple self-updates or need to inte
 *   **[NPC System](./npc_system.md)**: Manages active agents like `AngryPersonEntity`, detailing their behaviors, configuration, and combat logic.
 *   **[Time Cycle](./time_cycle.md)**: Manages the `Sun` and global lighting, though not strictly an "entity" in the registry sense.
 *   **[World Generation](./world_generation.md)**: Uses the `ObjectFactory` adapter to procedurally generate the initial city layout using `EntityRegistry` types.
+
+## Performance Optimization
+
+To handle thousands of static objects (like trees and sidewalks) efficiently, the system uses GPU instancing.
+
+*   **[Instanced Entity System](./performance/instancing.md)**: Automatically batches compatible static entities into `THREE.InstancedMesh` groups to reduce draw calls.

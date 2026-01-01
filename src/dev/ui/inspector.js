@@ -180,13 +180,13 @@ export class Inspector {
         addBtn.className = 'dev-btn';
         addBtn.textContent = 'Add';
         addBtn.title = 'Add waypoint after selection or at end';
-        addBtn.onclick = () => this.devMode.addWaypointToSelected();
+        addBtn.onclick = () => this.devMode.waypoints.add();
         row.appendChild(addBtn);
 
         const removeBtn = document.createElement('button');
         removeBtn.className = 'dev-btn';
         removeBtn.textContent = 'Remove Last';
-        removeBtn.onclick = () => this.devMode.removeWaypointFromSelected();
+        removeBtn.onclick = () => this.devMode.waypoints.remove();
         row.appendChild(removeBtn);
 
         group.appendChild(row);

@@ -19,11 +19,11 @@ export class HistoryPanel {
     }
 
     refresh() {
-        if (!this.content || !this.devMode.commandManager) return;
+        if (!this.content || !this.devMode.history) return;
         this.content.innerHTML = '';
 
-        const stack = this.devMode.commandManager.undoStack;
-        this.lastHistoryLen = stack.length + this.devMode.commandManager.redoStack.length;
+        const stack = this.devMode.history.undoStack;
+        this.lastHistoryLen = stack.length + this.devMode.history.redoStack.length;
 
         // Show last 10
         const start = Math.max(0, stack.length - 10);

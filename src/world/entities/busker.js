@@ -257,4 +257,4 @@ export class BuskerEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('busker', buskerEntity);
+EntityRegistry.register('busker', BuskerEntity);

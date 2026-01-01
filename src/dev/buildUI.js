@@ -87,8 +87,8 @@ export class BuildUI {
         this.inspector.sync();
 
         // Check History updates
-        if (this.history && this.devMode.commandManager &&
-            (this.devMode.commandManager.undoStack.length + this.devMode.commandManager.redoStack.length) !== this.history.lastHistoryLen) {
+        if (this.history && this.devMode.history &&
+            (this.devMode.history.undoStack.length + this.devMode.history.redoStack.length) !== this.history.lastHistoryLen) {
             this.history.refresh();
         }
     }
@@ -443,14 +443,14 @@ export class BuildUI {
             scale: obj.scale.clone()
         }];
 
-        this.devMode.commandManager.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
+        this.devMode.history.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
     }
 
     _applyParam(obj, key, val) {
         const oldVal = obj.userData.params[key];
         obj.userData.params[key] = val;
 
-        this.devMode.commandManager.push(new PropertyChangeCommand(
+        this.devMode.history.push(new PropertyChangeCommand(
              this.devMode,
              obj.userData.uuid || obj.uuid,
              key,

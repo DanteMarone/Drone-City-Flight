@@ -14,6 +14,7 @@
     "vite": "^7.3.0"
   },
   "dependencies": {
+    "jsdom": "^27.4.0",
     "postprocessing": "^6.38.0",
     "three": "^0.181.2"
   }

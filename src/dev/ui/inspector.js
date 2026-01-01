@@ -528,7 +528,7 @@ export class Inspector {
             scale: obj.scale.clone()
         }];
 
-        this.devMode.commandManager.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
+        this.devMode.history.push(new TransformCommand(this.devMode, before, after, `Transform ${prop}`));
     }
 
     _applyProxyTransform(prop, val) {
@@ -566,8 +566,8 @@ export class Inspector {
         const after = this.devMode.captureTransforms(selection);
 
         // Push History
-        if (this.devMode.commandManager) {
-            this.devMode.commandManager.push(new TransformCommand(this.devMode, before, after, `Transform Group ${prop}`));
+        if (this.devMode.history) {
+            this.devMode.history.push(new TransformCommand(this.devMode, before, after, `Transform Group ${prop}`));
         }
     }
 
@@ -575,7 +575,7 @@ export class Inspector {
         const oldVal = obj.userData.params[key];
         obj.userData.params[key] = val;
 
-        this.devMode.commandManager.push(new PropertyChangeCommand(
+        this.devMode.history.push(new PropertyChangeCommand(
              this.devMode,
              obj.userData.uuid || obj.uuid,
              key,

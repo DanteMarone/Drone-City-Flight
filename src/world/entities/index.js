@@ -2,6 +2,7 @@ export { BaseEntity } from './base.js';
 export { EntityRegistry } from './registry.js';
 
 // Explicitly export new entities to ensure visibility and registration
+export { PoliceCarEntity } from './policeCar.js';
 export { DeliveryVanEntity } from './deliveryVan.js';
 export { SkyGardenTowerEntity } from './skyGardenTower.js';
 export { RadioTowerEntity } from './radioTower.js';
@@ -13,6 +14,8 @@ export { WoodenFenceEntity, PicketFenceEntity, ChainLinkFenceEntity, CementWallE
 export { LilyPondEntity } from './lilyPond.js';
 export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commercial.js';
 export { HouseModernEntity, HouseCottageEntity, HousePorchEntity, ApartmentBlockEntity } from './residential.js';
+export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
+export { HouseVerandaEntity } from './houseVeranda.js';
 export { SidewalkEntity } from './infrastructure.js';
 export { IntersectionEntity } from './intersections.js';
 export { BusStopEntity } from './busStop.js';
@@ -64,6 +67,10 @@ export { GardenPlanterEntity } from './gardenPlanter.js';
 export { RooftopChimneyEntity } from './rooftopChimney.js';
 export { CargoDroneEntity } from './cargoDrone.js';
 export { BikeRackEntity } from './bikeRack.js';
+export { AlleyCatStatueEntity } from './alleyCatStatue.js';
+export { CityBlockEntity } from './cityBlock.js';
+export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
+export { OilPumpJackEntity } from './oilPumpJack.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

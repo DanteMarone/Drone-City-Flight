@@ -675,3 +675,35 @@ canvas {
         transform: translateX(20px);
     }
 }
+
+/* Minimap */
+.minimap-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 200px;
+    background: rgba(0, 10, 20, 0.5);
+    border: 2px solid #0ff;
+    border-radius: 50%;
+    overflow: hidden;
+    pointer-events: none;
+    box-shadow: 0 0 20px rgba(0, 255, 255, 0.2);
+    z-index: 50;
+    backdrop-filter: blur(5px);
+}
+
+.minimap-label {
+    position: absolute;
+    bottom: 15px;
+    width: 100%;
+    text-align: center;
+    color: rgba(0, 255, 255, 0.7);
+    font-size: 10px;
+    font-weight: bold;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    pointer-events: none;
+    text-shadow: 0 0 2px black;
+    z-index: 51;
+}

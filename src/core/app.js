@@ -10,6 +10,7 @@ import { PhysicsEngine } from '../drone/physics.js';
 import { HUD } from '../ui/hud.js';
 import { MenuSystem } from '../ui/menu.js';
 import { RingCompass } from '../ui/compass.js';
+import { Minimap } from '../ui/minimap.js';
 import { BatteryManager } from '../drone/battery.js';
 import { RingManager } from '../gameplay/rings.js';
 import { TutorialManager } from '../gameplay/tutorial.js';
@@ -62,6 +63,7 @@ export class App {
 
         this.tutorial = new TutorialManager(this);
         this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
+        this.minimap = new Minimap(this);
 
         this.skybox = new Skybox(this.renderer.scene);
         this.cloudSystem = new CloudSystem(this.renderer.scene);
@@ -241,6 +243,7 @@ export class App {
             });
 
             this.compass.update(dt); // New
+            if (this.minimap) this.minimap.update(dt);
         }
 
         if (this.cameraController) {

@@ -22,14 +22,38 @@ const { chromium } = require('playwright');
         page.on('pageerror', err => console.log('PAGE ERROR:', err.message));
 
         console.log('Waiting for Minimap...');
-        // Increased timeout significantly
-        await page.waitForSelector('.minimap-container', { state: 'attached', timeout: 30000 });
-        console.log('Minimap container attached.');
 
-        await page.waitForTimeout(2000);
-        await page.screenshot({ path: 'verification/minimap_verify.png' });
+        // Check window.app state
+        await page.waitForFunction(() => window.app && window.app.running, { timeout: 10000 }).catch(() => console.log("App not running yet..."));
 
-        console.log('Success!');
+        const appState = await page.evaluate(() => {
+            const app = window.app;
+            if (!app) return { exists: false };
+            return {
+                exists: true,
+                hasMinimap: !!app.minimap,
+                minimapContainer: !!document.querySelector('.minimap-container'),
+                hud: !!app.hud,
+                domChildren: document.getElementById('ui-layer')?.children.length,
+                uiLayerHTML: document.getElementById('ui-layer')?.innerHTML
+            };
+        });
+        console.log('App State:', JSON.stringify(appState, null, 2));
+
+        if (!appState.hasMinimap) {
+            console.error('Minimap instance missing on window.app');
+        }
+
+        try {
+            await page.waitForSelector('.minimap-container', { state: 'attached', timeout: 5000 });
+            console.log('Minimap container attached.');
+            await page.screenshot({ path: 'verification/minimap_verify.png' });
+            console.log('Success!');
+        } catch (e) {
+            console.error('Timeout waiting for .minimap-container');
+            throw e;
+        }
+
     } catch (e) {
         console.error('Error:', e);
         await page.screenshot({ path: 'verification/error_screenshot.png' });

@@ -11,13 +11,13 @@ const STYLES = [
 
 const _tempVec = new THREE.Vector3();
 
-export class StreetPerformerEntity extends BaseEntity {
+export class DJEntity extends BaseEntity {
     constructor(params = {}) {
         if (params.styleIndex === undefined) params.styleIndex = Math.floor(Math.random() * STYLES.length);
         if (params.rechargeRate === undefined) params.rechargeRate = 6;
         if (params.rechargeRange === undefined) params.rechargeRange = 6;
         super(params);
-        this.type = 'streetPerformer';
+        this.type = 'DJ';
         this._time = Math.random() * Math.PI * 2;
         this._noteTimer = Math.random() * 0.5;
         this._ring = null;
@@ -255,8 +255,8 @@ export class StreetPerformerEntity extends BaseEntity {
     }
 
     static get displayName() {
-        return 'Street Performer';
+        return 'DJ';
     }
 }
 
-EntityRegistry.register('streetPerformer', StreetPerformerEntity);
+EntityRegistry.register('DJ', DJEntity);

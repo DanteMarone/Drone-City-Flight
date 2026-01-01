@@ -11,11 +11,11 @@ const STYLES = [
     { name: 'Sunny', pants: 0x2d5c47, jacket: 0xf2b134, shirt: 0xffffff, skin: 0xffccaa, hair: 0x5b3a1d, guitar: 0x8a4d1a, accent: 0x66ffcc }
 ];
 
-export class StreetPerformerEntity extends BaseEntity {
+export class BuskerEntity extends BaseEntity {
     constructor(params = {}) {
         if (params.styleIndex === undefined) params.styleIndex = Math.floor(Math.random() * STYLES.length);
         super(params);
-        this.type = 'streetPerformer';
+        this.type = 'busker';
         this.timer = Math.random() * 10;
         this.emitTimer = 0.4 + Math.random() * 0.6;
         this.strumSpeed = params.strumSpeed !== undefined ? params.strumSpeed : 3.5 + Math.random() * 1.5;
@@ -253,8 +253,8 @@ export class StreetPerformerEntity extends BaseEntity {
     }
 
     static get displayName() {
-        return 'Street Performer';
+        return 'Busker';
     }
 }
 
-EntityRegistry.register('streetPerformer', StreetPerformerEntity);
+EntityRegistry.register('busker', buskerEntity);

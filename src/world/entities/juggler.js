@@ -11,13 +11,13 @@ const STYLES = [
 const BALL_COLORS = [0xff3355, 0x33dd88, 0x4488ff];
 const _sparklePos = new THREE.Vector3();
 
-export class StreetPerformerEntity extends BaseEntity {
+export class JugglerEntity extends BaseEntity {
     constructor(params = {}) {
         if (params.appearance === undefined) params.appearance = Math.floor(Math.random() * STYLES.length);
         if (params.juggleSpeed === undefined) params.juggleSpeed = 3.4;
 
         super(params);
-        this.type = 'streetPerformer';
+        this.type = 'juggler';
         this.timer = Math.random() * Math.PI * 2;
     }
 
@@ -171,8 +171,8 @@ export class StreetPerformerEntity extends BaseEntity {
     }
 
     static get displayName() {
-        return 'Street Performer';
+        return 'Juggler';
     }
 }
 
-EntityRegistry.register('streetPerformer', StreetPerformerEntity);
+EntityRegistry.register('juggler', JugglerEntity);

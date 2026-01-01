@@ -3,10 +3,9 @@
 ## 🚀 Next Up
 *   [ ] **Sidewalk Corners**
     *   Add corner pieces for sidewalks to match the intersection logic.
+    *   [Spec: 004-sidewalk-corners.md](../specs/004-sidewalk-corners.md)
 
 ## 📋 Backlog
-*   [ ] **Sidewalk Corners**
-    *   Add corner pieces for sidewalks to match the intersection logic.
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
 *   [ ] **Smart River Tool**

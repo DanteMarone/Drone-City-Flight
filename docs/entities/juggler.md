@@ -1,7 +1,7 @@
-# Street Performer Entity
+# Juggler Entity
 
 ## Overview
-The **Street Performer** is a lively NPC who juggles glowing balls in a looping routine. It adds movement and personality to plazas, sidewalks, and public squares.
+The **Juggler** is a lively NPC who juggles glowing balls in a looping routine. It adds movement and personality to plazas, sidewalks, and public squares.
 
 ## Visuals
 The entity is constructed procedurally using `THREE.Group` and standard geometries:
@@ -16,8 +16,8 @@ The entity is constructed procedurally using `THREE.Group` and standard geometri
 - **juggleSpeed**: Controls how quickly the juggling loop animates (default `3.4`).
 
 ## Usage
-- **Class**: `StreetPerformerEntity`
-- **Type Key**: `streetPerformer`
+- **Class**: `jugglerEntity`
+- **Type Key**: `juggler`
 - **Registry**: Auto-registered in `src/world/entities/index.js`.
 - **Category**: People / Props
 

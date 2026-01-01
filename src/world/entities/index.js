@@ -67,6 +67,7 @@ export { GardenPlanterEntity } from './gardenPlanter.js';
 export { RooftopChimneyEntity } from './rooftopChimney.js';
 export { CargoDroneEntity } from './cargoDrone.js';
 export { BikeRackEntity } from './bikeRack.js';
+export { JugglerEntity } from './juggler.js';
 export { DroneMechanicEntity } from './droneMechanic.js';
 export { AlleyCatStatueEntity } from './alleyCatStatue.js';
 export { CityBlockEntity } from './cityBlock.js';

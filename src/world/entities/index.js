@@ -68,6 +68,7 @@ export { RooftopChimneyEntity } from './rooftopChimney.js';
 export { CargoDroneEntity } from './cargoDrone.js';
 export { BikeRackEntity } from './bikeRack.js';
 export { KioskEntity } from './kiosk.js';
+export { MallDirectoryEntity } from './mallDirectory.js';
 export { DJEntity } from './DJ.js';
 export { BuskerEntity } from './busker.js';
 export { JugglerEntity } from './juggler.js';

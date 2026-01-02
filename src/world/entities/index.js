@@ -85,6 +85,7 @@ export { DJEntity } from './DJ.js';
 export { BuskerEntity } from './busker.js';
 export { JugglerEntity } from './juggler.js';
 export { DroneMechanicEntity } from './droneMechanic.js';
+export { DroneHunterEntity } from './droneHunter.js';
 export { AlleyCatStatueEntity } from './alleyCatStatue.js';
 export { CityBlockEntity } from './cityBlock.js';
 export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
@@ -98,6 +99,7 @@ export { SentryPylonEntity } from './sentryPylon.js';
 export { SentryTurretEntity } from './sentryTurret.js';
 export { SubwayVentEntity } from './subwayVent.js';
 export { ArcPulseTotemEntity } from './arcPulseTotem.js';
+export { DroneChaserEntity } from './droneChaser.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

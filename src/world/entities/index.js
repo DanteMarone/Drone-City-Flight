@@ -109,6 +109,7 @@ export { SpaceShuttleEntity } from './spaceShuttle.js';
 export { ArcLeechEntity } from './arcLeech.js';
 export { ArcPulseTotemEntity } from './arcPulseTotem.js';
 export { DroneChaserEntity } from './droneChaser.js';
+export { RazorDroneEntity } from './razorDrone.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

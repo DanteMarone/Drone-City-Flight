@@ -57,9 +57,11 @@ export { TugboatEntity } from './tugboat.js';
 export { HologramKioskEntity } from './hologramKiosk.js';
 export { SpectralBeaconEntity } from './spectralBeacon.js';
 export { GardenLanternEntity } from './gardenLantern.js';
+export { HaloLampEntity } from './haloLamp.js';
 export { SunflowerPatchEntity } from './sunflowerPatch.js';
 export { PlanterBoxEntity } from './planterBox.js';
 export { PorchLightEntity } from './porchLight.js';
+export { StreetLampEntity } from './streetLamp.js';
 export { PorchSwingEntity } from './porchSwing.js';
 export { HedgeEntity } from './hedge.js';
 export { LaundryDryingRackEntity } from './laundryDryingRack.js';
@@ -81,11 +83,13 @@ export { LaunchServiceTowerEntity } from './launchServiceTower.js';
 export { BalconyLaundryLineEntity } from './balconyLaundryLine.js';
 export { ApartmentLaundryLineEntity } from './apartmentLaundryLine.js';
 export { ApartmentBalconyGardenEntity } from './apartmentBalconyGarden.js';
+export { BalconyGardenEntity } from './balconyGarden.js';
 export { ATMEntity } from './atm.js';
 export { DJEntity } from './DJ.js';
 export { BuskerEntity } from './busker.js';
 export { JugglerEntity } from './juggler.js';
 export { DroneMechanicEntity } from './droneMechanic.js';
+export { DroneHunterEntity } from './droneHunter.js';
 export { AlleyCatStatueEntity } from './alleyCatStatue.js';
 export { CityBlockEntity } from './cityBlock.js';
 export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
@@ -98,6 +102,9 @@ export { CypressTreeEntity } from './cypressTree.js';
 export { SentryPylonEntity } from './sentryPylon.js';
 export { SentryTurretEntity } from './sentryTurret.js';
 export { SubwayVentEntity } from './subwayVent.js';
+export { ArcLeechEntity } from './arcLeech.js';
+export { ArcPulseTotemEntity } from './arcPulseTotem.js';
+export { DroneChaserEntity } from './droneChaser.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

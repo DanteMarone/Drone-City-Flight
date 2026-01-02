@@ -1,19 +1,71 @@
 import * as THREE from 'three';
 import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
-import { TextureGenerator } from '../../utils/textures.js';
 
-const ACCENT_COLORS = [0x5ac8fa, 0xffc857, 0x8be0a4];
+const PANEL_COLORS = [
+    0x5b6472,
+    0x6b7280,
+    0x4b5563
+];
+
+const ACCENT_COLORS = [
+    0x38bdf8,
+    0xf97316,
+    0xa855f7
+];
+
+const createLockerTexture = ({ rows, cols, baseColor, highlight }) => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 512;
+    canvas.height = 384;
+    const ctx = canvas.getContext('2d');
+
+    ctx.fillStyle = `#${baseColor.toString(16).padStart(6, '0')}`;
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+    const doorWidth = canvas.width / cols;
+    const doorHeight = canvas.height / rows;
+    ctx.lineWidth = 6;
+    ctx.strokeStyle = '#111827';
+
+    for (let row = 0; row < rows; row++) {
+        for (let col = 0; col < cols; col++) {
+            const x = col * doorWidth;
+            const y = row * doorHeight;
+            const hueShift = (row + col) % 2 === 0 ? 10 : -8;
+            const doorColor = new THREE.Color(baseColor).offsetHSL(0, 0, hueShift / 100);
+            ctx.fillStyle = `#${doorColor.getHexString()}`;
+            ctx.fillRect(x + 4, y + 4, doorWidth - 8, doorHeight - 8);
+
+            ctx.strokeRect(x + 4, y + 4, doorWidth - 8, doorHeight - 8);
+
+            ctx.fillStyle = '#1f2937';
+            ctx.fillRect(x + doorWidth * 0.65, y + doorHeight * 0.45, doorWidth * 0.18, doorHeight * 0.12);
+
+            ctx.fillStyle = '#e5e7eb';
+            ctx.font = 'bold 24px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            const label = `${row + 1}${String.fromCharCode(65 + col)}`;
+            ctx.fillText(label, x + 10, y + 10);
+        }
+    }
+
+    ctx.strokeStyle = `#${highlight.toString(16).padStart(6, '0')}`;
+    ctx.lineWidth = 10;
+    ctx.strokeRect(8, 8, canvas.width - 16, canvas.height - 16);
+
+    const texture = new THREE.CanvasTexture(canvas);
+    texture.colorSpace = THREE.SRGBColorSpace;
+    return texture;
+};
 
 export class ParcelLockerEntity extends BaseEntity {
     constructor(params = {}) {
         super(params);
         this.type = 'parcelLocker';
-        this._time = Math.random() * Math.PI * 2;
-        this._screenMaterial = null;
-        this._accentMaterial = null;
-        this._virtualLight = null;
-        this._lightLocalPos = null;
+        this._pulseTime = Math.random() * Math.PI * 2;
+        this._indicatorMaterial = null;
     }
 
     static get displayName() { return 'Parcel Locker'; }
@@ -22,184 +74,146 @@ export class ParcelLockerEntity extends BaseEntity {
         const group = new THREE.Group();
 
         const width = params.width || 2.4;
-        const height = params.height || 1.75;
-        const depth = params.depth || 0.72;
+        const height = params.height || 1.8;
+        const depth = params.depth || 0.6;
+        const rows = params.rows || 3;
+        const cols = params.cols || 4;
+
+        this.params.width = width;
+        this.params.height = height;
+        this.params.depth = depth;
+        this.params.rows = rows;
+        this.params.cols = cols;
+
+        const panelColor = params.panelColor || PANEL_COLORS[Math.floor(Math.random() * PANEL_COLORS.length)];
         const accentColor = params.accentColor || ACCENT_COLORS[Math.floor(Math.random() * ACCENT_COLORS.length)];
 
-        const baseHeight = 0.14;
-        const plinthGeo = new THREE.BoxGeometry(width * 1.04, baseHeight, depth * 1.08);
-        const concreteTex = TextureGenerator.createConcrete();
-        concreteTex.wrapS = THREE.RepeatWrapping;
-        concreteTex.wrapT = THREE.RepeatWrapping;
-        concreteTex.repeat.set(1.4, 0.8);
-        const plinthMat = new THREE.MeshStandardMaterial({
-            color: 0xb1b6bf,
-            map: concreteTex,
-            roughness: 0.85,
-            metalness: 0.08
+        const bodyMat = new THREE.MeshStandardMaterial({
+            color: panelColor,
+            roughness: 0.55,
+            metalness: 0.5
         });
-        const plinth = new THREE.Mesh(plinthGeo, plinthMat);
-        plinth.position.y = baseHeight / 2;
-        plinth.castShadow = true;
-        plinth.receiveShadow = true;
-        group.add(plinth);
 
-        const shellGeo = new THREE.BoxGeometry(width, height, depth);
-        const shellMat = new THREE.MeshStandardMaterial({
-            color: 0xe5e9f0,
-            roughness: 0.6,
-            metalness: 0.25,
-            map: concreteTex
-        });
-        const shell = new THREE.Mesh(shellGeo, shellMat);
-        shell.position.y = baseHeight + height / 2;
-        shell.castShadow = true;
-        shell.receiveShadow = true;
-        group.add(shell);
-
-        const roofGeo = new THREE.BoxGeometry(width * 1.06, 0.1, depth * 1.1);
-        const roofMat = new THREE.MeshStandardMaterial({
-            color: 0xd3d7de,
-            roughness: 0.5,
-            metalness: 0.28
-        });
-        const roof = new THREE.Mesh(roofGeo, roofMat);
-        roof.position.set(0, shell.position.y + height / 2 + 0.05, 0);
-        roof.rotation.x = THREE.MathUtils.degToRad(2);
-        roof.castShadow = true;
-        roof.receiveShadow = true;
-        group.add(roof);
-
-        const lockersTex = TextureGenerator.createBuildingFacade({
-            color: '#f3f4f6',
-            windowColor: '#c7ccd6',
-            floors: 4,
-            cols: 9,
-            width: 512,
-            height: 256
-        });
-        lockersTex.wrapS = THREE.RepeatWrapping;
-        lockersTex.wrapT = THREE.RepeatWrapping;
-        lockersTex.repeat.set(1, 1);
-        const lockersMat = new THREE.MeshStandardMaterial({
-            map: lockersTex,
-            color: 0xffffff,
-            roughness: 0.45,
+        const baseMat = new THREE.MeshStandardMaterial({
+            color: 0x1f2937,
+            roughness: 0.8,
             metalness: 0.2
         });
-        const lockersPanel = new THREE.Mesh(new THREE.PlaneGeometry(width * 0.92, height * 0.88), lockersMat);
-        lockersPanel.position.set(0, shell.position.y, depth / 2 + 0.005);
-        group.add(lockersPanel);
 
-        const consoleGroup = new THREE.Group();
-        const consoleHeight = height * 0.9;
-        const consoleGeo = new THREE.BoxGeometry(width * 0.38, consoleHeight, depth * 0.2);
-        const consoleMat = new THREE.MeshStandardMaterial({
-            color: 0x212733,
-            roughness: 0.55,
-            metalness: 0.65
+        const baseHeight = 0.12;
+        const base = new THREE.Mesh(new THREE.BoxGeometry(width * 1.02, baseHeight, depth * 1.05), baseMat);
+        base.position.y = baseHeight / 2;
+        base.castShadow = true;
+        base.receiveShadow = true;
+        group.add(base);
+
+        const body = new THREE.Mesh(new THREE.BoxGeometry(width, height, depth), bodyMat);
+        body.position.y = baseHeight + height / 2;
+        body.castShadow = true;
+        body.receiveShadow = true;
+        group.add(body);
+
+        const canopy = new THREE.Mesh(new THREE.BoxGeometry(width * 1.04, 0.12, depth * 1.1), baseMat);
+        canopy.position.y = baseHeight + height + 0.06;
+        canopy.castShadow = true;
+        canopy.receiveShadow = true;
+        group.add(canopy);
+
+        const panelTexture = createLockerTexture({
+            rows,
+            cols,
+            baseColor: new THREE.Color(panelColor).offsetHSL(0, -0.05, 0.12).getHex(),
+            highlight: accentColor
         });
-        const console = new THREE.Mesh(consoleGeo, consoleMat);
-        console.position.set(width * 0.18 - width / 2, consoleHeight / 2 + baseHeight + 0.02, depth / 2 + consoleGeo.parameters.depth / 2);
-        console.castShadow = true;
-        console.receiveShadow = true;
-        consoleGroup.add(console);
+        const panelMat = new THREE.MeshStandardMaterial({
+            map: panelTexture,
+            roughness: 0.6,
+            metalness: 0.2
+        });
+        const panel = new THREE.Mesh(new THREE.PlaneGeometry(width * 0.94, height * 0.86), panelMat);
+        panel.position.set(0, baseHeight + height * 0.52, depth / 2 + 0.01);
+        group.add(panel);
 
-        const screenGeo = new THREE.PlaneGeometry(consoleGeo.parameters.width * 0.9, consoleHeight * 0.32);
-        this._screenMaterial = new THREE.MeshStandardMaterial({
-            color: 0xa6f0ff,
+        const screenMat = new THREE.MeshStandardMaterial({
+            color: 0x111827,
             emissive: new THREE.Color(accentColor),
-            emissiveIntensity: 0.9,
-            roughness: 0.2,
-            metalness: 0.15,
-            transparent: true,
-            opacity: 0.95
+            emissiveIntensity: 1.2,
+            roughness: 0.4,
+            metalness: 0.2
         });
-        const screen = new THREE.Mesh(screenGeo, this._screenMaterial);
-        screen.position.set(console.position.x, console.position.y + consoleHeight * 0.08, console.position.z + consoleGeo.parameters.depth / 2 + 0.001);
-        consoleGroup.add(screen);
+        const screen = new THREE.Mesh(new THREE.BoxGeometry(width * 0.22, height * 0.18, 0.03), screenMat);
+        screen.position.set(-width * 0.27, baseHeight + height * 0.72, depth / 2 + 0.035);
+        screen.castShadow = true;
+        group.add(screen);
 
-        const keypad = new THREE.Mesh(new THREE.BoxGeometry(consoleGeo.parameters.width * 0.45, 0.06, 0.04), new THREE.MeshStandardMaterial({
-            color: 0x11151f,
-            metalness: 0.4,
-            roughness: 0.4
-        }));
-        keypad.position.set(console.position.x, console.position.y - consoleHeight * 0.18, console.position.z + consoleGeo.parameters.depth / 2 + 0.012);
-        consoleGroup.add(keypad);
+        const keypadMat = new THREE.MeshStandardMaterial({
+            color: 0x2d3748,
+            roughness: 0.6,
+            metalness: 0.3
+        });
+        const keypad = new THREE.Mesh(new THREE.BoxGeometry(width * 0.18, height * 0.14, 0.03), keypadMat);
+        keypad.position.set(-width * 0.27, baseHeight + height * 0.52, depth / 2 + 0.035);
+        keypad.castShadow = true;
+        group.add(keypad);
 
-        const accentMat = new THREE.MeshStandardMaterial({
+        const buttonGeo = new THREE.BoxGeometry(width * 0.035, height * 0.03, 0.01);
+        for (let i = 0; i < 6; i++) {
+            const button = new THREE.Mesh(buttonGeo, baseMat);
+            const row = Math.floor(i / 3);
+            const col = i % 3;
+            button.position.set(
+                keypad.position.x - width * 0.05 + col * width * 0.05,
+                keypad.position.y + height * 0.03 - row * height * 0.04,
+                depth / 2 + 0.05
+            );
+            group.add(button);
+        }
+
+        this._indicatorMaterial = new THREE.MeshStandardMaterial({
             color: accentColor,
             emissive: new THREE.Color(accentColor),
-            emissiveIntensity: 0.4,
-            roughness: 0.35,
-            metalness: 0.55
+            emissiveIntensity: 0.6,
+            roughness: 0.4,
+            metalness: 0.2
         });
-        this._accentMaterial = accentMat;
+        const indicator = new THREE.Mesh(new THREE.BoxGeometry(width * 0.22, 0.04, 0.04), this._indicatorMaterial);
+        indicator.position.set(width * 0.28, baseHeight + height * 0.76, depth / 2 + 0.04);
+        indicator.castShadow = true;
+        group.add(indicator);
 
-        const accentStrip = new THREE.Mesh(new THREE.BoxGeometry(width * 0.1, consoleHeight * 0.92, 0.03), accentMat);
-        accentStrip.position.set(console.position.x + consoleGeo.parameters.width * 0.35, console.position.y, console.position.z + consoleGeo.parameters.depth / 2 + 0.02);
-        consoleGroup.add(accentStrip);
+        const ventMat = new THREE.MeshStandardMaterial({
+            color: 0x111827,
+            roughness: 0.7,
+            metalness: 0.3
+        });
+        const vent = new THREE.Mesh(new THREE.BoxGeometry(width * 0.12, height * 0.22, 0.04), ventMat);
+        vent.position.set(width * 0.3, baseHeight + height * 0.45, -depth / 2 - 0.02);
+        vent.castShadow = true;
+        group.add(vent);
 
-        const mailSlot = new THREE.Mesh(new THREE.BoxGeometry(width * 0.3, 0.05, 0.04), new THREE.MeshStandardMaterial({
-            color: 0x151a24,
-            metalness: 0.45,
-            roughness: 0.4
-        }));
-        mailSlot.position.set(console.position.x - consoleGeo.parameters.width * 0.05, console.position.y + consoleHeight * 0.24, console.position.z + consoleGeo.parameters.depth / 2 + 0.015);
-        consoleGroup.add(mailSlot);
-
-        const indicatorGeo = new THREE.CylinderGeometry(0.04, 0.04, 0.16, 10);
-        const indicator = new THREE.Mesh(indicatorGeo, accentMat);
-        indicator.rotation.z = Math.PI / 2;
-        indicator.position.set(console.position.x - consoleGeo.parameters.width * 0.42, console.position.y + consoleHeight * 0.35, console.position.z + consoleGeo.parameters.depth / 2 + 0.01);
-        consoleGroup.add(indicator);
-
-        this._lightLocalPos = new THREE.Vector3(
-            indicator.position.x,
-            indicator.position.y + 0.05,
-            indicator.position.z + 0.15
-        );
-
-        group.add(consoleGroup);
-
-        const feetMat = new THREE.MeshStandardMaterial({ color: 0x7a7f88, roughness: 0.5, metalness: 0.4 });
-        for (const offset of [-width * 0.38, width * 0.38]) {
-            const foot = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.09, baseHeight * 0.8, 10), feetMat);
-            foot.position.set(offset, baseHeight * 0.4, -depth * 0.22);
+        const footGeo = new THREE.BoxGeometry(0.12, 0.08, 0.12);
+        const footOffsets = [
+            [-width / 2 + 0.18, baseHeight / 2, -depth / 2 + 0.18],
+            [width / 2 - 0.18, baseHeight / 2, -depth / 2 + 0.18],
+            [-width / 2 + 0.18, baseHeight / 2, depth / 2 - 0.18],
+            [width / 2 - 0.18, baseHeight / 2, depth / 2 - 0.18]
+        ];
+        footOffsets.forEach(([x, y, z]) => {
+            const foot = new THREE.Mesh(footGeo, baseMat);
+            foot.position.set(x, y, z);
             foot.castShadow = true;
             foot.receiveShadow = true;
             group.add(foot);
-        }
+        });
 
         return group;
     }
 
-    postInit() {
-        const lightSystem = this.params.lightSystem || window.app?.world?.lightSystem;
-        if (lightSystem && this.mesh && this._lightLocalPos) {
-            this.mesh.updateMatrixWorld(true);
-            const worldPos = this._lightLocalPos.clone().applyMatrix4(this.mesh.matrixWorld);
-            const intensity = this.params.lightIntensity || 1.6;
-            this._virtualLight = lightSystem.register(worldPos, this._accentMaterial?.color?.getHex() ?? 0x5ac8fa, intensity, 10);
-            if (this._virtualLight) {
-                this._virtualLight.parentMesh = this.mesh;
-            }
-        }
-    }
-
     update(dt) {
-        this._time += dt;
-        const pulse = 0.4 + 0.25 * Math.sin(this._time * 3.1) + 0.1 * Math.sin(this._time * 7.3);
-        if (this._screenMaterial) {
-            this._screenMaterial.emissiveIntensity = THREE.MathUtils.clamp(0.7 + pulse * 0.5, 0.6, 1.4);
-        }
-        if (this._accentMaterial) {
-            this._accentMaterial.emissiveIntensity = THREE.MathUtils.clamp(0.35 + pulse * 0.4, 0.35, 1.1);
-        }
-        if (this._virtualLight) {
-            const baseIntensity = this.params.lightIntensity || 1.6;
-            this._virtualLight.intensity = THREE.MathUtils.clamp(baseIntensity + pulse * 0.8, baseIntensity * 0.7, baseIntensity * 1.6);
-        }
+        if (!this._indicatorMaterial) return;
+        this._pulseTime += dt;
+        const pulse = 0.6 + Math.sin(this._pulseTime * 2.6) * 0.35;
+        this._indicatorMaterial.emissiveIntensity = THREE.MathUtils.clamp(pulse, 0.2, 1.2);
     }
 }
 

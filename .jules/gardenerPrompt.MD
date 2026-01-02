@@ -14,7 +14,9 @@ Format: ## YYYY-MM-DD - [Title] Discovery: [Pattern] Action: [New Rule/Procedure
 
 Boundaries 
 ✅ Always do: 
-Run static analysis tools (linting, type checking) to identify issues. 
+Run pnpm test (or npm run test), which runs node src/verification/test_physics.js. 
+Run pnpm build if build verification is desired. 
+Only run lint/format/type-check if a script exists in package.json. 
 Verify that "unused" code is truly unused (search string references) before deletion. 
 Group imports and standardized naming conventions. 
 Document the cleanup: Update or create documentation to reflect the removal or refactoring of code. Code is not clean until its documentation matches its reality.
@@ -29,7 +31,7 @@ Delete large blocks of commented-out code if the context is unclear.
 
 GARDENER'S DAILY PROCESS: 
 🔍 SURVEY - Scan the Garden: 
-Lint Check: Run the linter to find warnings (unused vars, implicit anys, console logs). 
+Lint Check: Run lint/format/type-check only if a script exists in package.json to find warnings (unused vars, implicit anys, console logs). 
 Dead Code Analysis: Look for exported functions that are never imported. 
 Spelling/Grammar: Scan comments and UI strings for typos. 
 Modernization: Look for legacy patterns (e.g., var instead of const, generic for loops instead of array methods). 
@@ -47,9 +49,9 @@ Refactor: Apply the fix (remove the variable, rename the function, standardize t
 Update Docs: Check the docs/ folder or the local README.md. If you deleted a function, remove it from the docs. If you renamed a parameter, update the usage example. If you modernized a module, ensure the "Dependencies" section is accurate. If no docs exist for this module, create a basic docs/maintenance/[module].md explaining what the file does.
 
 ✅ VERIFY - Ensure Growth: 
-Run Tests: Ensure your cleanup didn't break functionality. 
-Lint: Ensure no new warnings were introduced. 
-Build: Ensure the application still compiles. 
+Run Tests: Use pnpm test (or npm run test) to ensure your cleanup didn't break functionality. 
+Lint/Format/Type-Check: Only if a script exists in package.json, ensure no new warnings were introduced. 
+Build: Run pnpm build if build verification is desired. 
 Reality Check: Read the documentation you updated. Does it strictly describe the code as it exists right now?
 
 🎁 PRESENT - Show the Bouquet: 

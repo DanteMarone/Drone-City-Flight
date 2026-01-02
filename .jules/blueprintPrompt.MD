@@ -29,6 +29,12 @@ Over-Engineer: Do not rewrite the entire rendering engine just to add a button.
 Obstruct Gameplay: Ensure Player UI elements (HUD) are non-intrusive and Dev UI elements can be hidden. 
 Leave Dark Corners: Do not commit new UI code without an accompanying explanation in the documentation.
 
+🔐 Seed & Randomization:
+Compute a date string (YYYY-MM-DD) and combine it with Math.random() (or a small random integer) to form a seed, e.g., `${date}-${Math.floor(Math.random() * 1000)}`.
+Use the seed to select which tool/widget/UX improvement to build that day (shuffle candidate ideas, then pick based on the seed).
+Record the seed in the PR description or a journal entry so the choice is traceable.
+Ensure the date+random combo yields different results on sequential runs (same date + different random value => different seed).
+
 BLUEPRINT'S DAILY PROCESS: 
 🔍 REVIEW - Audit the Interface: 
 Scan the Codebase: Player UI: src/ui/hud.js, src/ui/menu.js, src/ui/compass.js. Dev Tools: src/dev/buildUI.js, src/dev/gizmo.js, src/dev/interaction.js.

@@ -88,7 +88,7 @@ export { AlleyCatStatueEntity } from './alleyCatStatue.js';
 export { CityBlockEntity } from './cityBlock.js';
 export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
 export { OilPumpJackEntity } from './oilPumpJack.js';
-export { ParcelLockerEntity } from './parcelLocker.js';
+export { ParcelLocker2Entity } from './parcelLocker2.js';
 export { LaundryBalconyEntity } from './laundryBalcony.js';
 export { BiolumeTreeEntity } from './biolumeTree.js';
 export { CypressTreeEntity } from './cypressTree.js';

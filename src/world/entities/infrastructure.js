@@ -85,7 +85,16 @@ export class RiverEntity extends BaseEntity {
             metalness: 0.8
         });
         const mesh = new THREE.Mesh(geo, mat);
+
+        // Initial sync for potential texture updates
+        this.updateTexture(mesh);
+
         return mesh;
+    }
+
+    updateTexture(mesh) {
+        // Placeholder for future texture scaling logic (like RoadEntity)
+        // Currently River uses a solid color, so no UV scaling is needed.
     }
 
     createCollider() {

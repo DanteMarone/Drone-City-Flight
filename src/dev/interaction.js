@@ -258,8 +258,8 @@ export class InteractionManager {
 
         let len = diff.length();
 
-        // Road Specific: Enforce whole unit length
-        if (this.activePlacement.type === 'road') {
+        // Road/River Specific: Enforce whole unit length
+        if (this.activePlacement.type === 'road' || this.activePlacement.type === 'river') {
             // Ensure integer lengths (1.0, 2.0, 3.0...)
             len = Math.round(len);
             if (len < 1) len = 1;
@@ -368,9 +368,9 @@ export class InteractionManager {
              const geo = new THREE.TorusGeometry(1.5, 0.2, 8, 16);
              mesh = new THREE.Mesh(geo, this.ghostMaterial);
         } else {
-             // Use generic create, but override params for road
+             // Use generic create, but override params for road/river
              let params = { x: 0, y: 0, z: 0 };
-             if (type === 'road') params.length = 1;
+             if (type === 'road' || type === 'river') params.length = 1;
 
              const entity = EntityRegistry.create(type, params);
              if (entity && entity.mesh) {

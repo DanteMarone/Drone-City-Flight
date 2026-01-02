@@ -37,9 +37,9 @@ The infrastructure system provides the foundational static network of the world,
 
 ---
 
-## 2. Smart Road Tool (Interaction)
+## 2. Smart Infrastructure Tools (Road & River)
 
-The Smart Road Tool enables "Anchor & Stretch" placement, allowing users to draw roads of variable length that automatically snap to the grid and lock to cardinal axes.
+The "Anchor & Stretch" placement logic is available for both Roads and Rivers, allowing users to draw segments of variable length that automatically snap to the grid and lock to cardinal axes.
 
 ### Logic Flow (`src/dev/interaction.js`)
 

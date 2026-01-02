@@ -3,9 +3,6 @@
 ## 🚀 Next Up
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
-*   [ ] **Smart River Tool**
-    *   Adapt the "Anchor & Stretch" logic from roads to rivers.
-
 ## 📋 Backlog
 *   [ ] **Traffic System**
     *   Re-implement traffic but using the new Entity/Waypoint system (Basic pathing is in, but autonomous traffic management is missing).
@@ -22,6 +19,10 @@
 *   **Smart Road Tool**
     *   Implemented "Anchor & Stretch" placement in `src/dev/interaction.js`.
     *   Added axis locking (North/South, East/West).
+*   **Smart River Tool**
+    *   Implemented "Anchor & Stretch" placement for `river` type.
+    *   Updated `RiverEntity` to support scaling.
+    *   Docs: `docs/features/smart_river_tool.md`
 *   **Grid Snap & Physics**
     *   Enforced strict integer snapping for road lengths.
     *   Verified collision scaling.

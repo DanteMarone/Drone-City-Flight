@@ -15,6 +15,7 @@ graph TD
     DevMode --> Gizmo[GizmoManager]
     DevMode --> BuildUI[BuildUI Coordinator]
     DevMode --> History[CommandManager]
+    DevMode --> Clipboard[ClipboardManager]
     DevMode --> Grid[GridSystem]
     DevMode --> Cam[DevCameraController]
     DevMode --> Waypoint[WaypointManager]
@@ -29,6 +30,7 @@ graph TD
     Gizmo --> Proxy[Transform Proxy]
     Gizmo --> Controls[TransformControls]
 
+    History --> Clipboard
     Interaction --> Raycast[Raycaster]
     Raycast --> Scene[Scene Objects]
 ```
@@ -37,7 +39,7 @@ graph TD
 
 #### 1. DevMode (`src/dev/devMode.js`)
 The central hub. It maintains the state of the editor (enabled/disabled), the current selection (`selectedObjects`), and coordinates the lifecycle of other systems.
-*   **Responsibilities**: Toggling state, managing selection lists, applying transforms from history, serializing/deserializing maps.
+*   **Responsibilities**: Toggling state, managing selection lists, applying transforms from history, coordinating map save/load flows.
 
 #### 2. InteractionManager (`src/dev/interaction.js`)
 Handles raw mouse inputs (mousedown, mousemove, mouseup) and Drag & Drop events.
@@ -65,7 +67,12 @@ Implements the Command Pattern for Undo/Redo functionality.
 *   **Commands**: `TransformCommand`, `CreateObjectCommand`, `DeleteObjectCommand`, `WaypointCommand`.
 *   **Snapshots**: Uses deep cloning (or simplified state objects) to capture the state of objects "before" and "after" an operation.
 
-#### 6. WaypointManager (`src/dev/waypointManager.js`)
+#### 6. ClipboardManager (`src/dev/clipboard.js`)
+Centralizes mesh serialization and instantiation for copy/paste and history commands.
+*   **Responsibilities**: Serializing meshes into map data, recreating entities from serialized data, preserving UUIDs.
+*   **Boundary**: Command/history flows call into `ClipboardManager` rather than duplicating serialization logic in `DevMode`.
+
+#### 7. WaypointManager (`src/dev/waypointManager.js`)
 Encapsulates all logic related to vehicle waypoints.
 *   **Responsibilities**: adding/removing waypoints, rendering the visualization lines/spheres, and updating paths in real-time.
 *   **Interaction**: `DevMode` delegates waypoint operations (like `add()`, `remove()`) to this manager.
@@ -112,7 +119,7 @@ Vehicles (Cars, Pickups) use a waypoint system for pathfinding.
 
 ## Data & Serialization
 
-Maps are saved as JSON files. The `DevMode._serializeMesh()` method converts runtime objects into a data schema:
+Maps are saved as JSON files. The `ClipboardManager.serializeMesh()` method converts runtime objects into a data schema:
 ```json
 {
   "type": "car",

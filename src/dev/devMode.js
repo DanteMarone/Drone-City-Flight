@@ -5,9 +5,9 @@ import { BuildUI } from './buildUI.js';
 import { InteractionManager, setupDragDrop } from './interaction.js';
 import { GridSystem } from './grid.js';
 import { GizmoManager } from './gizmo.js';
-import { EntityRegistry } from '../world/entities/index.js';
 import { CommandManager, CreateObjectCommand, DeleteObjectCommand, TransformCommand, cloneTransform } from './history.js';
 import { WaypointManager } from './waypointManager.js';
+import { ClipboardManager } from './clipboard.js';
 
 export class DevMode {
     constructor(app) {
@@ -17,6 +17,7 @@ export class DevMode {
         this.selectedObjects = []; // Replaces single selectedObject
         this.clipboard = null;
         this.history = new CommandManager(this);
+        this.clipboardManager = new ClipboardManager(this);
 
         this.placementMode = null; // Type of object being placed (e.g. 'road')
 
@@ -321,54 +322,8 @@ export class DevMode {
         }
     }
 
-    _deepClone(data) {
-        if (!data) return data;
-        if (typeof structuredClone === 'function') {
-            return structuredClone(data);
-        }
-        return JSON.parse(JSON.stringify(data));
-    }
-
-    _findEntityByMesh(mesh) {
-        if (!this.app?.world?.colliders) return null;
-        return this.app.world.colliders.find((entity) => entity.mesh === mesh) || null;
-    }
-
-    _serializeMesh(mesh) {
-        if (!mesh) return null;
-
-        const entity = this._findEntityByMesh(mesh);
-        if (entity?.serialize) {
-            return this._deepClone(entity.serialize());
-        }
-
-        if (mesh.userData?.type === 'ring') {
-            return {
-                type: 'ring',
-                position: { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z },
-                rotation: { x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z },
-                scale: { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z }
-            };
-        }
-
-        if (mesh.userData?.type) {
-            const params = this._deepClone(mesh.userData.params || {});
-            return {
-                type: mesh.userData.type,
-                params,
-                position: { x: mesh.position.x, y: mesh.position.y, z: mesh.position.z },
-                rotation: { x: mesh.rotation.x, y: mesh.rotation.y, z: mesh.rotation.z },
-                scale: { x: mesh.scale.x, y: mesh.scale.y, z: mesh.scale.z }
-            };
-        }
-
-        return null;
-    }
-
     _recordCreation(objects, description = 'Create object') {
-        const serialized = (objects || [])
-            .map(obj => this._serializeMesh(obj))
-            .filter(Boolean);
+        const serialized = this.clipboardManager.serializeMeshes(objects);
 
         if (serialized.length) {
             this.history.push(new CreateObjectCommand(this, serialized, objects, description));
@@ -377,70 +332,11 @@ export class DevMode {
 
     copySelected() {
         if (!this.selectedObjects.length) return false;
-        const serialized = this.selectedObjects
-            .map(obj => this._serializeMesh(obj))
-            .filter(Boolean);
+        const serialized = this.clipboardManager.serializeMeshes(this.selectedObjects);
 
         if (!serialized.length) return false;
         this.clipboard = serialized;
         return true;
-    }
-
-    _instantiateFromClipboard(data) {
-        if (!data) return null;
-        if (data.type === 'ring' && this.app?.rings) {
-            const position = data.position || { x: 0, y: 0, z: 0 };
-            const rotation = data.rotation || { x: 0, y: 0, z: 0 };
-            this.app.rings.spawnRingAt(position, rotation);
-            const spawned = this.app.rings.rings[this.app.rings.rings.length - 1];
-            if (spawned?.mesh && data.scale) {
-                spawned.mesh.scale.set(data.scale.x, data.scale.y, data.scale.z);
-            }
-            return spawned?.mesh || null;
-        }
-
-        const params = this._deepClone(data.params || {});
-        // Ensure UUID is preserved or assigned
-        if (!params.uuid && data.params?.uuid) {
-            params.uuid = data.params.uuid;
-        }
-
-        if (data.position) {
-            params.x = data.position.x;
-            params.y = data.position.y;
-            params.z = data.position.z;
-        }
-        if (data.rotation) {
-            params.rotX = data.rotation.x;
-            params.rotY = data.rotation.y;
-            params.rotZ = data.rotation.z;
-        }
-
-        const entity = EntityRegistry.create(data.type, params);
-        if (!entity || !entity.mesh) return null;
-
-        if (data.scale) {
-            entity.mesh.scale.set(data.scale.x, data.scale.y, data.scale.z);
-            if (entity.box) {
-                entity.box.setFromObject(entity.mesh);
-            }
-        }
-
-        this.app.renderer.scene.add(entity.mesh);
-        this.app.world.addEntity(entity);
-        if (this.app.colliderSystem) {
-            this.app.colliderSystem.addStatic([entity]);
-        }
-
-        if (entity.mesh.userData?.waypointGroup && this.enabled) {
-            const wg = entity.mesh.userData.waypointGroup;
-            wg.visible = true;
-            if (wg.parent !== this.app.renderer.scene) {
-                this.app.renderer.scene.add(wg);
-            }
-        }
-
-        return entity.mesh;
     }
 
     pasteClipboard() {
@@ -451,7 +347,7 @@ export class DevMode {
             : [this.clipboard];
 
         const newObjects = clipboardItems
-            .map(item => this._instantiateFromClipboard(this._deepClone(item)))
+            .map(item => this.clipboardManager.instantiateFromData(this.clipboardManager.deepClone(item)))
             .filter(Boolean);
 
         if (newObjects.length > 0) {
@@ -478,9 +374,7 @@ export class DevMode {
 
         // Handle regular objects
         if (objects.length > 0) {
-            const serialized = objects
-                .map(obj => this._serializeMesh(obj))
-                .filter(Boolean);
+            const serialized = this.clipboardManager.serializeMeshes(objects);
 
             if (serialized.length) {
                 const command = new DeleteObjectCommand(this, serialized, 'Delete objects');

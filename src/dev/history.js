@@ -208,7 +208,7 @@ export class CreateObjectCommand extends BaseCommand {
 
     redo() {
         const recreated = this.serializedData
-            .map(data => this.devMode._instantiateFromClipboard(this.devMode._deepClone(data)))
+            .map(data => this.devMode.clipboardManager.instantiateFromData(this.devMode.clipboardManager.deepClone(data)))
             .filter(Boolean);
         this.objects = recreated;
         if (recreated.length > 0) {
@@ -244,7 +244,7 @@ export class DeleteObjectCommand extends BaseCommand {
 
     undo() {
         const recreated = this.serializedData
-            .map(data => this.devMode._instantiateFromClipboard(this.devMode._deepClone(data)))
+            .map(data => this.devMode.clipboardManager.instantiateFromData(this.devMode.clipboardManager.deepClone(data)))
             .filter(Boolean);
         this.objects = recreated;
         if (recreated.length > 0) {

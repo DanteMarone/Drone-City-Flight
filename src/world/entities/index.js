@@ -80,6 +80,7 @@ export { SmartBenchEntity } from './smartBench.js';
 export { KioskEntity } from './kiosk.js';
 export { MallDirectoryEntity } from './mallDirectory.js';
 export { LaunchServiceTowerEntity } from './launchServiceTower.js';
+export { LaunchShuttleEntity } from './launchShuttle.js';
 export { BalconyLaundryLineEntity } from './balconyLaundryLine.js';
 export { ApartmentLaundryLineEntity } from './apartmentLaundryLine.js';
 export { BalconyGardenEntity } from './balconyGarden.js';

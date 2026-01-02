@@ -87,30 +87,42 @@ body {
     bottom: 30px;
     left: 50%;
     transform: translateX(-50%);
-    width: 300px;
+    width: 320px;
     text-align: center;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
 }
 
-.battery-bar-bg {
+.hud-resource {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.resource-label {
+    font-size: 0.8em;
+    color: #aaa;
+}
+
+.resource-bar-bg {
     width: 100%;
     height: 10px;
     background: rgba(0,0,0,0.5);
     border: 1px solid rgba(255,255,255,0.3);
     border-radius: 5px;
     overflow: hidden;
-    margin-top: 5px;
 }
 
-.battery-bar-fill {
+.resource-bar-fill {
     width: 100%;
     height: 100%;
     background-color: #22ffaa;
     transition: width 0.2s, background-color 0.2s;
 }
 
-.battery-text {
+.resource-text {
     font-size: 0.8em;
-    margin-top: 2px;
 }
 
 .hud-center-message {

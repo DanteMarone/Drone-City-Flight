@@ -37,11 +37,20 @@ export class HUD {
             </div>
 
             <div class="hud-bottom-center">
-                 <div class="battery-label" id="batt-label">BATTERY</div>
-                 <div class="battery-bar-bg" role="progressbar" aria-labelledby="batt-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="hud-batt-bg">
-                     <div class="battery-bar-fill" id="hud-batt-fill"></div>
+                 <div class="hud-resource" id="hud-health">
+                     <div class="resource-label" id="health-label">HEALTH</div>
+                     <div class="resource-bar-bg" role="progressbar" aria-labelledby="health-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="hud-health-bg">
+                         <div class="resource-bar-fill" id="hud-health-fill"></div>
+                     </div>
+                     <div class="resource-text" id="hud-health-text" aria-hidden="true">100%</div>
                  </div>
-                 <div class="battery-text" id="hud-batt-text" aria-hidden="true">100%</div>
+                 <div class="hud-resource" id="hud-battery">
+                     <div class="resource-label" id="batt-label">BATTERY</div>
+                     <div class="resource-bar-bg" role="progressbar" aria-labelledby="batt-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="hud-batt-bg">
+                         <div class="resource-bar-fill" id="hud-batt-fill"></div>
+                     </div>
+                     <div class="resource-text" id="hud-batt-text" aria-hidden="true">100%</div>
+                 </div>
             </div>
 
             <div class="hud-center-message" id="hud-msg"></div>
@@ -54,10 +63,14 @@ export class HUD {
         this.elements.alt = container.querySelector('#hud-alt');
         this.elements.spd = container.querySelector('#hud-spd');
         this.elements.rings = container.querySelector('#hud-rings');
+        this.elements.healthContainer = container.querySelector('#hud-health');
+        this.elements.healthBg = container.querySelector('#hud-health-bg');
+        this.elements.healthFill = container.querySelector('#hud-health-fill');
+        this.elements.healthText = container.querySelector('#hud-health-text');
+        this.elements.batteryContainer = container.querySelector('#hud-battery');
         this.elements.battBg = container.querySelector('#hud-batt-bg');
         this.elements.battFill = container.querySelector('#hud-batt-fill');
         this.elements.battText = container.querySelector('#hud-batt-text');
-        this.elements.battLabel = container.querySelector('#batt-label');
         this.elements.msg = container.querySelector('#hud-msg');
         this.elements.pauseBtn = container.querySelector('#btn-pause');
 
@@ -77,27 +90,51 @@ export class HUD {
         if (data.speed !== undefined) this.elements.spd.innerText = `${data.speed.toFixed(1)}m/s`;
         if (data.rings !== undefined) this.elements.rings.innerText = `${data.rings}`;
 
-        if (data.resourceLabel !== undefined) {
-            this.elements.battLabel.innerText = data.resourceLabel;
+        const showHealth = data.showHealth ?? data.health !== undefined;
+        this._setResourceVisibility(this.elements.healthContainer, showHealth);
+        if (data.health !== undefined) {
+            this._updateResourceBar(
+                this.elements.healthFill,
+                this.elements.healthText,
+                this.elements.healthBg,
+                data.health,
+                { low: '#ff4444', medium: '#ffaa22', high: '#22ffaa' }
+            );
         }
 
+        const showBattery = data.showBattery ?? data.battery !== undefined;
+        this._setResourceVisibility(this.elements.batteryContainer, showBattery);
         if (data.battery !== undefined) {
-            const pct = Math.max(0, Math.min(100, data.battery));
-            const pctInt = pct.toFixed(0);
-            this.elements.battFill.style.width = `${pct}%`;
-            this.elements.battText.innerText = `${pctInt}%`;
-            this.elements.battBg.setAttribute('aria-valuenow', pctInt);
-            this.elements.battBg.setAttribute('aria-valuetext', `${pctInt}%`);
-
-            // Color feedback
-            if (pct < 20) this.elements.battFill.style.backgroundColor = '#ff2222';
-            else if (pct < 50) this.elements.battFill.style.backgroundColor = '#ffaa22';
-            else this.elements.battFill.style.backgroundColor = '#22ffaa';
+            this._updateResourceBar(
+                this.elements.battFill,
+                this.elements.battText,
+                this.elements.battBg,
+                data.battery,
+                { low: '#ff2222', medium: '#ffaa22', high: '#22ffaa' }
+            );
         }
 
         if (data.message !== undefined) {
             this.elements.msg.innerText = data.message;
             this.elements.msg.style.opacity = data.message ? 1 : 0;
         }
+    }
+
+    _setResourceVisibility(element, visible) {
+        if (!element) return;
+        element.classList.toggle('hidden', !visible);
+    }
+
+    _updateResourceBar(fill, text, bg, value, colors) {
+        const pct = Math.max(0, Math.min(100, value));
+        const pctInt = pct.toFixed(0);
+        fill.style.width = `${pct}%`;
+        text.innerText = `${pctInt}%`;
+        bg.setAttribute('aria-valuenow', pctInt);
+        bg.setAttribute('aria-valuetext', `${pctInt}%`);
+
+        if (pct < 20) fill.style.backgroundColor = colors.low;
+        else if (pct < 50) fill.style.backgroundColor = colors.medium;
+        else fill.style.backgroundColor = colors.high;
     }
 }

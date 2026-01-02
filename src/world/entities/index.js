@@ -91,6 +91,7 @@ export { BuskerEntity } from './busker.js';
 export { JugglerEntity } from './juggler.js';
 export { DroneMechanicEntity } from './droneMechanic.js';
 export { DroneHunterEntity } from './droneHunter.js';
+export { HelperBotEntity } from './helperBot.js';
 export { AlleyCatStatueEntity } from './alleyCatStatue.js';
 export { CityBlockEntity } from './cityBlock.js';
 export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
@@ -110,6 +111,9 @@ export { ArcLeechEntity } from './arcLeech.js';
 export { ArcPulseTotemEntity } from './arcPulseTotem.js';
 export { DroneChaserEntity } from './droneChaser.js';
 export { RazorDroneEntity } from './razorDrone.js';
+export { GuideDroneEntity } from './guideDrone.js';
+export { GuideBotEntity } from './guideBot.js';
+export { HelpfulNpcEntity } from './helpfulNpc.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

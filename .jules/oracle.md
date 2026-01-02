@@ -12,3 +12,7 @@ Split `BuildUI.js` into modular components within `src/dev/ui/`:
 - `domUtils` (Shared helpers)
 
 `BuildUI` now acts as a pure coordinator/facade, instantiating these components and delegating updates. This improves readability and maintainability without changing external APIs.
+
+## 2026-01-02 - [Refactor] DevMode Modular Managers
+Discovery: `src/dev/devMode.js` mixed selection, clipboard serialization, and deletion flows with core dev-mode orchestration, creating tight coupling between editor state and world mutation.
+Action: [Separation of Concerns] Split selection and clipboard responsibilities into `DevSelectionManager` and `DevClipboardManager`, keeping DevMode as the coordinator and documenting the dependency flow in `docs/architecture/README.md`.

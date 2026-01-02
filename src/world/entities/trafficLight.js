@@ -2,21 +2,19 @@ import * as THREE from 'three';
 import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 
-const LIGHT_STATES = ['red', 'green', 'yellow'];
-const STATE_DURATIONS = {
-    red: 5,
-    green: 5,
-    yellow: 2
-};
+const PHASES = [
+    { name: 'green', duration: 4.2, activeIndex: 2 },
+    { name: 'yellow', duration: 1.2, activeIndex: 1 },
+    { name: 'red', duration: 4.2, activeIndex: 0 }
+];
 
 export class TrafficLightEntity extends BaseEntity {
     constructor(params = {}) {
         super(params);
         this.type = 'trafficLight';
-        this.currentStateIndex = 0;
-        this.stateElapsed = 0;
-        this.lightMeshes = null;
-        this._virtualLight = null;
+        this._time = Math.random() * 2;
+        this._phaseIndex = 0;
+        this._lightMaterials = [];
     }
 
     static get displayName() { return 'Traffic Light'; }
@@ -24,149 +22,113 @@ export class TrafficLightEntity extends BaseEntity {
     createMesh(params) {
         const group = new THREE.Group();
 
-        const baseGeo = new THREE.CylinderGeometry(0.55, 0.65, 0.35, 12);
-        const baseMat = new THREE.MeshStandardMaterial({ color: 0x3a3a3a, roughness: 0.8, metalness: 0.2 });
-        const base = new THREE.Mesh(baseGeo, baseMat);
-        base.position.y = 0.175;
+        const poleHeight = params.height || 3.4 + Math.random() * 0.6;
+        const poleRadius = 0.07 + Math.random() * 0.02;
+        const armLength = 0.9 + Math.random() * 0.4;
+        const housingHeight = 0.7;
+        const housingWidth = 0.32;
+        const housingDepth = 0.26;
+
+        const metalMaterial = new THREE.MeshStandardMaterial({
+            color: params.color || 0x2f2f3a,
+            roughness: 0.5,
+            metalness: 0.7
+        });
+
+        const base = new THREE.Mesh(
+            new THREE.CylinderGeometry(poleRadius * 2.4, poleRadius * 2.6, 0.15, 16),
+            metalMaterial
+        );
+        base.position.y = 0.075;
         base.castShadow = true;
         base.receiveShadow = true;
         group.add(base);
 
-        const poleGeo = new THREE.CylinderGeometry(0.12, 0.15, 4.2, 12);
-        const poleMat = new THREE.MeshStandardMaterial({ color: 0x4c4c4c, roughness: 0.6, metalness: 0.3 });
-        const pole = new THREE.Mesh(poleGeo, poleMat);
-        pole.position.y = 2.35;
+        const pole = new THREE.Mesh(
+            new THREE.CylinderGeometry(poleRadius, poleRadius * 1.05, poleHeight, 14),
+            metalMaterial
+        );
+        pole.position.y = 0.15 + poleHeight / 2;
         pole.castShadow = true;
         pole.receiveShadow = true;
         group.add(pole);
 
-        const armLength = 2.1;
-        const armGeo = new THREE.BoxGeometry(armLength, 0.2, 0.2);
-        const armMat = new THREE.MeshStandardMaterial({ color: 0x2e2e2e, metalness: 0.4, roughness: 0.5 });
-        const arm = new THREE.Mesh(armGeo, armMat);
-        arm.position.set(armLength * 0.5, 4.1, 0);
+        const arm = new THREE.Mesh(
+            new THREE.BoxGeometry(armLength, poleRadius * 1.6, poleRadius * 1.6),
+            metalMaterial
+        );
+        arm.position.set(armLength / 2, pole.position.y + poleHeight * 0.35, 0);
         arm.castShadow = true;
-        arm.receiveShadow = true;
         group.add(arm);
 
-        const braceGeo = new THREE.BoxGeometry(0.25, 0.9, 0.08);
-        const brace = new THREE.Mesh(braceGeo, armMat);
-        brace.position.set(armLength * 0.3, 3.7, 0);
-        brace.castShadow = true;
-        brace.receiveShadow = true;
-        group.add(brace);
+        const joint = new THREE.Mesh(
+            new THREE.SphereGeometry(poleRadius * 1.25, 12, 12),
+            metalMaterial
+        );
+        joint.position.set(0, arm.position.y, 0);
+        joint.castShadow = true;
+        group.add(joint);
 
-        const headGeo = new THREE.BoxGeometry(0.5, 1.05, 0.45);
-        const headMat = new THREE.MeshStandardMaterial({ color: 0x1f1f1f, roughness: 0.7, metalness: 0.25 });
-        const head = new THREE.Mesh(headGeo, headMat);
-        head.position.set(armLength + 0.35, 3.9, 0);
-        head.castShadow = true;
-        head.receiveShadow = true;
-        group.add(head);
+        const housingGroup = new THREE.Group();
+        housingGroup.position.set(armLength, arm.position.y - housingHeight * 0.1, 0);
+        group.add(housingGroup);
 
-        const visorGeo = new THREE.BoxGeometry(0.55, 0.12, 0.5);
-        const visor = new THREE.Mesh(visorGeo, armMat);
-        visor.position.set(armLength + 0.35, 4.4, 0);
-        visor.castShadow = true;
-        visor.receiveShadow = true;
-        group.add(visor);
+        const housing = new THREE.Mesh(
+            new THREE.BoxGeometry(housingWidth, housingHeight, housingDepth),
+            metalMaterial
+        );
+        housing.castShadow = true;
+        housingGroup.add(housing);
 
-        const lightGeo = new THREE.SphereGeometry(0.12, 16, 16);
-        const redLight = new THREE.Mesh(lightGeo, this._createLightMaterial(0xd2312d));
-        const yellowLight = new THREE.Mesh(lightGeo, this._createLightMaterial(0xe0c22e));
-        const greenLight = new THREE.Mesh(lightGeo, this._createLightMaterial(0x31d25c));
+        const hoodGeometry = new THREE.CylinderGeometry(housingWidth * 0.18, housingWidth * 0.22, housingDepth * 0.4, 14, 1, true);
+        hoodGeometry.rotateX(Math.PI / 2);
 
-        redLight.position.set(armLength + 0.35, 4.25, 0.24);
-        yellowLight.position.set(armLength + 0.35, 3.9, 0.24);
-        greenLight.position.set(armLength + 0.35, 3.55, 0.24);
+        const lightColors = [0xff3b30, 0xffd60a, 0x34c759];
+        for (let i = 0; i < 3; i += 1) {
+            const material = new THREE.MeshStandardMaterial({
+                color: lightColors[i],
+                emissive: new THREE.Color(lightColors[i]),
+                emissiveIntensity: 0.25,
+                roughness: 0.3,
+                metalness: 0.1
+            });
+            this._lightMaterials.push(material);
 
-        [redLight, yellowLight, greenLight].forEach(light => {
-            light.castShadow = true;
-            light.receiveShadow = true;
-            group.add(light);
-        });
+            const lens = new THREE.Mesh(
+                new THREE.SphereGeometry(housingWidth * 0.16, 16, 16),
+                material
+            );
+            lens.position.set(housingWidth * 0.15, housingHeight * 0.22 - i * housingHeight * 0.32, housingDepth * 0.52);
+            housingGroup.add(lens);
 
-        this.lightMeshes = {
-            red: redLight,
-            yellow: yellowLight,
-            green: greenLight
-        };
+            const hood = new THREE.Mesh(hoodGeometry, metalMaterial);
+            hood.position.set(housingWidth * 0.15, lens.position.y, housingDepth * 0.52);
+            housingGroup.add(hood);
+        }
 
-        this._applyLightState(LIGHT_STATES[this.currentStateIndex]);
+        const backPlate = new THREE.Mesh(
+            new THREE.BoxGeometry(housingWidth * 0.95, housingHeight * 1.05, housingDepth * 0.1),
+            metalMaterial
+        );
+        backPlate.position.z = -housingDepth * 0.45;
+        housingGroup.add(backPlate);
 
         return group;
     }
 
     update(dt) {
-        if (!this.lightMeshes) return;
-
-        this.stateElapsed += dt;
-        const state = LIGHT_STATES[this.currentStateIndex];
-        const duration = STATE_DURATIONS[state] || 1;
-
-        if (this.stateElapsed >= duration) {
-            this.stateElapsed -= duration;
-            this.currentStateIndex = (this.currentStateIndex + 1) % LIGHT_STATES.length;
-            this._applyLightState(LIGHT_STATES[this.currentStateIndex]);
+        this._time += dt;
+        const phase = PHASES[this._phaseIndex];
+        if (this._time >= phase.duration) {
+            this._time = 0;
+            this._phaseIndex = (this._phaseIndex + 1) % PHASES.length;
         }
-    }
 
-    postInit() {
-        if (window.app?.world?.lightSystem) {
-            // Register initial light
-            this.mesh.updateMatrixWorld(true);
-            const worldPos = new THREE.Vector3().setFromMatrixPosition(this.mesh.matrixWorld);
-            this._virtualLight = window.app.world.lightSystem.register(worldPos, 0xff0000, 0, 20);
-
-            // Immediately sync
-            this._applyLightState(LIGHT_STATES[this.currentStateIndex]);
-        }
-    }
-
-    _createLightMaterial(hex) {
-        return new THREE.MeshStandardMaterial({
-            color: hex,
-            emissive: new THREE.Color(hex),
-            emissiveIntensity: 0.15,
-            roughness: 0.4,
-            metalness: 0.2
+        const activeIndex = PHASES[this._phaseIndex].activeIndex;
+        this._lightMaterials.forEach((material, index) => {
+            const target = index === activeIndex ? 2.2 : 0.25;
+            material.emissiveIntensity = THREE.MathUtils.lerp(material.emissiveIntensity, target, dt * 6);
         });
-    }
-
-    _applyLightState(state) {
-        if (!this.lightMeshes) return;
-
-        const activeIntensity = 2.2;
-        const idleIntensity = 0.15;
-
-        this.lightMeshes.red.material.emissiveIntensity = state === 'red' ? activeIntensity : idleIntensity;
-        this.lightMeshes.yellow.material.emissiveIntensity = state === 'yellow' ? activeIntensity : idleIntensity;
-        this.lightMeshes.green.material.emissiveIntensity = state === 'green' ? activeIntensity : idleIntensity;
-
-        if (this._virtualLight) {
-            let activeMesh = null;
-            let color = 0x000000;
-
-            if (state === 'red') {
-                activeMesh = this.lightMeshes.red;
-                color = 0xd2312d;
-            } else if (state === 'yellow') {
-                activeMesh = this.lightMeshes.yellow;
-                color = 0xe0c22e;
-            } else if (state === 'green') {
-                activeMesh = this.lightMeshes.green;
-                color = 0x31d25c;
-            }
-
-            if (activeMesh) {
-                // Attach to the active bulb mesh so LightSystem tracks its position
-                this._virtualLight.parentMesh = activeMesh;
-                this._virtualLight.color.setHex(color);
-                this._virtualLight.intensity = 2.0;
-            } else {
-                this._virtualLight.intensity = 0;
-            }
-        }
     }
 }
 

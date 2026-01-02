@@ -80,6 +80,7 @@ export { CityBlockEntity } from './cityBlock.js';
 export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
 export { OilPumpJackEntity } from './oilPumpJack.js';
 export { SentryPylonEntity } from './sentryPylon.js';
+export { SentryTurretEntity } from './sentryTurret.js';
 export { SubwayVentEntity } from './subwayVent.js';
 
 

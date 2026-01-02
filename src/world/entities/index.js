@@ -78,6 +78,7 @@ export { AlleyCatStatueEntity } from './alleyCatStatue.js';
 export { CityBlockEntity } from './cityBlock.js';
 export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
 export { OilPumpJackEntity } from './oilPumpJack.js';
+export { SubwayVentEntity } from './subwayVent.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

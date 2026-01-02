@@ -76,6 +76,7 @@ export { BikeRackEntity } from './bikeRack.js';
 export { SmartBenchEntity } from './smartBench.js';
 export { KioskEntity } from './kiosk.js';
 export { MallDirectoryEntity } from './mallDirectory.js';
+export { BalconyLaundryLineEntity } from './balconyLaundryLine.js';
 export { ApartmentLaundryLineEntity } from './apartmentLaundryLine.js';
 export { ATMEntity } from './atm.js';
 export { DJEntity } from './DJ.js';

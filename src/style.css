@@ -452,6 +452,28 @@ canvas {
 }
 
 /* Outliner Items */
+.dev-outliner-search-container {
+    padding: 8px 10px;
+    border-bottom: 1px solid #333;
+    background: #1a1a1a;
+}
+
+.dev-outliner-search {
+    width: 100%;
+    background: #111;
+    border: 1px solid #333;
+    color: #eee;
+    padding: 6px 8px;
+    border-radius: 4px;
+    font-size: 12px;
+    box-sizing: border-box; /* Ensure padding doesn't overflow width */
+}
+
+.dev-outliner-search:focus {
+    border-color: #3b82f6;
+    outline: none;
+}
+
 .outliner-item {
     padding: 4px 10px;
     cursor: pointer;

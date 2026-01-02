@@ -1,7 +1,7 @@
-# Parcel Locker
+# Parcel Locker 2
 
 ## Overview
-The Parcel Locker is a secure apartment delivery bank with a glowing touchscreen and beacon. It adds a modern logistics prop for apartment courtyards and lobby entrances.
+The black Parcel Locker is a secure apartment delivery bank with a glowing touchscreen and beacon. It adds a modern logistics prop for apartment courtyards and lobby entrances.
 
 ## Visuals
 - Composite geometry: a textured concrete body, door panel plane with a procedural locker-grid texture, and a canopy slab.

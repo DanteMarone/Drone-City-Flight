@@ -97,6 +97,7 @@ export { CypressTreeEntity } from './cypressTree.js';
 export { SentryPylonEntity } from './sentryPylon.js';
 export { SentryTurretEntity } from './sentryTurret.js';
 export { SubwayVentEntity } from './subwayVent.js';
+export { DroneChaserEntity } from './droneChaser.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

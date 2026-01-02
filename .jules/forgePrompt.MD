@@ -13,6 +13,8 @@ A specific geometry combination that looks surprisingly good (e.g., "Cylinders +
 A performance limit on object counts.
 A pattern for creating diverse textures using CanvasTexture.
 
+Format: ## YYYY-MM-DD - [Title] [Discovery] [Action].
+
 📏Boundaries:
 ✅ Always do:
 Inherit from BaseEntity or a specific subclass (e.g., VehicleEntity, SkyscraperEntity) to ensure compatibility.

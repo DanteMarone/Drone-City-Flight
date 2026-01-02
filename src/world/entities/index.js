@@ -91,6 +91,7 @@ export { BuskerEntity } from './busker.js';
 export { JugglerEntity } from './juggler.js';
 export { DroneMechanicEntity } from './droneMechanic.js';
 export { DroneHunterEntity } from './droneHunter.js';
+export { BuzzSawDroneEntity } from './buzzSawDrone.js';
 export { HelperBotEntity } from './helperBot.js';
 export { AlleyCatStatueEntity } from './alleyCatStatue.js';
 export { CityBlockEntity } from './cityBlock.js';

@@ -96,6 +96,7 @@ export { BiolumeTreeEntity } from './biolumeTree.js';
 export { CypressTreeEntity } from './cypressTree.js';
 export { SentryPylonEntity } from './sentryPylon.js';
 export { SentryTurretEntity } from './sentryTurret.js';
+export { ArcLeechBeaconEntity } from './arcLeechBeacon.js';
 export { SubwayVentEntity } from './subwayVent.js';
 
 

@@ -201,8 +201,9 @@ export class App {
 
             // Landing Pad Recharge Logic
             // Relaxed check: Prioritize height over strict velocity to handle micro-bounces
-            this.world.colliders.forEach(entity => {
-                if (entity.type === 'landingPad' && entity.mesh) {
+            // Bolt Optimization: Iterate only landingPads instead of all world.colliders
+            this.world.landingPads.forEach(entity => {
+                if (entity.mesh) {
                     const localPos = this.drone.position.clone();
                     entity.mesh.worldToLocal(localPos);
 

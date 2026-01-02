@@ -12,3 +12,6 @@ Split `BuildUI.js` into modular components within `src/dev/ui/`:
 - `domUtils` (Shared helpers)
 
 `BuildUI` now acts as a pure coordinator/facade, instantiating these components and delegating updates. This improves readability and maintainability without changing external APIs.
+
+## 2025-03-08 - [Refactor] Environment Orchestration Boundary
+Discovery: App-level update logic repeatedly mixed global lighting state with skybox/cloud visuals, indicating a recurring boundary violation between core orchestration and world environment concerns. Action: Introduced `EnvironmentSystem` as a single orchestrator that owns lighting, skybox, and cloud updates, keeping `App` focused on lifecycle and high-level flow.

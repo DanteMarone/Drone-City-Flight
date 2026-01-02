@@ -84,7 +84,7 @@ const createDoorTexture = () => {
     return texture;
 };
 
-export class ParcelLockerEntity extends BaseEntity {
+export class ParcelLocker2Entity extends BaseEntity {
     constructor(params = {}) {
         super(params);
         this.type = 'parcelLocker';
@@ -94,7 +94,7 @@ export class ParcelLockerEntity extends BaseEntity {
         this._beaconRing = null;
     }
 
-    static get displayName() { return 'Parcel Locker'; }
+    static get displayName() { return 'Parcel Locker 2'; }
 
     createMesh(params) {
         const group = new THREE.Group();
@@ -272,4 +272,4 @@ export class ParcelLockerEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('parcelLocker', ParcelLockerEntity);
+EntityRegistry.register('parcelLocker2', ParcelLocker2Entity);

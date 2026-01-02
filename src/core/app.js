@@ -55,8 +55,9 @@ export class App {
         this.drone = new Drone(this.renderer.scene);
         this.battery = new BatteryManager();
         this.person = new Person(this.renderer.scene);
-        this.person.setVisible(false);
-        this.mode = 'drone';
+        this.person.setVisible(true);
+        this.mode = null;
+        this.droneLanding = false;
 
         // Pass drone to world for BirdSystem
         this.world.birdSystem.setDrone(this.drone);
@@ -81,6 +82,8 @@ export class App {
 
         this.devMode = new DevMode(this);
         this.photoMode = new PhotoMode(this);
+
+        this._setMode('person', { syncToPerson: false });
 
         this.notifications.show("System Initialized", "info", 2000);
 
@@ -164,8 +167,8 @@ export class App {
         move.cameraDown = this.input.actions.cameraDown;
         move.jump = this.input.actions.jump;
 
-        if (events.toggleMode) {
-            this._toggleMode();
+        if (events.summonDrone && this.mode === 'person') {
+            this._summonDrone();
         }
 
         if (events.reset) {
@@ -194,6 +197,7 @@ export class App {
                 rings: this.rings.collectedCount,
                 battery: this.person.life.current,
                 resourceLabel: 'LIFE',
+                secondaryResource: null,
                 message: ""
             });
         } else if (this.drone) {
@@ -201,7 +205,11 @@ export class App {
 
             this.battery.update(dt, this.drone.velocity, move);
             if (this.battery.depleted) {
-                move.y = -1; move.x = 0; move.z = 0;
+                this.droneLanding = true;
+                move.y = -1;
+                move.x = 0;
+                move.z = 0;
+                move.yaw = 0;
             }
 
             this.world.update(dt, this.renderer.camera); // Birds & Vehicles & Lights
@@ -261,11 +269,7 @@ export class App {
             const alt = this.drone.position.y;
             let statusMsg = "";
             if (this.battery.depleted) {
-                if (speed < 0.1 && alt < 1.0) {
-                    statusMsg = "BATTERY EMPTY. PRESS R TO RESET.";
-                } else {
-                    statusMsg = "BATTERY EMPTY - LANDING";
-                }
+                statusMsg = "BATTERY EMPTY - LANDING";
             }
 
             this.hud.update({
@@ -274,10 +278,18 @@ export class App {
                 battery: this.battery.current,
                 rings: this.rings.collectedCount,
                 resourceLabel: 'BATTERY',
+                secondaryResource: {
+                    label: 'LIFE',
+                    value: this.person.life.current
+                },
                 message: statusMsg
             });
 
             this.compass.update(dt); // New
+
+            if (this.droneLanding && this._isDroneLanded()) {
+                this._setMode('person');
+            }
         }
 
         if (this.mode === 'person') {
@@ -302,24 +314,49 @@ export class App {
         this.input.resetFrame();
     }
 
-    _toggleMode() {
-        const nextMode = this.mode === 'drone' ? 'person' : 'drone';
+    _setMode(nextMode, { syncToPerson = true, syncToDrone = true } = {}) {
+        if (this.mode === nextMode) return;
         this.mode = nextMode;
 
         if (this.mode === 'person') {
+            this.droneLanding = false;
             this.drone.mesh.visible = false;
             this.person.setVisible(true);
             this.drone.resetAltitudeEffects();
-            this.person.position.copy(this.drone.position);
-            this.person.yaw = this.drone.yaw;
+            this.drone.velocity.set(0, 0, 0);
+            if (syncToPerson) {
+                this.person.position.copy(this.drone.position);
+                this.person.yaw = this.drone.yaw;
+            }
         } else {
             this.person.setVisible(false);
             this.drone.mesh.visible = true;
-            this.drone.position.copy(this.person.position);
-            this.drone.yaw = this.person.yaw;
-            this.drone.mesh.position.copy(this.drone.position);
-            this.drone.mesh.rotation.y = this.drone.yaw;
+            if (syncToDrone) {
+                this.drone.position.copy(this.person.position);
+                this.drone.yaw = this.person.yaw;
+                this.drone.mesh.position.copy(this.drone.position);
+                this.drone.mesh.rotation.y = this.drone.yaw;
+            }
         }
+    }
+
+    _summonDrone() {
+        this.battery.reset();
+        this.drone.velocity.set(0, 0, 0);
+        this.drone.tilt = { pitch: 0, roll: 0 };
+        this._setMode('drone', { syncToDrone: false });
+
+        const summonPosition = this.person.position.clone();
+        summonPosition.y += 1.5;
+        this.drone.position.copy(summonPosition);
+        this.drone.yaw = this.person.yaw;
+        this.drone.mesh.position.copy(this.drone.position);
+        this.drone.mesh.rotation.y = this.drone.yaw;
+    }
+
+    _isDroneLanded() {
+        const groundClearance = CONFIG.DRONE.RADIUS + 0.05;
+        return this.drone.position.y <= groundClearance && this.drone.velocity.length() < 0.2;
     }
 
     _resetGame() {
@@ -360,6 +397,7 @@ export class App {
         this.battery.reset();
         this.rings.reset();
         this.tutorial.reset();
+        this._setMode('person', { syncToPerson: false });
     }
 
     loadMap(data) {

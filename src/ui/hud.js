@@ -37,11 +37,20 @@ export class HUD {
             </div>
 
             <div class="hud-bottom-center">
-                 <div class="battery-label" id="batt-label">BATTERY</div>
-                 <div class="battery-bar-bg" role="progressbar" aria-labelledby="batt-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="hud-batt-bg">
-                     <div class="battery-bar-fill" id="hud-batt-fill"></div>
+                 <div class="hud-resource" id="hud-resource-primary">
+                     <div class="battery-label" id="batt-label">BATTERY</div>
+                     <div class="battery-bar-bg" role="progressbar" aria-labelledby="batt-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="hud-batt-bg">
+                         <div class="battery-bar-fill" id="hud-batt-fill"></div>
+                     </div>
+                     <div class="battery-text" id="hud-batt-text" aria-hidden="true">100%</div>
                  </div>
-                 <div class="battery-text" id="hud-batt-text" aria-hidden="true">100%</div>
+                 <div class="hud-resource hidden" id="hud-resource-secondary">
+                     <div class="battery-label" id="hud-secondary-label">LIFE</div>
+                     <div class="battery-bar-bg" role="progressbar" aria-labelledby="hud-secondary-label" aria-valuemin="0" aria-valuemax="100" aria-valuenow="100" id="hud-secondary-bg">
+                         <div class="battery-bar-fill" id="hud-secondary-fill"></div>
+                     </div>
+                     <div class="battery-text" id="hud-secondary-text" aria-hidden="true">100%</div>
+                 </div>
             </div>
 
             <div class="hud-center-message" id="hud-msg"></div>
@@ -58,6 +67,11 @@ export class HUD {
         this.elements.battFill = container.querySelector('#hud-batt-fill');
         this.elements.battText = container.querySelector('#hud-batt-text');
         this.elements.battLabel = container.querySelector('#batt-label');
+        this.elements.secondary = container.querySelector('#hud-resource-secondary');
+        this.elements.secondaryBg = container.querySelector('#hud-secondary-bg');
+        this.elements.secondaryFill = container.querySelector('#hud-secondary-fill');
+        this.elements.secondaryText = container.querySelector('#hud-secondary-text');
+        this.elements.secondaryLabel = container.querySelector('#hud-secondary-label');
         this.elements.msg = container.querySelector('#hud-msg');
         this.elements.pauseBtn = container.querySelector('#btn-pause');
 
@@ -82,22 +96,42 @@ export class HUD {
         }
 
         if (data.battery !== undefined) {
-            const pct = Math.max(0, Math.min(100, data.battery));
-            const pctInt = pct.toFixed(0);
-            this.elements.battFill.style.width = `${pct}%`;
-            this.elements.battText.innerText = `${pctInt}%`;
-            this.elements.battBg.setAttribute('aria-valuenow', pctInt);
-            this.elements.battBg.setAttribute('aria-valuetext', `${pctInt}%`);
+            this._updateResourceBar(this.elements.battFill, this.elements.battText, this.elements.battBg, data.battery);
+        }
 
-            // Color feedback
-            if (pct < 20) this.elements.battFill.style.backgroundColor = '#ff2222';
-            else if (pct < 50) this.elements.battFill.style.backgroundColor = '#ffaa22';
-            else this.elements.battFill.style.backgroundColor = '#22ffaa';
+        if (data.secondaryResource !== undefined) {
+            if (data.secondaryResource) {
+                this.elements.secondary.classList.remove('hidden');
+                if (data.secondaryResource.label !== undefined) {
+                    this.elements.secondaryLabel.innerText = data.secondaryResource.label;
+                }
+                this._updateResourceBar(
+                    this.elements.secondaryFill,
+                    this.elements.secondaryText,
+                    this.elements.secondaryBg,
+                    data.secondaryResource.value
+                );
+            } else {
+                this.elements.secondary.classList.add('hidden');
+            }
         }
 
         if (data.message !== undefined) {
             this.elements.msg.innerText = data.message;
             this.elements.msg.style.opacity = data.message ? 1 : 0;
         }
+    }
+
+    _updateResourceBar(fillEl, textEl, bgEl, value) {
+        const pct = Math.max(0, Math.min(100, value));
+        const pctInt = pct.toFixed(0);
+        fillEl.style.width = `${pct}%`;
+        textEl.innerText = `${pctInt}%`;
+        bgEl.setAttribute('aria-valuenow', pctInt);
+        bgEl.setAttribute('aria-valuetext', `${pctInt}%`);
+
+        if (pct < 20) fillEl.style.backgroundColor = '#ff2222';
+        else if (pct < 50) fillEl.style.backgroundColor = '#ffaa22';
+        else fillEl.style.backgroundColor = '#22ffaa';
     }
 }

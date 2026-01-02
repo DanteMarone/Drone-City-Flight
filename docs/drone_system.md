@@ -82,7 +82,7 @@ The `BatteryManager` implements a "Movement = Cost" mechanic.
 *   **Drain Rate**:
     *   **Default**: `CONFIG.BATTERY.DRAIN_RATE` (2.0 units/sec).
     *   **Override**: `world.batteryDrain` (set via `PlayerStartEntity` params in Dev Mode).
-*   **Depletion**: When energy hits 0, the `depleted` flag is set. The App layer is responsible for handling the "Game Over" state (usually respawning).
+*   **Depletion**: When energy hits 0, the `depleted` flag is set. The App layer forces a descent, and once the drone touches down it hands control back to the person mode.
 
 ## Altitude Effects (Whiteout)
 

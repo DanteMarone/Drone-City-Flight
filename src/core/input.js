@@ -27,7 +27,7 @@ export class InputManager {
             toggleCamera: false,
             reset: false,
             pause: false,
-            toggleMode: false
+            summonDrone: false
         };
 
         this._onKeyDown = this._onKeyDown.bind(this);
@@ -45,7 +45,7 @@ export class InputManager {
         if (e.code === this.bindings.TOGGLE_CAMERA) this.events.toggleCamera = true;
         if (e.code === this.bindings.RESET) this.events.reset = true;
         if (e.code === this.bindings.PAUSE) this.events.pause = true;
-        if (e.code === this.bindings.TOGGLE_MODE) this.events.toggleMode = true;
+        if (e.code === this.bindings.SUMMON_DRONE) this.events.summonDrone = true;
     }
 
     _onKeyUp(e) {
@@ -76,7 +76,7 @@ export class InputManager {
         this.events.toggleCamera = false;
         this.events.reset = false;
         this.events.pause = false;
-        this.events.toggleMode = false;
+        this.events.summonDrone = false;
     }
 
     getEvents() {

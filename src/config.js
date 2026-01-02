@@ -23,7 +23,7 @@ export const CONFIG = {
             JUMP: 'Space',
             RESET: 'KeyR',
             PAUSE: 'Escape',
-            TOGGLE_MODE: 'KeyP'
+            SUMMON_DRONE: 'KeyF'
         },
         SENSITIVITY: {
             YAW: 2.0,

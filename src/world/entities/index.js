@@ -60,6 +60,7 @@ export { GardenLanternEntity } from './gardenLantern.js';
 export { SunflowerPatchEntity } from './sunflowerPatch.js';
 export { PlanterBoxEntity } from './planterBox.js';
 export { PorchLightEntity } from './porchLight.js';
+export { HaloStreetLampEntity } from './haloStreetLamp.js';
 export { PorchSwingEntity } from './porchSwing.js';
 export { HedgeEntity } from './hedge.js';
 export { LaundryDryingRackEntity } from './laundryDryingRack.js';

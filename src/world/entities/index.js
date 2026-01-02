@@ -61,6 +61,7 @@ export { HaloLampEntity } from './haloLamp.js';
 export { SunflowerPatchEntity } from './sunflowerPatch.js';
 export { PlanterBoxEntity } from './planterBox.js';
 export { PorchLightEntity } from './porchLight.js';
+export { StreetLampEntity } from './streetLamp.js';
 export { PorchSwingEntity } from './porchSwing.js';
 export { HedgeEntity } from './hedge.js';
 export { LaundryDryingRackEntity } from './laundryDryingRack.js';

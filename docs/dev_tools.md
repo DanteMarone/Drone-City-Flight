@@ -18,6 +18,7 @@ graph TD
     DevMode --> Grid[GridSystem]
     DevMode --> Cam[DevCameraController]
     DevMode --> Waypoint[WaypointManager]
+    DevMode --> Clipboard[DevClipboardManager]
 
     BuildUI --> TopBar
     BuildUI --> Toolbar
@@ -37,7 +38,7 @@ graph TD
 
 #### 1. DevMode (`src/dev/devMode.js`)
 The central hub. It maintains the state of the editor (enabled/disabled), the current selection (`selectedObjects`), and coordinates the lifecycle of other systems.
-*   **Responsibilities**: Toggling state, managing selection lists, applying transforms from history, serializing/deserializing maps.
+*   **Responsibilities**: Toggling state, managing selection lists, applying transforms from history, coordinating map import/export.
 
 #### 2. InteractionManager (`src/dev/interaction.js`)
 Handles raw mouse inputs (mousedown, mousemove, mouseup) and Drag & Drop events.
@@ -70,6 +71,11 @@ Encapsulates all logic related to vehicle waypoints.
 *   **Responsibilities**: adding/removing waypoints, rendering the visualization lines/spheres, and updating paths in real-time.
 *   **Interaction**: `DevMode` delegates waypoint operations (like `add()`, `remove()`) to this manager.
 *   **Commands**: Generates `WaypointCommand` to support undo/redo for path changes.
+
+#### 7. DevClipboardManager (`src/dev/clipboardManager.js`)
+Owns selection clipboard behavior and mesh serialization for copy/paste workflows.
+*   **Responsibilities**: Serializing selected meshes, spawning entities from clipboard data, and keeping waypoint visuals in sync when dev mode is active.
+*   **Interaction**: `DevMode` calls `copySelected`, `pasteClipboard`, and `duplicateSelected`, which delegate to the clipboard manager.
 
 ---
 
@@ -112,7 +118,7 @@ Vehicles (Cars, Pickups) use a waypoint system for pathfinding.
 
 ## Data & Serialization
 
-Maps are saved as JSON files. The `DevMode._serializeMesh()` method converts runtime objects into a data schema:
+Maps are saved as JSON files. The `DevClipboardManager.serializeMesh()` method converts runtime objects into a data schema:
 ```json
 {
   "type": "car",

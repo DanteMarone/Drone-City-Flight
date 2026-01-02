@@ -16,3 +16,8 @@ Split `BuildUI.js` into modular components within `src/dev/ui/`:
 ## 2024-10-24 - Dead Code in BuildUI
 **Discovery:** `src/dev/buildUI.js` contained duplicate implementations of low-level UI helper methods (`_createVectorInput`, `_createScaleInput`, etc.) that were also present and active in `src/dev/ui/inspector.js`. The `BuildUI` class delegates property inspection to `Inspector` and does not use these local methods, creating a "God Class" maintenance risk where changes to one would not be reflected in the other.
 **Action:** Removed all unused helper methods from `src/dev/buildUI.js` to strictly enforce the separation of concerns: `BuildUI` manages the layout and sub-component instantiation, while `Inspector` manages property editing logic.
+## 2025-03-08 - [Refactor] Environment Orchestration Boundary
+Discovery: App-level update logic repeatedly mixed global lighting state with skybox/cloud visuals, indicating a recurring boundary violation between core orchestration and world environment concerns. Action: Introduced `EnvironmentSystem` as a single orchestrator that owns lighting, skybox, and cloud updates, keeping `App` focused on lifecycle and high-level flow.
+## 2026-01-02 - [Refactor] DevMode Modular Managers
+Discovery: `src/dev/devMode.js` mixed selection, clipboard serialization, and deletion flows with core dev-mode orchestration, creating tight coupling between editor state and world mutation.
+Action: [Separation of Concerns] Split selection and clipboard responsibilities into `DevSelectionManager` and `DevClipboardManager`, keeping DevMode as the coordinator and documenting the dependency flow in `docs/architecture/README.md`.

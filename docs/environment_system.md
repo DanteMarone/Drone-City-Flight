@@ -2,13 +2,14 @@
 
 ## Overview
 
-The Environment System manages the atmospheric and celestial visuals of the game world, creating a dynamic day-night cycle. It consists of three tightly coupled components:
+The Environment System manages the atmospheric and celestial visuals of the game world, creating a dynamic day-night cycle. It consists of coordinated components, led by an `EnvironmentSystem` orchestrator:
 
-1.  **TimeCycle** (`src/world/timeCycle.js`): The logical clock and state manager for sun/moon position and color palettes.
-2.  **Skybox** (`src/world/skybox.js`): Renders the infinite background and celestial bodies (Sun).
-3.  **CloudSystem** (`src/world/clouds.js`): Renders a procedural, infinite cloud layer using custom shaders.
+1.  **EnvironmentSystem** (`src/world/environmentSystem.js`): Owns global lighting, skybox, and cloud updates.
+2.  **TimeCycle** (`src/world/timeCycle.js`): The logical clock and state manager for sun/moon position and color palettes.
+3.  **Skybox** (`src/world/skybox.js`): Renders the infinite background and celestial bodies (Sun).
+4.  **CloudSystem** (`src/world/clouds.js`): Renders a procedural, infinite cloud layer using custom shaders.
 
-These components interact with `App.js` to update global lighting (DirectionalLight, AmbientLight) and the scene background.
+The `EnvironmentSystem` is instantiated by `App` and receives `TimeCycle` state every frame to update global lighting and sky visuals.
 
 ## Architecture
 
@@ -19,15 +20,15 @@ graph TD
     TC[TimeCycle Logic] -->|dt| TC
     TC -->|Outputs| State[State: SunPos, Colors, Intensity]
 
-    State -->|Update| App[App.js]
-    App -->|Apply| GL[Global Lights]
-    App -->|Apply| Fog[Scene Fog]
+    State -->|Update| Env[EnvironmentSystem]
+    Env -->|Apply| GL[Global Lights]
+    Env -->|Apply| Fog[Scene Fog]
 
-    State -->|Pass| Sky[Skybox]
+    Env -->|Pass| Sky[Skybox]
     Sky -->|Render| Bg[Scene Background]
     Sky -->|Render| Sun[Sun Mesh]
 
-    State -->|Pass| Clouds[CloudSystem]
+    Env -->|Pass| Clouds[CloudSystem]
     Clouds -->|Uniforms| Shader[Cloud Shader]
 ```
 
@@ -76,12 +77,17 @@ The system is instantiated in `App.init()` and updated in the main loop.
 
 ```javascript
 // App.js Initialization
-this.skybox = new Skybox(this.renderer.scene);
-this.cloudSystem = new CloudSystem(this.renderer.scene);
+this.environment = new EnvironmentSystem(this.renderer);
 
 // App.js Update Loop
-this.skybox.update(this.renderer.camera.position, this.world.timeCycle);
-this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
+this.environment.updateCycleAndLighting(dt, this.world.timeCycle);
+this.environment.updateVisuals(
+    dt,
+    this.renderer.camera,
+    this.drone,
+    this.world.wind,
+    this.world.timeCycle
+);
 ```
 
 ## Configuration

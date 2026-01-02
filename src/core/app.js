@@ -1,5 +1,4 @@
 // src/core/app.js
-import * as THREE from 'three';
 import { Renderer } from './renderer.js';
 import { InputManager } from './input.js';
 import { Drone } from '../drone/drone.js';
@@ -20,10 +19,9 @@ import { ParticleSystem } from '../fx/particles.js';
 import { PostProcessing } from '../fx/post.js';
 import { CONFIG } from '../config.js';
 import { DevMode } from '../dev/devMode.js';
-import { Skybox } from '../world/skybox.js';
-import { CloudSystem } from '../world/clouds.js';
 import { PhotoMode } from '../ui/photoMode.js';
 import { NotificationSystem } from '../ui/notifications.js';
+import { EnvironmentSystem } from '../world/environmentSystem.js';
 
 export class App {
     constructor() {
@@ -44,7 +42,6 @@ export class App {
         this.hud.onPause = () => this.menu.toggle();
         this.audio = new AudioManager();
 
-        this._setupLights();
         this.world = new World(this.renderer.scene);
         this.particles = new ParticleSystem(this.renderer.scene);
 
@@ -55,8 +52,9 @@ export class App {
         this.drone = new Drone(this.renderer.scene);
         this.battery = new BatteryManager();
         this.person = new Person(this.renderer.scene);
-        this.person.setVisible(false);
-        this.mode = 'drone';
+        this.person.setVisible(true);
+        this.mode = 'person';
+        this.drone.mesh.visible = false;
 
         // Pass drone to world for BirdSystem
         this.world.birdSystem.setDrone(this.drone);
@@ -68,8 +66,7 @@ export class App {
         this.tutorial = new TutorialManager(this);
         this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
 
-        this.skybox = new Skybox(this.renderer.scene);
-        this.cloudSystem = new CloudSystem(this.renderer.scene);
+        this.environment = new EnvironmentSystem(this.renderer);
 
         this.cameraController = new CameraController(this.renderer.camera, this.drone);
         this.personCamera = new PersonCameraController(this.renderer.camera, this.person);
@@ -89,27 +86,6 @@ export class App {
         requestAnimationFrame(this.animate);
     }
 
-    _setupLights() {
-        this.ambientLight = new THREE.HemisphereLight(0xffffff, 0x444444, 0.6);
-        this.renderer.add(this.ambientLight);
-
-        this.sunLight = new THREE.DirectionalLight(0xffffff, 1.0);
-        this.sunLight.position.set(50, 80, 50);
-        this.sunLight.castShadow = true;
-        this.sunLight.shadow.mapSize.width = 2048;
-        this.sunLight.shadow.mapSize.height = 2048;
-        this.sunLight.shadow.camera.near = 0.5;
-        this.sunLight.shadow.camera.far = 500;
-
-        // Slightly larger shadow frustum for long shadows
-        const d = 120;
-        this.sunLight.shadow.camera.left = -d;
-        this.sunLight.shadow.camera.right = d;
-        this.sunLight.shadow.camera.top = d;
-        this.sunLight.shadow.camera.bottom = -d;
-        this.renderer.add(this.sunLight);
-    }
-
     update(dt) {
         // Photo Mode Handling
         if (this.photoMode && this.photoMode.enabled) {
@@ -119,17 +95,22 @@ export class App {
         }
 
         // Update environment first (Time Cycle)
-        this._updateEnvironment(dt);
+        if (this.environment) {
+            this.environment.updateCycleAndLighting(dt, this.world?.timeCycle);
+        }
 
         // Dev Mode Handling
         if (this.devMode && this.devMode.enabled) {
             this.devMode.update(dt);
             // Even in Dev Mode, we want to update environment visuals
-            if (this.skybox) {
-                this.skybox.update(this.renderer.camera.position, this.world.timeCycle);
-            }
-            if (this.cloudSystem) {
-                this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
+            if (this.environment) {
+                this.environment.updateVisuals(
+                    dt,
+                    this.renderer.camera,
+                    this.drone,
+                    this.world.wind,
+                    this.world.timeCycle
+                );
             }
             // Update light system even in Dev Mode for accurate visuals
             if (this.world) {
@@ -164,12 +145,12 @@ export class App {
         move.cameraDown = this.input.actions.cameraDown;
         move.jump = this.input.actions.jump;
 
-        if (events.toggleMode) {
-            this._toggleMode();
-        }
-
         if (events.reset) {
             this._resetGame();
+        }
+
+        if (events.summonDrone && this.mode === 'person') {
+            this._enterDroneMode({ summon: true });
         }
 
         if (this.mode === 'person') {
@@ -193,7 +174,8 @@ export class App {
                 altitude: alt,
                 rings: this.rings.collectedCount,
                 battery: this.person.life.current,
-                resourceLabel: 'LIFE',
+                resourceLabel: 'HEALTH',
+                showSecondary: false,
                 message: ""
             });
         } else if (this.drone) {
@@ -260,24 +242,42 @@ export class App {
 
             const alt = this.drone.position.y;
             let statusMsg = "";
+            let autoDisembark = false;
             if (this.battery.depleted) {
                 if (speed < 0.1 && alt < 1.0) {
-                    statusMsg = "BATTERY EMPTY. PRESS R TO RESET.";
+                    statusMsg = "BATTERY EMPTY - DISEMBARKING";
+                    autoDisembark = true;
                 } else {
                     statusMsg = "BATTERY EMPTY - LANDING";
                 }
             }
 
-            this.hud.update({
-                speed: speed,
-                altitude: alt,
-                battery: this.battery.current,
-                rings: this.rings.collectedCount,
-                resourceLabel: 'BATTERY',
-                message: statusMsg
-            });
+            if (autoDisembark) {
+                this._enterPersonMode();
+                this.hud.update({
+                    speed: 0,
+                    altitude: this.person.position.y,
+                    rings: this.rings.collectedCount,
+                    battery: this.person.life.current,
+                    resourceLabel: 'HEALTH',
+                    showSecondary: false,
+                    message: ""
+                });
+            } else {
+                this.hud.update({
+                    speed: speed,
+                    altitude: alt,
+                    battery: this.battery.current,
+                    rings: this.rings.collectedCount,
+                    resourceLabel: 'BATTERY',
+                    secondaryLabel: 'HEALTH',
+                    secondaryBattery: this.person.life.current,
+                    showSecondary: true,
+                    message: statusMsg
+                });
 
-            this.compass.update(dt); // New
+                this.compass.update(dt); // New
+            }
         }
 
         if (this.mode === 'person') {
@@ -289,32 +289,46 @@ export class App {
         }
 
         // Environment update is now handled at start of frame
-
-        if (this.skybox) {
-            // Skybox needs to know time/sun info
-            this.skybox.update(this.renderer.camera.position, this.world.timeCycle);
-        }
-
-        if (this.cloudSystem) {
-            this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
+        if (this.environment) {
+            this.environment.updateVisuals(
+                dt,
+                this.renderer.camera,
+                this.drone,
+                this.world.wind,
+                this.world.timeCycle
+            );
         }
 
         this.input.resetFrame();
     }
 
-    _toggleMode() {
-        const nextMode = this.mode === 'drone' ? 'person' : 'drone';
-        this.mode = nextMode;
+    _enterPersonMode() {
+        this.mode = 'person';
+        this.drone.mesh.visible = false;
+        this.person.setVisible(true);
+        this.drone.resetAltitudeEffects();
+        this.person.position.copy(this.drone.position);
+        this.person.yaw = this.drone.yaw;
+        this.person.velocity.set(0, 0, 0);
+    }
 
-        if (this.mode === 'person') {
-            this.drone.mesh.visible = false;
-            this.person.setVisible(true);
-            this.drone.resetAltitudeEffects();
-            this.person.position.copy(this.drone.position);
-            this.person.yaw = this.drone.yaw;
+    _enterDroneMode({ summon = false } = {}) {
+        this.mode = 'drone';
+        this.person.setVisible(false);
+        this.drone.mesh.visible = true;
+
+        if (summon) {
+            const spawnPosition = this.person.position.clone();
+            spawnPosition.y = Math.max(spawnPosition.y + 1.5, 2);
+            this.drone.position.copy(spawnPosition);
+            this.drone.yaw = this.person.yaw;
+            this.drone.velocity.set(0, 0, 0);
+            this.drone.tilt = { pitch: 0, roll: 0 };
+
+            this.drone.mesh.position.copy(this.drone.position);
+            this.drone.mesh.rotation.y = this.drone.yaw;
+            this.drone.tiltGroup.rotation.set(0, 0, 0);
         } else {
-            this.person.setVisible(false);
-            this.drone.mesh.visible = true;
             this.drone.position.copy(this.person.position);
             this.drone.yaw = this.person.yaw;
             this.drone.mesh.position.copy(this.drone.position);
@@ -452,46 +466,6 @@ export class App {
         this._resetGame();
 
         this.notifications.show("Map Loaded Successfully", "success");
-    }
-
-    _updateEnvironment(dt) {
-        if (this.world && this.world.timeCycle) {
-            const cycle = this.world.timeCycle;
-
-            // Update cycle logic
-            cycle.update(dt);
-
-            // Apply Sun Position
-            if (this.sunLight) {
-                // Keep sun relative to drone/center to maximize shadow resolution near player
-                // But the cycle calculates global orbit.
-                // If we want shadows to work everywhere, sun needs to be far away or follow player.
-                // DirectionalLight position matters for shadow camera box.
-                // Let's keep sun "at infinity" direction-wise, but move position to follow drone x/z
-                // to keep shadow map centered?
-                // For now, let's just use the computed position from TimeCycle (relative to 0,0,0)
-                // and maybe offset by drone pos if needed.
-                // TimeCycle gives position on a sphere of radius 100.
-
-                this.sunLight.position.copy(cycle.sunPosition);
-
-                // Update Color & Intensity
-                this.sunLight.color.copy(cycle.sunColor);
-                this.sunLight.intensity = cycle.sunIntensity;
-            }
-
-            // Apply Ambient
-            if (this.ambientLight) {
-                this.ambientLight.color.copy(cycle.ambientColor);
-                this.ambientLight.groundColor.setHex(0x111111); // Dark ground
-                this.ambientLight.intensity = cycle.ambientIntensity;
-            }
-
-            // Fog (if enabled in scene, though config says density 0)
-            if (this.renderer.scene.fog) {
-                this.renderer.scene.fog.color.copy(cycle.fogColor);
-            }
-        }
     }
 
     animate(timestamp) {

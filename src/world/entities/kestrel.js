@@ -11,7 +11,7 @@ export class KestrelEntity extends BaseEntity {
 
         this.speed = params.speed ?? 4.5;
         this.waypointRadius = params.waypointRadius ?? 8;
-        this.waypoints = params.waypoints || [];
+        this.waypoints = (params.waypoints || []).map(wp => new THREE.Vector3(wp.x, wp.y, wp.z));
         this.currentWaypointIndex = 0;
 
         this.state = 'PERCH';
@@ -36,7 +36,7 @@ export class KestrelEntity extends BaseEntity {
 
     serialize() {
         const data = super.serialize();
-        data.waypoints = this.mesh.userData.waypoints;
+        data.params.waypoints = this.mesh.userData.waypoints;
         data.speed = this.speed;
         data.waypointRadius = this.waypointRadius;
         return data;
@@ -169,11 +169,11 @@ export class KestrelEntity extends BaseEntity {
 
         for (let i = 0; i < 5; i += 1) {
             const angle = step * i;
-            points.push({
-                x: base.x + Math.cos(angle) * this.waypointRadius,
-                y: height + Math.sin(angle * 2) * 0.8,
-                z: base.z + Math.sin(angle) * this.waypointRadius
-            });
+            points.push(new THREE.Vector3(
+                base.x + Math.cos(angle) * this.waypointRadius,
+                height + Math.sin(angle * 2) * 0.8,
+                base.z + Math.sin(angle) * this.waypointRadius
+            ));
         }
 
         this.waypoints = points;

@@ -57,6 +57,7 @@ export class HUD {
         this.elements.battBg = container.querySelector('#hud-batt-bg');
         this.elements.battFill = container.querySelector('#hud-batt-fill');
         this.elements.battText = container.querySelector('#hud-batt-text');
+        this.elements.battLabel = container.querySelector('#batt-label');
         this.elements.msg = container.querySelector('#hud-msg');
         this.elements.pauseBtn = container.querySelector('#btn-pause');
 
@@ -76,8 +77,14 @@ export class HUD {
         if (data.speed !== undefined) this.elements.spd.innerText = `${data.speed.toFixed(1)}m/s`;
         if (data.rings !== undefined) this.elements.rings.innerText = `${data.rings}`;
 
-        if (data.battery !== undefined) {
-            const pct = Math.max(0, Math.min(100, data.battery));
+        if (data.meterLabel !== undefined) {
+            this.elements.battLabel.innerText = data.meterLabel;
+            this.elements.battBg.setAttribute('aria-labelledby', this.elements.battLabel.id);
+        }
+
+        const meterValue = data.life ?? data.battery;
+        if (meterValue !== undefined) {
+            const pct = Math.max(0, Math.min(100, meterValue));
             const pctInt = pct.toFixed(0);
             this.elements.battFill.style.width = `${pct}%`;
             this.elements.battText.innerText = `${pctInt}%`;

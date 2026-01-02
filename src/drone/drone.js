@@ -13,6 +13,7 @@ export class Drone {
         this.yaw = 0;
         this.tilt = { pitch: 0, roll: 0 };
         this.propellerAngle = 0;
+        this.radius = CONFIG.DRONE.RADIUS;
 
         // Drone Mesh Components
         this.mesh = new THREE.Group();

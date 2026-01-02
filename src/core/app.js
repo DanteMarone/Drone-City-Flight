@@ -11,6 +11,9 @@ import { HUD } from '../ui/hud.js';
 import { MenuSystem } from '../ui/menu.js';
 import { RingCompass } from '../ui/compass.js';
 import { BatteryManager } from '../drone/battery.js';
+import { Person } from '../person/person.js';
+import { LifeManager } from '../person/life.js';
+import { PersonCameraController } from '../person/camera.js';
 import { RingManager } from '../gameplay/rings.js';
 import { TutorialManager } from '../gameplay/tutorial.js';
 import { AudioManager } from '../audio/audio.js';
@@ -52,6 +55,9 @@ export class App {
 
         this.drone = new Drone(this.renderer.scene);
         this.battery = new BatteryManager();
+        this.person = new Person(this.renderer.scene);
+        this.life = new LifeManager();
+        this.mode = 'drone';
 
         // Pass drone to world for BirdSystem
         this.world.birdSystem.setDrone(this.drone);
@@ -67,6 +73,7 @@ export class App {
         this.cloudSystem = new CloudSystem(this.renderer.scene);
 
         this.cameraController = new CameraController(this.renderer.camera, this.drone);
+        this.personCameraController = new PersonCameraController(this.renderer.camera, this.person);
 
         this.post = new PostProcessing(this.renderer.threeRenderer, this.renderer.scene, this.renderer.camera);
         window.addEventListener('renderer-resize', (e) => {
@@ -78,6 +85,7 @@ export class App {
 
         this.notifications.show("System Initialized", "info", 2000);
 
+        this._setMode('drone');
         this.running = true;
         this.animate = this.animate.bind(this);
         requestAnimationFrame(this.animate);
@@ -123,7 +131,8 @@ export class App {
                 this.skybox.update(this.renderer.camera.position, this.world.timeCycle);
             }
             if (this.cloudSystem) {
-                this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
+                const focusPosition = this.mode === 'person' ? this.person.position : this.drone.position;
+                this.cloudSystem.update(dt, focusPosition, this.renderer.camera, this.world.wind, this.world.timeCycle);
             }
             // Update light system even in Dev Mode for accurate visuals
             if (this.world) {
@@ -145,6 +154,9 @@ export class App {
         if (events.pause) {
             this.menu.toggle();
         }
+        if (events.toggleMode) {
+            this._toggleMode();
+        }
 
         // Menu Pause Handling
         if (this.paused) {
@@ -156,12 +168,13 @@ export class App {
         move.toggleCamera = events.toggleCamera;
         move.cameraUp = this.input.actions.cameraUp;
         move.cameraDown = this.input.actions.cameraDown;
+        move.jump = this.input.actions.jump;
 
         if (events.reset) {
             this._resetGame();
         }
 
-        if (this.drone) {
+        if (this.mode === 'drone' && this.drone) {
             this.tutorial.update(dt, move);
 
             this.battery.update(dt, this.drone.velocity, move);
@@ -183,7 +196,7 @@ export class App {
 
             const dynamicColliders = [...ringColliders];
 
-            const collided = this.physics.resolveCollisions(this.drone, dynamicColliders);
+            const collided = this.physics.resolveCollisions(this.drone, dynamicColliders).length > 0;
 
             if (collided) {
                 if (this.drone.velocity.length() > 1.0) {
@@ -241,10 +254,33 @@ export class App {
             });
 
             this.compass.update(dt); // New
+        } else if (this.mode === 'person' && this.person) {
+            this.world.update(dt, this.renderer.camera);
+            this.particles.update(dt);
+
+            this.person.update(dt, move, this.physics);
+
+            const speed = new THREE.Vector3(this.person.velocity.x, 0, this.person.velocity.z).length();
+            const alt = this.person.position.y;
+
+            this.hud.update({
+                speed: speed,
+                altitude: alt,
+                life: this.life.current,
+                rings: this.rings.collectedCount,
+                message: ""
+            });
+
+            if (this.compass && this.compass.dom) {
+                this.compass.dom.style.opacity = 0;
+            }
         }
 
-        if (this.cameraController) {
+        if (this.mode === 'drone' && this.cameraController) {
             this.cameraController.update(dt, move);
+        }
+        if (this.mode === 'person' && this.personCameraController) {
+            this.personCameraController.update(dt, move);
         }
 
         // Environment update is now handled at start of frame
@@ -255,7 +291,8 @@ export class App {
         }
 
         if (this.cloudSystem) {
-            this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
+            const focusPosition = this.mode === 'person' ? this.person.position : this.drone.position;
+            this.cloudSystem.update(dt, focusPosition, this.renderer.camera, this.world.wind, this.world.timeCycle);
         }
 
         this.input.resetFrame();
@@ -286,6 +323,62 @@ export class App {
         this.battery.reset();
         this.rings.reset();
         this.tutorial.reset();
+        this.life.reset();
+
+        if (this.person) {
+            this.person.position.set(this.drone.position.x, Math.max(this.person.radius, this.drone.position.y), this.drone.position.z);
+            this.person.velocity.set(0, 0, 0);
+            this.person.yaw = this.drone.yaw;
+            this.person.mesh.position.copy(this.person.position);
+            this.person.mesh.rotation.y = this.person.yaw;
+        }
+    }
+
+    _toggleMode() {
+        const nextMode = this.mode === 'drone' ? 'person' : 'drone';
+        this._setMode(nextMode);
+        if (this.notifications) {
+            const label = nextMode === 'person' ? 'Person Mode Enabled' : 'Drone Mode Enabled';
+            this.notifications.show(label, 'info', 1500);
+        }
+    }
+
+    _setMode(mode) {
+        this.mode = mode;
+
+        if (this.drone?.mesh) {
+            this.drone.mesh.visible = mode === 'drone';
+        }
+        if (this.person?.mesh) {
+            this.person.mesh.visible = mode === 'person';
+        }
+
+        if (mode === 'person' && this.person && this.drone) {
+            this.person.position.set(
+                this.drone.position.x,
+                Math.max(this.person.radius, this.drone.position.y),
+                this.drone.position.z
+            );
+            this.person.velocity.set(0, 0, 0);
+            this.person.yaw = this.drone.yaw;
+            this.person.mesh.position.copy(this.person.position);
+            this.person.mesh.rotation.y = this.person.yaw;
+        }
+
+        if (mode === 'drone' && this.person && this.drone) {
+            this.drone.position.set(
+                this.person.position.x,
+                Math.max(2, this.person.position.y + 1),
+                this.person.position.z
+            );
+            this.drone.velocity.set(0, 0, 0);
+            this.drone.yaw = this.person.yaw;
+            this.drone.mesh.position.copy(this.drone.position);
+            this.drone.mesh.rotation.y = this.drone.yaw;
+        }
+
+        const label = mode === 'person' ? 'LIFE' : 'BATTERY';
+        this.hud.update({ meterLabel: label });
     }
 
     loadMap(data) {

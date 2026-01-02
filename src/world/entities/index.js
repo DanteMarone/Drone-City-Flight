@@ -63,6 +63,7 @@ export { PlanterBoxEntity } from './planterBox.js';
 export { PorchLightEntity } from './porchLight.js';
 export { PorchSwingEntity } from './porchSwing.js';
 export { HedgeEntity } from './hedge.js';
+export { FloweringTrellisEntity } from './floweringTrellis.js';
 export { CourierDroneEntity } from './courierDrone.js';
 export { PulseReactorEntity } from './pulseReactor.js';
 export { GardenPlanterEntity } from './gardenPlanter.js';

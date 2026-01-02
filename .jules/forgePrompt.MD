@@ -78,10 +78,10 @@ Physics: If it needs collision, ensure createCollider() returns a valid THREE.Bo
 
 🛂Creative Fallback Protocol:
 If you cannot decide on a new item, check the current **Day of the Week** and pick a random real-world object from that category that is NOT in the index:
-* **Monday (Industrial):** Generator, HVAC Unit, Crane, Piping System, Dumpster.
-* **Tuesday (Nature/Organic):** Boulder, Hedge, Planter Box, Dead Tree, Cactus.
-* **Wednesday (Commercial):** Vending Machine, Kiosk, ATM, Neon Sign, Billboard.
-* **Thursday (Urban Furniture):** Bus Stop, Mailbox, Phone Booth, Barrier, Bike Rack.
-* **Friday (Leisure):** Fountain, Statue, Swing Set, Sandbox, Picnic Table.
-* **Saturday (Vehicles):** Scooter, Boat, Drone, Hot Dog Cart, Camper.
-* **Sunday (Architecture):** Gargoyle, Chimney, Balcony, Satellite Dish, Solar Panel.
+* **Monday (Industrial)
+* **Tuesday (Nature/Organic)
+* **Wednesday (Commercial)
+* **Thursday (Urban Furniture)
+* **Friday (Leisure)
+* **Saturday (Vehicles)
+* **Sunday (Architecture)

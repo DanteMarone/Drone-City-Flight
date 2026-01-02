@@ -20,8 +20,10 @@ export const CONFIG = {
             CAMERA_DOWN: 'KeyE',
             TOGGLE_CAMERA: 'KeyC',
             BOOST: 'ShiftLeft',
+            JUMP: 'Space',
             RESET: 'KeyR',
-            PAUSE: 'Escape'
+            PAUSE: 'Escape',
+            TOGGLE_MODE: 'KeyP'
         },
         SENSITIVITY: {
             YAW: 2.0,
@@ -54,6 +56,22 @@ export const CONFIG = {
         RECHARGE_RATE: 10.0 // Charge per second on landing pad
     },
 
+    PERSON: {
+        MAX_LIFE: 100,
+        MAX_SPEED: 6.0,
+        ACCELERATION: 20.0,
+        DRAG: 6.0,
+        AIR_DRAG: 1.5,
+        AIR_CONTROL: 0.4,
+        TURN_SPEED: 2.5,
+        JUMP_SPEED: 6.5,
+        RADIUS: 0.4,
+        HEIGHT: 1.7,
+        EYE_HEIGHT: 1.55,
+        FRICTION: 0.2,
+        GROUND_NORMAL_MIN: 0.55
+    },
+
     // Birds
     BIRD: {
         SPEED: 16.0, // Slightly slower than Drone Max (18)
@@ -68,7 +86,9 @@ export const CONFIG = {
         NEAR: 0.1,
         FAR: 1000,
         CHASE_OFFSET: { x: 0, y: 2, z: 4 }, // Behind and up
-        CHASE_SNAP_SPEED: 5.0
+        CHASE_SNAP_SPEED: 5.0,
+        PERSON_CHASE_OFFSET: { x: 0, y: 1.2, z: 2.6 },
+        PERSON_FPV_OFFSET: { x: 0, y: 1.55, z: -0.1 }
     },
 
     // World

@@ -6,6 +6,7 @@ export class RingCompass {
         this.scene = scene;
         this.drone = drone;
         this.ringsManager = ringsManager;
+        this.enabled = true;
 
         this.arrow = null;
         this._init();
@@ -31,6 +32,10 @@ export class RingCompass {
     }
 
     update(dt) {
+        if (!this.enabled) {
+            this.dom.style.opacity = 0;
+            return;
+        }
         const rings = this.ringsManager.rings;
         if (rings.length === 0) {
             this.dom.style.opacity = 0;
@@ -130,5 +135,10 @@ export class RingCompass {
 
             this.arrowEl.style.transform = `rotate(${deg}deg)`;
         }
+    }
+
+    setVisible(visible) {
+        this.enabled = visible;
+        this.dom.style.opacity = visible ? 1 : 0;
     }
 }

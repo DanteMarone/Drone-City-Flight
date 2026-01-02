@@ -4,6 +4,7 @@ import { Renderer } from './renderer.js';
 import { InputManager } from './input.js';
 import { Drone } from '../drone/drone.js';
 import { CameraController } from '../drone/camera.js';
+import { Person } from '../person/person.js';
 import { World } from '../world/world.js';
 import { ColliderSystem } from '../world/colliders.js';
 import { PhysicsEngine } from '../drone/physics.js';
@@ -52,6 +53,9 @@ export class App {
 
         this.drone = new Drone(this.renderer.scene);
         this.battery = new BatteryManager();
+        this.person = new Person(this.renderer.scene);
+        this.person.mesh.visible = false;
+        this.mode = 'drone';
 
         // Pass drone to world for BirdSystem
         this.world.birdSystem.setDrone(this.drone);
@@ -146,6 +150,10 @@ export class App {
             this.menu.toggle();
         }
 
+        if (events.toggleMode) {
+            this._toggleMode();
+        }
+
         // Menu Pause Handling
         if (this.paused) {
             this.input.resetFrame();
@@ -156,12 +164,13 @@ export class App {
         move.toggleCamera = events.toggleCamera;
         move.cameraUp = this.input.actions.cameraUp;
         move.cameraDown = this.input.actions.cameraDown;
+        move.jump = events.jump;
 
         if (events.reset) {
             this._resetGame();
         }
 
-        if (this.drone) {
+        if (this.drone && this.mode === 'drone') {
             this.tutorial.update(dt, move);
 
             this.battery.update(dt, this.drone.velocity, move);
@@ -243,6 +252,10 @@ export class App {
             this.compass.update(dt); // New
         }
 
+        if (this.mode === 'person') {
+            this._updatePersonMode(dt, move);
+        }
+
         if (this.cameraController) {
             this.cameraController.update(dt, move);
         }
@@ -255,7 +268,8 @@ export class App {
         }
 
         if (this.cloudSystem) {
-            this.cloudSystem.update(dt, this.drone.position, this.renderer.camera, this.world.wind, this.world.timeCycle);
+            const focusPosition = this.mode === 'person' ? this.person.position : this.drone.position;
+            this.cloudSystem.update(dt, focusPosition, this.renderer.camera, this.world.wind, this.world.timeCycle);
         }
 
         this.input.resetFrame();
@@ -270,9 +284,11 @@ export class App {
             // Use the mesh position to ensure we get the world transform
             this.drone.position.copy(start.mesh.position);
             this.drone.yaw = start.mesh.rotation.y;
+            this.person.reset(start.mesh.position.clone(), start.mesh.rotation.y);
         } else {
             this.drone.position.set(0, 5, 0);
             this.drone.yaw = 0;
+            this.person.reset(new THREE.Vector3(0, CONFIG.PERSON.HEIGHT / 2, 0), 0);
         }
 
         this.drone.velocity.set(0, 0, 0);
@@ -417,6 +433,42 @@ export class App {
             if (this.renderer.scene.fog) {
                 this.renderer.scene.fog.color.copy(cycle.fogColor);
             }
+        }
+    }
+
+    _updatePersonMode(dt, move) {
+        this.world.update(dt, this.renderer.camera);
+        this.particles.update(dt);
+        this.rings.update(dt);
+
+        const ringColliders = this.rings.rings.map(r => ({
+            type: 'ring',
+            mesh: r.mesh,
+            box: null
+        }));
+        const dynamicColliders = [...ringColliders];
+
+        this.person.update(dt, move, this.physics, dynamicColliders);
+
+        this.hud.update({
+            speed: this.person.velocity.length(),
+            altitude: this.person.position.y,
+            life: this.person.life,
+            rings: this.rings.collectedCount,
+            message: ''
+        });
+    }
+
+    _toggleMode() {
+        this.mode = this.mode === 'drone' ? 'person' : 'drone';
+        const isPerson = this.mode === 'person';
+        this.person.mesh.visible = isPerson;
+        this.drone.mesh.visible = !isPerson;
+        if (this.cameraController) {
+            this.cameraController.setTarget(isPerson ? this.person : this.drone);
+        }
+        if (this.notifications) {
+            this.notifications.show(isPerson ? 'Person Mode Enabled' : 'Drone Mode Enabled', 'info', 2000);
         }
     }
 

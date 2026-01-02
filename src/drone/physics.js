@@ -7,23 +7,24 @@ export class PhysicsEngine {
         this.colliderSystem = colliderSystem;
     }
 
-    resolveCollisions(drone, dynamicColliders) {
-        const radius = CONFIG.DRONE.RADIUS;
-        const hits = this.colliderSystem.checkCollisions(drone.position, radius, dynamicColliders);
+    resolveCollisions(body, dynamicColliders, options = {}) {
+        const radius = options.radius ?? body.radius ?? CONFIG.DRONE.RADIUS;
+        const restitution = options.restitution ?? 0.5;
+        const returnHits = options.returnHits ?? false;
+        const hits = this.colliderSystem.checkCollisions(body.position, radius, dynamicColliders);
 
         hits.forEach(hit => {
             // 1. Positional Correction (Push out)
             if (hit.penetration > 0) {
-                drone.position.add(hit.normal.clone().multiplyScalar(hit.penetration));
+                body.position.add(hit.normal.clone().multiplyScalar(hit.penetration));
             }
 
             // 2. Velocity Response (Bounce)
             // v' = v - (1 + e) * (v . n) * n
-            const velocity = drone.velocity;
+            const velocity = body.velocity;
             const vDotN = velocity.dot(hit.normal);
 
             if (vDotN < 0) {
-                const restitution = 0.5; // Bounciness
                 const impulse = -(1 + restitution) * vDotN;
                 velocity.add(hit.normal.clone().multiplyScalar(impulse));
 
@@ -33,6 +34,10 @@ export class PhysicsEngine {
                 // Reconstruct velocity ?? Simple way: multiply perp component
             }
         });
+
+        if (returnHits) {
+            return hits;
+        }
 
         return hits.length > 0;
     }

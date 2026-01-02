@@ -4,9 +4,9 @@ import { CONFIG } from '../config.js';
 import { damp, lerp } from '../utils/math.js';
 
 export class CameraController {
-    constructor(camera, drone) {
+    constructor(camera, target) {
         this.camera = camera;
-        this.drone = drone;
+        this.target = target;
 
         // State
         this.mode = 'CHASE'; // 'CHASE' | 'FPV'
@@ -98,26 +98,27 @@ export class CameraController {
     }
 
     _updateTransform(dt) {
-        const dronePos = this.drone.position;
-        const droneYaw = this.drone.yaw;
+        const basePos = this.target.position;
+        const targetYaw = this.target.yaw;
+        const chaseOffset = this.target.chaseOffset || this.offset;
+        const pivotHeight = this.target.pivotHeight ?? 0.5;
 
         if (this.mode === 'FPV') {
-            // Place camera at nose of drone
-            const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), droneYaw);
-            // Tilt matching
-            const tilt = this.drone.tilt || { pitch: 0 };
-
-            // FPV Position: slightly forward
-            const fpvPos = dronePos.clone().add(new THREE.Vector3(0, 0, -0.4).applyAxisAngle(new THREE.Vector3(0,1,0), droneYaw));
+            // Place camera at target-specific FPV offset
+            const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0, 1, 0), targetYaw);
+            const tilt = this.target.tilt || { pitch: 0, roll: 0 };
+            const fpvOffset = (this.target.fpvOffset || new THREE.Vector3(0, 0, -0.4))
+                .clone()
+                .applyAxisAngle(new THREE.Vector3(0, 1, 0), targetYaw);
+            const fpvPos = basePos.clone().add(fpvOffset);
 
             this.camera.position.copy(fpvPos);
-            // Look forward + tilt
-            const lookTarget = fpvPos.clone().add(fwd).add(new THREE.Vector3(0, -tilt.pitch, 0)); // Approx tilt
+            const lookTarget = fpvPos.clone().add(fwd).add(new THREE.Vector3(0, -tilt.pitch, 0));
             this.camera.lookAt(lookTarget);
 
             // Apply Roll to camera? FPV usually has roll.
             // ThreeJS camera.rotation.z
-            this.camera.rotation.z = (this.drone.tilt ? this.drone.tilt.roll : 0);
+            this.camera.rotation.z = tilt.roll || 0;
 
         } else {
             // CHASE
@@ -125,7 +126,7 @@ export class CameraController {
 
             // Calculate offset based on Spherical coords + Drone Yaw
             // Theta is offset from Drone Rear
-            const dist = this.offset.z; // radius
+            const dist = chaseOffset.z; // radius
             const hDist = dist * Math.cos(this.orbitAngles.phi);
             const vDist = dist * Math.sin(this.orbitAngles.phi); // Height offset
 
@@ -134,21 +135,25 @@ export class CameraController {
             // We want camera at +Z (Behind).
             // Let's calculate offset vector.
 
-            const totalYaw = droneYaw + this.orbitAngles.theta;
+            const totalYaw = targetYaw + this.orbitAngles.theta;
             const offsetX = hDist * Math.sin(totalYaw); // +X is left?
             const offsetZ = hDist * Math.cos(totalYaw);
 
-            const targetPos = new THREE.Vector3(
-                dronePos.x + offsetX,
-                dronePos.y + vDist + 0.5, // 0.5 pivot height
-                dronePos.z + offsetZ
+            const cameraTarget = new THREE.Vector3(
+                basePos.x + offsetX,
+                basePos.y + vDist + pivotHeight,
+                basePos.z + offsetZ
             );
 
             // Smooth Camera follow (Damp)
-            this.currentPos.lerp(targetPos, 1.0 - Math.exp(-10 * dt)); // Fast follow
+            this.currentPos.lerp(cameraTarget, 1.0 - Math.exp(-10 * dt)); // Fast follow
 
             this.camera.position.copy(this.currentPos);
-            this.camera.lookAt(dronePos);
+            this.camera.lookAt(basePos);
         }
+    }
+
+    setTarget(target) {
+        this.target = target;
     }
 }

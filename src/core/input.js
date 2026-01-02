@@ -18,12 +18,15 @@ export class InputManager {
             right: false,
             cameraUp: false,
             cameraDown: false,
-            boost: false
+            boost: false,
+            jump: false
         };
 
         // One-shot events
         this.events = {
             toggleCamera: false,
+            toggleMode: false,
+            jump: false,
             reset: false,
             pause: false
         };
@@ -41,6 +44,8 @@ export class InputManager {
 
         // Handle triggers
         if (e.code === this.bindings.TOGGLE_CAMERA) this.events.toggleCamera = true;
+        if (e.code === this.bindings.TOGGLE_MODE) this.events.toggleMode = true;
+        if (e.code === this.bindings.JUMP) this.events.jump = true;
         if (e.code === this.bindings.RESET) this.events.reset = true;
         if (e.code === this.bindings.PAUSE) this.events.pause = true;
     }
@@ -65,11 +70,14 @@ export class InputManager {
         this.actions.cameraUp = !!k[b.CAMERA_UP];
         this.actions.cameraDown = !!k[b.CAMERA_DOWN];
         this.actions.boost = !!k[b.BOOST] || !!k['ShiftRight'];
+        this.actions.jump = !!k[b.JUMP];
     }
 
     // Called at end of frame to clear one-shot events
     resetFrame() {
         this.events.toggleCamera = false;
+        this.events.toggleMode = false;
+        this.events.jump = false;
         this.events.reset = false;
         this.events.pause = false;
     }

@@ -69,6 +69,7 @@ export { BirchTreeEntity } from './birchTree.js';
 export { FlowerArchEntity } from './flowerArch.js';
 export { CourierDroneEntity } from './courierDrone.js';
 export { PulseReactorEntity } from './pulseReactor.js';
+export { BikeRepairStandEntity } from './bikeRepairStand.js';
 export { GardenPlanterEntity } from './gardenPlanter.js';
 export { RooftopChimneyEntity } from './rooftopChimney.js';
 export { WindowACUnitEntity } from './windowACUnit.js';

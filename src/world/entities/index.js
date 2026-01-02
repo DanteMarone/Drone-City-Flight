@@ -14,11 +14,9 @@ export { WoodenFenceEntity, PicketFenceEntity, ChainLinkFenceEntity, CementWallE
 export { LilyPondEntity } from './lilyPond.js';
 export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commercial.js';
 export { HouseModernEntity, HouseCottageEntity, HousePorchEntity, ApartmentBlockEntity } from './residential.js';
-export { HouseModernEntity, HouseCottageEntity, ApartmentBlockEntity } from './residential.js';
 export { SidewalkEntity, SidewalkCornerEntity } from './infrastructure.js';
 export { HouseGardenEntity } from './houseGarden.js';
 export { HouseVerandaEntity } from './houseVeranda.js';
-export { SidewalkEntity } from './infrastructure.js';
 export { IntersectionEntity } from './intersections.js';
 export { BusStopEntity } from './busStop.js';
 export { PlayerStartEntity } from './playerStart.js';
@@ -79,6 +77,7 @@ export { AlleyCatStatueEntity } from './alleyCatStatue.js';
 export { CityBlockEntity } from './cityBlock.js';
 export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
 export { OilPumpJackEntity } from './oilPumpJack.js';
+export { BiolumeTreeEntity } from './biolumeTree.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

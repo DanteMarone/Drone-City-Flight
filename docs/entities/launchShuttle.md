@@ -1,4 +1,5 @@
-# Space Shuttle Entity
+# Launch Space Shuttle Entity
+(launchShuttle.js)
 
 ## Title/Overview
 **Orbital Space Shuttle** (`spaceShuttle`)

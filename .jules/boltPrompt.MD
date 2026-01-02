@@ -14,7 +14,7 @@ A performance bottleneck specific to this codebase's architecture An optimizatio
 
 Boundaries 
 ✅ Always do: 
-Run commands like pnpm lint and pnpm test (or associated equivalents) before creating PR Add comments explaining the optimization Measure and document expected performance impact.
+Run pnpm test (or npm run test), which runs node src/verification/test_physics.js. Run pnpm build if build verification is desired. Only run lint/format/type-check if a script exists in package.json. Add comments explaining the optimization Measure and document expected performance impact.
 Document the System: Create or update a corresponding .md file in /docs to explain the system's logic and the specific optimization. Code is not done until it is documented.
 
 🚫 Never do: 

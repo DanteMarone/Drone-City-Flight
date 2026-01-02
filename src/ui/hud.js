@@ -54,6 +54,7 @@ export class HUD {
         this.elements.alt = container.querySelector('#hud-alt');
         this.elements.spd = container.querySelector('#hud-spd');
         this.elements.rings = container.querySelector('#hud-rings');
+        this.elements.battLabel = container.querySelector('#batt-label');
         this.elements.battBg = container.querySelector('#hud-batt-bg');
         this.elements.battFill = container.querySelector('#hud-batt-fill');
         this.elements.battText = container.querySelector('#hud-batt-text');
@@ -75,6 +76,10 @@ export class HUD {
         if (data.altitude !== undefined) this.elements.alt.innerText = `${data.altitude.toFixed(1)}m`;
         if (data.speed !== undefined) this.elements.spd.innerText = `${data.speed.toFixed(1)}m/s`;
         if (data.rings !== undefined) this.elements.rings.innerText = `${data.rings}`;
+
+        if (data.batteryLabel !== undefined) {
+            this.elements.battLabel.innerText = data.batteryLabel;
+        }
 
         if (data.battery !== undefined) {
             const pct = Math.max(0, Math.min(100, data.battery));

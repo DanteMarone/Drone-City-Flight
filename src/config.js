@@ -19,9 +19,11 @@ export const CONFIG = {
             CAMERA_UP: 'KeyQ',
             CAMERA_DOWN: 'KeyE',
             TOGGLE_CAMERA: 'KeyC',
+            TOGGLE_MODE: 'KeyP',
             BOOST: 'ShiftLeft',
             RESET: 'KeyR',
-            PAUSE: 'Escape'
+            PAUSE: 'Escape',
+            JUMP: 'Space'
         },
         SENSITIVITY: {
             YAW: 2.0,
@@ -81,5 +83,21 @@ export const CONFIG = {
             speed: 0,
             direction: 0 // Degrees
         }
+    },
+
+    PERSON: {
+        SPEED: 6.0,
+        ACCELERATION: 10.0,
+        TURN_SPEED: 2.4,
+        JUMP_SPEED: 5.5,
+        GRAVITY: -18.0,
+        RADIUS: 0.4,
+        HEIGHT: 1.2,
+        CAMERA_DISTANCE: 3.2,
+        CAMERA_HEIGHT: 1.4
+    },
+
+    LIFE: {
+        MAX: 100
     }
 };

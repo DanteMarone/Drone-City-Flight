@@ -94,10 +94,14 @@ export class CameraController {
             this.orbitAngles.theta = damp(angle, 0, snapSpeed, dt);
         }
 
-        this._updateTransform(dt);
+        this._updateTransform(dt, false);
     }
 
-    _updateTransform(dt) {
+    snap() {
+        this._updateTransform(0, true);
+    }
+
+    _updateTransform(dt, snap = false) {
         const dronePos = this.drone.position;
         const droneYaw = this.drone.yaw;
 
@@ -145,7 +149,11 @@ export class CameraController {
             );
 
             // Smooth Camera follow (Damp)
-            this.currentPos.lerp(targetPos, 1.0 - Math.exp(-10 * dt)); // Fast follow
+            if (snap) {
+                this.currentPos.copy(targetPos);
+            } else {
+                this.currentPos.lerp(targetPos, 1.0 - Math.exp(-10 * dt)); // Fast follow
+            }
 
             this.camera.position.copy(this.currentPos);
             this.camera.lookAt(dronePos);

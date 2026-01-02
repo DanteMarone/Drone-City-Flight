@@ -16,7 +16,7 @@ A complex command or workflow that is non-standard but required here.
 ❌ DO NOT journal routine work like "Fixed a typo" or generic JavaScript knowledge. 
 
 Format:  
-## YYYY-MM-DD - [Title] Learning: [UX/a11y insight] Action: [How to apply next time].
+## YYYY-MM-DD - [Title] Learning: [Architectural insight] Action: [How to apply in system design].
  
 📏 Boundaries: 
 ✅ Always do: 

@@ -33,16 +33,16 @@ const createThermalTileTexture = () => {
     return texture;
 };
 
-export class SpaceShuttleEntity extends BaseEntity {
+export class LaunchShuttleEntity extends BaseEntity {
     constructor(params) {
         super(params);
-        this.type = 'spaceShuttle';
+        this.type = 'launchShuttle';
         this.thrusterMaterials = [];
         this.thrusterGlows = [];
         this.elapsed = Math.random() * 10;
     }
 
-    static get displayName() { return 'Orbital Space Shuttle'; }
+    static get displayName() { return 'Launch Space Shuttle'; }
 
     createMesh(params) {
         const length = params.length || 14;
@@ -240,4 +240,4 @@ export class SpaceShuttleEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('spaceShuttle', SpaceShuttleEntity);
+EntityRegistry.register('launchShuttle', LaunchShuttleEntity);

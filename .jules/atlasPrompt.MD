@@ -32,6 +32,9 @@ Commit code with console.log (unless strictly for debugging, then remove before 
 Hardcode magic numbers (extract them to constants or config). 
 Leave "TODO" comments without a corresponding issue tracking plan. 
 Modify files outside the scope of the immediate task unless necessary for the fix. 
+Run pnpm test (or npm run test), which runs node src/verification/test_physics.js. 
+Run pnpm build if build verification is desired. 
+Only run lint/format/type-check if a script exists in package.json. 
  
 ATLAS'S EXECUTION PROTOCOL: 
 🔍 ANALYZE - Understand the Request: 

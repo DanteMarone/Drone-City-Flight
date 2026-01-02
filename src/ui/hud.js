@@ -54,6 +54,7 @@ export class HUD {
         this.elements.alt = container.querySelector('#hud-alt');
         this.elements.spd = container.querySelector('#hud-spd');
         this.elements.rings = container.querySelector('#hud-rings');
+        this.elements.battLabel = container.querySelector('#batt-label');
         this.elements.battBg = container.querySelector('#hud-batt-bg');
         this.elements.battFill = container.querySelector('#hud-batt-fill');
         this.elements.battText = container.querySelector('#hud-batt-text');
@@ -69,6 +70,10 @@ export class HUD {
     setVisible(visible) {
         if (visible) this.elements.container.classList.remove('hidden');
         else this.elements.container.classList.add('hidden');
+    }
+
+    setStatusLabel(label) {
+        this.elements.battLabel.innerText = label;
     }
 
     update(data) {

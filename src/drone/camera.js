@@ -4,9 +4,9 @@ import { CONFIG } from '../config.js';
 import { damp, lerp } from '../utils/math.js';
 
 export class CameraController {
-    constructor(camera, drone) {
+    constructor(camera, target) {
         this.camera = camera;
-        this.drone = drone;
+        this.target = target;
 
         // State
         this.mode = 'CHASE'; // 'CHASE' | 'FPV'
@@ -64,6 +64,10 @@ export class CameraController {
         // Reset orbit on switch back to chase? Maybe not.
     }
 
+    setTarget(target) {
+        this.target = target;
+    }
+
     update(dt, input) {
         if (input.toggleCamera) this.toggleMode();
 
@@ -98,14 +102,14 @@ export class CameraController {
     }
 
     _updateTransform(dt) {
-        const dronePos = this.drone.position;
-        const droneYaw = this.drone.yaw;
+        const dronePos = this.target.position;
+        const droneYaw = this.target.yaw;
 
         if (this.mode === 'FPV') {
             // Place camera at nose of drone
             const fwd = new THREE.Vector3(0, 0, -1).applyAxisAngle(new THREE.Vector3(0,1,0), droneYaw);
             // Tilt matching
-            const tilt = this.drone.tilt || { pitch: 0 };
+            const tilt = this.target.tilt || { pitch: 0 };
 
             // FPV Position: slightly forward
             const fpvPos = dronePos.clone().add(new THREE.Vector3(0, 0, -0.4).applyAxisAngle(new THREE.Vector3(0,1,0), droneYaw));
@@ -117,7 +121,7 @@ export class CameraController {
 
             // Apply Roll to camera? FPV usually has roll.
             // ThreeJS camera.rotation.z
-            this.camera.rotation.z = (this.drone.tilt ? this.drone.tilt.roll : 0);
+            this.camera.rotation.z = (this.target.tilt ? this.target.tilt.roll : 0);
 
         } else {
             // CHASE

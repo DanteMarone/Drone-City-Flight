@@ -24,6 +24,7 @@ export class MenuSystem {
         const iconCamera = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>`;
         const iconCode = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>`;
         const iconFolder = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>`;
+        this.modeIcon = iconReset;
 
         menu.innerHTML = `
             <div class="menu-box" role="dialog" aria-modal="true" aria-labelledby="menu-title">
@@ -34,6 +35,9 @@ export class MenuSystem {
                 </button>
                 <button id="btn-reset">
                     <span class="menu-btn-content">${iconReset} RESET DRONE</span>
+                </button>
+                <button id="btn-toggle-mode">
+                    <span class="menu-btn-content">${this.modeIcon} SWITCH MODE</span>
                 </button>
 
                 <hr>
@@ -70,6 +74,7 @@ export class MenuSystem {
             box: menu.querySelector('.menu-box'),
             resume: menu.querySelector('#btn-resume'),
             reset: menu.querySelector('#btn-reset'),
+            toggleMode: menu.querySelector('#btn-toggle-mode'),
             photo: menu.querySelector('#btn-photo'),
             dev: menu.querySelector('#btn-dev'),
             loadMap: menu.querySelector('#btn-load-map'),
@@ -87,6 +92,12 @@ export class MenuSystem {
         this.dom.resume.onclick = () => this.hide();
         this.dom.reset.onclick = () => {
             this.app._resetGame();
+            this.hide();
+        };
+
+        this.dom.toggleMode.onclick = () => {
+            this.app.toggleMode();
+            this._updateModeLabel();
             this.hide();
         };
 
@@ -183,6 +194,7 @@ export class MenuSystem {
 
         // Trap Focus
         this.lastFocused = document.activeElement;
+        this._updateModeLabel();
 
         // Ensure initial focus
         // We use requestAnimationFrame to wait for the transition/visibility update
@@ -206,5 +218,10 @@ export class MenuSystem {
                 document.activeElement.blur();
             }
         }
+    }
+
+    _updateModeLabel() {
+        const isPerson = this.app.mode === 'person';
+        this.dom.toggleMode.querySelector('.menu-btn-content').innerHTML = `${this.modeIcon} ${isPerson ? 'SWITCH TO DRONE' : 'SWITCH TO PERSON'}`;
     }
 }

@@ -16,6 +16,7 @@ export class InputManager {
             backward: false,
             left: false,
             right: false,
+            jump: false,
             cameraUp: false,
             cameraDown: false,
             boost: false
@@ -24,6 +25,7 @@ export class InputManager {
         // One-shot events
         this.events = {
             toggleCamera: false,
+            toggleMode: false,
             reset: false,
             pause: false
         };
@@ -41,6 +43,7 @@ export class InputManager {
 
         // Handle triggers
         if (e.code === this.bindings.TOGGLE_CAMERA) this.events.toggleCamera = true;
+        if (e.code === this.bindings.TOGGLE_MODE) this.events.toggleMode = true;
         if (e.code === this.bindings.RESET) this.events.reset = true;
         if (e.code === this.bindings.PAUSE) this.events.pause = true;
     }
@@ -62,6 +65,7 @@ export class InputManager {
         this.actions.backward = !!k[b.BACKWARD] || !!k[b.BACKWARD_ALT];
         this.actions.left = !!k[b.LEFT] || !!k[b.LEFT_ALT];
         this.actions.right = !!k[b.RIGHT] || !!k[b.RIGHT_ALT];
+        this.actions.jump = !!k[b.JUMP];
         this.actions.cameraUp = !!k[b.CAMERA_UP];
         this.actions.cameraDown = !!k[b.CAMERA_DOWN];
         this.actions.boost = !!k[b.BOOST] || !!k['ShiftRight'];
@@ -70,6 +74,7 @@ export class InputManager {
     // Called at end of frame to clear one-shot events
     resetFrame() {
         this.events.toggleCamera = false;
+        this.events.toggleMode = false;
         this.events.reset = false;
         this.events.pause = false;
     }
@@ -84,6 +89,6 @@ export class InputManager {
         const z = (this.actions.backward ? 1 : 0) - (this.actions.forward ? 1 : 0);
         const y = (this.actions.ascend ? 1 : 0) - (this.actions.descend ? 1 : 0);
         const yaw = (this.actions.yawLeft ? 1 : 0) - (this.actions.yawRight ? 1 : 0);
-        return { x, y, z, yaw };
+        return { x, y, z, yaw, jump: this.actions.jump };
     }
 }

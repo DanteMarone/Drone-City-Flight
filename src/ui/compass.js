@@ -131,4 +131,8 @@ export class RingCompass {
             this.arrowEl.style.transform = `rotate(${deg}deg)`;
         }
     }
+
+    setVisible(visible) {
+        this.dom.style.display = visible ? '' : 'none';
+    }
 }

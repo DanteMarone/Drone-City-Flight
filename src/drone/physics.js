@@ -7,33 +7,44 @@ export class PhysicsEngine {
         this.colliderSystem = colliderSystem;
     }
 
-    resolveCollisions(drone, dynamicColliders) {
-        const radius = CONFIG.DRONE.RADIUS;
-        const hits = this.colliderSystem.checkCollisions(drone.position, radius, dynamicColliders);
+    resolveCollisionsFor(entity, dynamicColliders, options = {}) {
+        const radius = options.radius ?? CONFIG.DRONE.RADIUS;
+        const restitution = options.restitution ?? CONFIG.DRONE.COLLISION_RESTITUTION;
+        const friction = options.friction ?? CONFIG.DRONE.COLLISION_FRICTION;
+        const hits = this.colliderSystem.checkCollisions(entity.position, radius, dynamicColliders);
 
         hits.forEach(hit => {
             // 1. Positional Correction (Push out)
             if (hit.penetration > 0) {
-                drone.position.add(hit.normal.clone().multiplyScalar(hit.penetration));
+                entity.position.add(hit.normal.clone().multiplyScalar(hit.penetration));
             }
 
             // 2. Velocity Response (Bounce)
             // v' = v - (1 + e) * (v . n) * n
-            const velocity = drone.velocity;
+            const velocity = entity.velocity;
             const vDotN = velocity.dot(hit.normal);
 
             if (vDotN < 0) {
-                const restitution = 0.5; // Bounciness
                 const impulse = -(1 + restitution) * vDotN;
                 velocity.add(hit.normal.clone().multiplyScalar(impulse));
 
                 // Friction
-                const tangent = velocity.clone().sub(hit.normal.clone().multiplyScalar(velocity.dot(hit.normal)));
-                tangent.multiplyScalar(0.9); // Friction
-                // Reconstruct velocity ?? Simple way: multiply perp component
+                const normalComponent = hit.normal.clone().multiplyScalar(velocity.dot(hit.normal));
+                const tangent = velocity.clone().sub(normalComponent);
+                tangent.multiplyScalar(friction);
+                velocity.copy(normalComponent.add(tangent));
             }
         });
 
+        return hits;
+    }
+
+    resolveCollisions(drone, dynamicColliders) {
+        const hits = this.resolveCollisionsFor(drone, dynamicColliders, {
+            radius: CONFIG.DRONE.RADIUS,
+            restitution: CONFIG.DRONE.COLLISION_RESTITUTION,
+            friction: CONFIG.DRONE.COLLISION_FRICTION
+        });
         return hits.length > 0;
     }
 }

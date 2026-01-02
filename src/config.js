@@ -16,9 +16,11 @@ export const CONFIG = {
             BACKWARD_ALT: 'KeyK',
             LEFT_ALT: 'KeyJ',
             RIGHT_ALT: 'KeyL',
+            JUMP: 'Space',
             CAMERA_UP: 'KeyQ',
             CAMERA_DOWN: 'KeyE',
             TOGGLE_CAMERA: 'KeyC',
+            TOGGLE_MODE: 'KeyM',
             BOOST: 'ShiftLeft',
             RESET: 'KeyR',
             PAUSE: 'Escape'
@@ -42,7 +44,9 @@ export const CONFIG = {
         YAW_SPEED: 2.5,
         RADIUS: 0.5, // Collider radius
         TILT_MAX: 0.3, // Visual tilt only, physics is level
-        MAX_ALTITUDE: 120
+        MAX_ALTITUDE: 120,
+        COLLISION_RESTITUTION: 0.5,
+        COLLISION_FRICTION: 0.9
     },
 
     BATTERY: {
@@ -52,6 +56,21 @@ export const CONFIG = {
         REWARD: 15,
         DRAIN_COLLISION: 20.0, // Drain per second when hit by bird
         RECHARGE_RATE: 10.0 // Charge per second on landing pad
+    },
+
+    PERSON: {
+        MAX_SPEED: 6.0,
+        ACCELERATION: 24.0,
+        DRAG: 8.0,
+        TURN_SPEED: 2.8,
+        JUMP_SPEED: 6.5,
+        GRAVITY: -18.0,
+        RADIUS: 0.35,
+        HEIGHT: 1.6,
+        LIFE_MAX: 100,
+        COLLISION_RESTITUTION: 0.0,
+        COLLISION_FRICTION: 0.8,
+        GROUND_NORMAL_THRESHOLD: 0.6
     },
 
     // Birds

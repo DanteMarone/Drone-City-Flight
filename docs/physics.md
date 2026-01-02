@@ -1,7 +1,7 @@
 # Physics & Collision Architecture
 
 ## Overview
-The project uses a custom kinematic physics engine rather than a general-purpose library (like Ammo.js or Cannon.js) to ensure precise, arcade-style handling for the drone. The system handles static world geometry, dynamic objects (like cars), and gameplay triggers (Rings).
+The project uses a custom kinematic physics engine rather than a general-purpose library (like Ammo.js or Cannon.js) to ensure precise, arcade-style handling for the drone and the on-foot player. The system handles static world geometry, dynamic objects (like cars), and gameplay triggers (Rings).
 
 ## Core Components
 
@@ -9,7 +9,7 @@ The project uses a custom kinematic physics engine rather than a general-purpose
 |-----------|------|----------------|
 | **ColliderSystem** | [`src/world/colliders.js`](../src/world/colliders.js) | Manages the list of collidable objects and executes the collision pipeline. |
 | **SpatialHash** | [`src/utils/spatialHash.js`](../src/utils/spatialHash.js) | Optimizes broadphase lookups by partitioning the world into grid cells. |
-| **CONFIG** | [`src/config.js`](../src/config.js) | Defines physical constants (Gravity, Drone Radius, etc.) and Chunk Size. |
+| **CONFIG** | [`src/config.js`](../src/config.js) | Defines physical constants (Gravity, Drone/Person Radius, etc.) and Chunk Size. |
 
 ## Spatial Partitioning (SpatialHash)
 
@@ -68,7 +68,7 @@ Rings require passing *through* the center, so a simple bounding box would block
 4. **Distance**: The distance from the local 3D position to this circle point is compared against the tube radius ($r=0.2$) + drone radius.
 
 ### Ground Plane
-The world has an infinite floor at $y=0$. If `drone.y < radius`, a collision is registered with normal `(0, 1, 0)`.
+The world has an infinite floor at $y=0$. If `entity.y < radius`, a collision is registered with normal `(0, 1, 0)`.
 
 ## Dynamic Updates
 Static objects (Buildings) are inserted once. Moving objects (Cars) or objects moved in **Dev Mode** must update their spatial hash entry.

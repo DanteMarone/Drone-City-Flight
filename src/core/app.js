@@ -3,6 +3,8 @@ import { Renderer } from './renderer.js';
 import { InputManager } from './input.js';
 import { Drone } from '../drone/drone.js';
 import { CameraController } from '../drone/camera.js';
+import { Person } from '../person/person.js';
+import { PersonCameraController } from '../person/camera.js';
 import { World } from '../world/world.js';
 import { ColliderSystem } from '../world/colliders.js';
 import { PhysicsEngine } from '../drone/physics.js';
@@ -49,6 +51,10 @@ export class App {
 
         this.drone = new Drone(this.renderer.scene);
         this.battery = new BatteryManager();
+        this.person = new Person(this.renderer.scene);
+        this.person.setVisible(true);
+        this.mode = 'person';
+        this.drone.mesh.visible = false;
 
         // Pass drone to world for BirdSystem
         this.world.birdSystem.setDrone(this.drone);
@@ -63,6 +69,7 @@ export class App {
         this.environment = new EnvironmentSystem(this.renderer);
 
         this.cameraController = new CameraController(this.renderer.camera, this.drone);
+        this.personCamera = new PersonCameraController(this.renderer.camera, this.person);
 
         this.post = new PostProcessing(this.renderer.threeRenderer, this.renderer.scene, this.renderer.camera);
         window.addEventListener('renderer-resize', (e) => {
@@ -136,12 +143,42 @@ export class App {
         move.toggleCamera = events.toggleCamera;
         move.cameraUp = this.input.actions.cameraUp;
         move.cameraDown = this.input.actions.cameraDown;
+        move.jump = this.input.actions.jump;
 
         if (events.reset) {
             this._resetGame();
         }
 
-        if (this.drone) {
+        if (events.summonDrone && this.mode === 'person') {
+            this._enterDroneMode({ summon: true });
+        }
+
+        if (this.mode === 'person') {
+            this.world.update(dt, this.renderer.camera);
+            this.particles.update(dt);
+            this.rings.update(dt);
+
+            const ringColliders = this.rings.rings.map(r => ({
+                type: 'ring',
+                mesh: r.mesh,
+                box: null
+            }));
+
+            this.person.update(dt, move, this.colliderSystem, ringColliders);
+
+            const speed = this.person.velocity.length();
+            const alt = this.person.position.y;
+
+            this.hud.update({
+                speed: speed,
+                altitude: alt,
+                rings: this.rings.collectedCount,
+                battery: this.person.life.current,
+                resourceLabel: 'HEALTH',
+                showSecondary: false,
+                message: ""
+            });
+        } else if (this.drone) {
             this.tutorial.update(dt, move);
 
             this.battery.update(dt, this.drone.velocity, move);
@@ -205,26 +242,49 @@ export class App {
 
             const alt = this.drone.position.y;
             let statusMsg = "";
+            let autoDisembark = false;
             if (this.battery.depleted) {
                 if (speed < 0.1 && alt < 1.0) {
-                    statusMsg = "BATTERY EMPTY. PRESS R TO RESET.";
+                    statusMsg = "BATTERY EMPTY - DISEMBARKING";
+                    autoDisembark = true;
                 } else {
                     statusMsg = "BATTERY EMPTY - LANDING";
                 }
             }
 
-            this.hud.update({
-                speed: speed,
-                altitude: alt,
-                battery: this.battery.current,
-                rings: this.rings.collectedCount,
-                message: statusMsg
-            });
+            if (autoDisembark) {
+                this._enterPersonMode();
+                this.hud.update({
+                    speed: 0,
+                    altitude: this.person.position.y,
+                    rings: this.rings.collectedCount,
+                    battery: this.person.life.current,
+                    resourceLabel: 'HEALTH',
+                    showSecondary: false,
+                    message: ""
+                });
+            } else {
+                this.hud.update({
+                    speed: speed,
+                    altitude: alt,
+                    battery: this.battery.current,
+                    rings: this.rings.collectedCount,
+                    resourceLabel: 'BATTERY',
+                    secondaryLabel: 'HEALTH',
+                    secondaryBattery: this.person.life.current,
+                    showSecondary: true,
+                    message: statusMsg
+                });
 
-            this.compass.update(dt); // New
+                this.compass.update(dt); // New
+            }
         }
 
-        if (this.cameraController) {
+        if (this.mode === 'person') {
+            if (this.personCamera) {
+                this.personCamera.update(dt);
+            }
+        } else if (this.cameraController) {
             this.cameraController.update(dt, move);
         }
 
@@ -242,20 +302,58 @@ export class App {
         this.input.resetFrame();
     }
 
+    _enterPersonMode() {
+        this.mode = 'person';
+        this.drone.mesh.visible = false;
+        this.person.setVisible(true);
+        this.drone.resetAltitudeEffects();
+        this.person.position.copy(this.drone.position);
+        this.person.yaw = this.drone.yaw;
+        this.person.velocity.set(0, 0, 0);
+    }
+
+    _enterDroneMode({ summon = false } = {}) {
+        this.mode = 'drone';
+        this.person.setVisible(false);
+        this.drone.mesh.visible = true;
+
+        if (summon) {
+            const spawnPosition = this.person.position.clone();
+            spawnPosition.y = Math.max(spawnPosition.y + 1.5, 2);
+            this.drone.position.copy(spawnPosition);
+            this.drone.yaw = this.person.yaw;
+            this.drone.velocity.set(0, 0, 0);
+            this.drone.tilt = { pitch: 0, roll: 0 };
+
+            this.drone.mesh.position.copy(this.drone.position);
+            this.drone.mesh.rotation.y = this.drone.yaw;
+            this.drone.tiltGroup.rotation.set(0, 0, 0);
+        } else {
+            this.drone.position.copy(this.person.position);
+            this.drone.yaw = this.person.yaw;
+            this.drone.mesh.position.copy(this.drone.position);
+            this.drone.mesh.rotation.y = this.drone.yaw;
+        }
+    }
+
     _resetGame() {
         // Check for Player Start points
         const starts = this.world.colliders.filter(e => e.type === 'playerStart');
+        let spawnPosition = new THREE.Vector3(0, 5, 0);
+        let spawnYaw = 0;
 
         if (starts.length > 0) {
             const start = starts[Math.floor(Math.random() * starts.length)];
             // Use the mesh position to ensure we get the world transform
-            this.drone.position.copy(start.mesh.position);
-            this.drone.yaw = start.mesh.rotation.y;
+            spawnPosition = start.mesh.position.clone();
+            spawnYaw = start.mesh.rotation.y;
         } else {
-            this.drone.position.set(0, 5, 0);
-            this.drone.yaw = 0;
+            spawnPosition.set(0, 5, 0);
+            spawnYaw = 0;
         }
 
+        this.drone.position.copy(spawnPosition);
+        this.drone.yaw = spawnYaw;
         this.drone.velocity.set(0, 0, 0);
         this.drone.tilt = { pitch: 0, roll: 0 };
 
@@ -263,6 +361,15 @@ export class App {
         this.drone.mesh.position.copy(this.drone.position);
         this.drone.mesh.rotation.y = this.drone.yaw;
         this.drone.tiltGroup.rotation.set(0, 0, 0);
+
+        const personSpawn = spawnPosition.clone();
+        if (starts.length === 0) {
+            personSpawn.y = 1;
+        }
+        this.person.position.copy(personSpawn);
+        this.person.yaw = spawnYaw;
+        this.person.velocity.set(0, 0, 0);
+        this.person.life.reset();
 
         this.battery.reset();
         this.rings.reset();

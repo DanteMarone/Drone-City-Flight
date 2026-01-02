@@ -18,14 +18,16 @@ export class InputManager {
             right: false,
             cameraUp: false,
             cameraDown: false,
-            boost: false
+            boost: false,
+            jump: false
         };
 
         // One-shot events
         this.events = {
             toggleCamera: false,
             reset: false,
-            pause: false
+            pause: false,
+            summonDrone: false
         };
 
         this._onKeyDown = this._onKeyDown.bind(this);
@@ -43,6 +45,7 @@ export class InputManager {
         if (e.code === this.bindings.TOGGLE_CAMERA) this.events.toggleCamera = true;
         if (e.code === this.bindings.RESET) this.events.reset = true;
         if (e.code === this.bindings.PAUSE) this.events.pause = true;
+        if (e.code === this.bindings.SUMMON_DRONE) this.events.summonDrone = true;
     }
 
     _onKeyUp(e) {
@@ -65,6 +68,7 @@ export class InputManager {
         this.actions.cameraUp = !!k[b.CAMERA_UP];
         this.actions.cameraDown = !!k[b.CAMERA_DOWN];
         this.actions.boost = !!k[b.BOOST] || !!k['ShiftRight'];
+        this.actions.jump = !!k[b.JUMP];
     }
 
     // Called at end of frame to clear one-shot events
@@ -72,6 +76,7 @@ export class InputManager {
         this.events.toggleCamera = false;
         this.events.reset = false;
         this.events.pause = false;
+        this.events.summonDrone = false;
     }
 
     getEvents() {

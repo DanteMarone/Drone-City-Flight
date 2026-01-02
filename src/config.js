@@ -20,8 +20,10 @@ export const CONFIG = {
             CAMERA_DOWN: 'KeyE',
             TOGGLE_CAMERA: 'KeyC',
             BOOST: 'ShiftLeft',
+            JUMP: 'Space',
             RESET: 'KeyR',
-            PAUSE: 'Escape'
+            PAUSE: 'Escape',
+            SUMMON_DRONE: 'KeyF'
         },
         SENSITIVITY: {
             YAW: 2.0,
@@ -43,6 +45,15 @@ export const CONFIG = {
         RADIUS: 0.5, // Collider radius
         TILT_MAX: 0.3, // Visual tilt only, physics is level
         MAX_ALTITUDE: 120
+    },
+
+    PERSON: {
+        MAX_SPEED: 6.0,
+        ACCELERATION: 10.0,
+        TURN_SPEED: 2.4,
+        GRAVITY: -16.0,
+        JUMP_SPEED: 6.5,
+        RADIUS: 0.45
     },
 
     BATTERY: {

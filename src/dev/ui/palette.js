@@ -87,9 +87,10 @@ export class Palette {
                 if (!name.includes(query)) return;
             }
 
-            const item = document.createElement('div');
+            const item = document.createElement('button');
             item.className = 'dev-palette-item';
             item.draggable = true;
+            item.ariaLabel = `Place ${Cls.displayName || type}`;
 
             // Thumbnail
             const img = document.createElement('img');

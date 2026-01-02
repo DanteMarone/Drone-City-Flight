@@ -14,7 +14,7 @@ export class Toolbar {
         this.element = bar;
 
         const addBtn = (label, action, title='') => {
-            const btn = document.createElement('div');
+            const btn = document.createElement('button');
             btn.className = 'dev-tool-btn';
             btn.textContent = label;
             btn.title = title;

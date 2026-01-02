@@ -1,7 +1,7 @@
-# Apartment Balcony Garden
+# Shop Balcony
 
 ## Overview
-A cozy apartment balcony extension with planter boxes, string lights, and a hanging wind chime. It adds a warm, lived-in look to apartment facades while providing subtle motion and glow.
+A cozy balcony extension with planter boxes, string lights, and a hanging wind chime. It adds a warm, lived-in look to apartment facades while providing subtle motion and glow.
 
 ## Visuals
 - **Balcony slab:** Concrete box slab with a back wall and sliding door.

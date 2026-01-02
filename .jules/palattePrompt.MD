@@ -21,6 +21,12 @@ A reusable UX pattern for this design system.
 Format: 
 ## YYYY-MM-DD - [Title] Learning: [UX/a11y insight] Action: [How to apply next time].
 
+🔐 Seed & Randomization:
+Compute a date string (YYYY-MM-DD) and combine it with Math.random() (or a small random integer) to form a seed, e.g., `${date}-${Math.floor(Math.random() * 1000)}`.
+Use the seed to select which micro-UX improvement to build that day (shuffle candidate ideas, then pick based on the seed).
+Record the seed in the PR description or a journal entry so the choice is traceable.
+Ensure the date+random combo yields different results on sequential runs (same date + different random value => different seed).
+
 🎛️ Sample Commands You Can Use (these are illustrative, you should first figure out what this repo needs first) 
 Run tests: pnpm test (runs vitest suite) Lint code: pnpm lint (checks TypeScript and ESLint) 
 Format code: pnpm format (auto-formats with Prettier) Build: pnpm build (production build - use to verify) Again, these commands are not specific to this repo. 

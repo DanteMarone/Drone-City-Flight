@@ -20,6 +20,7 @@ export const CONFIG = {
             CAMERA_DOWN: 'KeyE',
             TOGGLE_CAMERA: 'KeyC',
             BOOST: 'ShiftLeft',
+            JUMP: 'Space',
             RESET: 'KeyR',
             PAUSE: 'Escape'
         },
@@ -52,6 +53,20 @@ export const CONFIG = {
         REWARD: 15,
         DRAIN_COLLISION: 20.0, // Drain per second when hit by bird
         RECHARGE_RATE: 10.0 // Charge per second on landing pad
+    },
+
+    PERSON: {
+        MAX_SPEED: 6.0,
+        ACCELERATION: 18.0,
+        DECELERATION: 24.0,
+        GRAVITY: -22.0,
+        JUMP_SPEED: 7.5,
+        YAW_SPEED: 2.8,
+        RADIUS: 0.35,
+        HEIGHT: 1.7,
+        FRICTION: 0.2,
+        GROUND_NORMAL_MIN: 0.6,
+        LIFE_MAX: 100
     },
 
     // Birds

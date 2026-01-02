@@ -57,6 +57,7 @@ export class HUD {
         this.elements.battBg = container.querySelector('#hud-batt-bg');
         this.elements.battFill = container.querySelector('#hud-batt-fill');
         this.elements.battText = container.querySelector('#hud-batt-text');
+        this.elements.battLabel = container.querySelector('#batt-label');
         this.elements.msg = container.querySelector('#hud-msg');
         this.elements.pauseBtn = container.querySelector('#btn-pause');
 
@@ -85,9 +86,21 @@ export class HUD {
             this.elements.battBg.setAttribute('aria-valuetext', `${pctInt}%`);
 
             // Color feedback
-            if (pct < 20) this.elements.battFill.style.backgroundColor = '#ff2222';
-            else if (pct < 50) this.elements.battFill.style.backgroundColor = '#ffaa22';
-            else this.elements.battFill.style.backgroundColor = '#22ffaa';
+            if (data.meterType === 'life') {
+                if (pct < 20) this.elements.battFill.style.backgroundColor = '#ff4444';
+                else if (pct < 50) this.elements.battFill.style.backgroundColor = '#ff8844';
+                else this.elements.battFill.style.backgroundColor = '#44ff66';
+            } else if (pct < 20) {
+                this.elements.battFill.style.backgroundColor = '#ff2222';
+            } else if (pct < 50) {
+                this.elements.battFill.style.backgroundColor = '#ffaa22';
+            } else {
+                this.elements.battFill.style.backgroundColor = '#22ffaa';
+            }
+        }
+
+        if (data.meterLabel !== undefined) {
+            if (this.elements.battLabel) this.elements.battLabel.innerText = data.meterLabel;
         }
 
         if (data.message !== undefined) {

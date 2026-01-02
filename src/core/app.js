@@ -22,6 +22,7 @@ import { Skybox } from '../world/skybox.js';
 import { CloudSystem } from '../world/clouds.js';
 import { PhotoMode } from '../ui/photoMode.js';
 import { NotificationSystem } from '../ui/notifications.js';
+import { Person } from '../player/person.js';
 
 export class App {
     constructor() {
@@ -29,6 +30,7 @@ export class App {
         this.lastTime = 0;
         this.running = false;
         this.paused = false;
+        this.mode = 'drone';
     }
 
     init() {
@@ -51,6 +53,7 @@ export class App {
         this.physics = new PhysicsEngine(this.colliderSystem);
 
         this.drone = new Drone(this.renderer.scene);
+        this.person = new Person(this.renderer.scene);
         this.battery = new BatteryManager();
 
         // Pass drone to world for BirdSystem
@@ -67,6 +70,7 @@ export class App {
         this.cloudSystem = new CloudSystem(this.renderer.scene);
 
         this.cameraController = new CameraController(this.renderer.camera, this.drone);
+        this._syncModeVisibility();
 
         this.post = new PostProcessing(this.renderer.threeRenderer, this.renderer.scene, this.renderer.camera);
         window.addEventListener('renderer-resize', (e) => {
@@ -156,12 +160,43 @@ export class App {
         move.toggleCamera = events.toggleCamera;
         move.cameraUp = this.input.actions.cameraUp;
         move.cameraDown = this.input.actions.cameraDown;
+        move.jump = this.input.actions.jump;
 
         if (events.reset) {
             this._resetGame();
         }
 
-        if (this.drone) {
+        if (this.mode === 'person') {
+            this.world.update(dt, this.renderer.camera);
+            this.particles.update(dt);
+
+            const personMove = {
+                x: move.x,
+                z: move.z,
+                yaw: move.yaw,
+                jump: move.jump
+            };
+
+            this.person.resetGrounded();
+            this.person.update(dt, personMove);
+
+            const dynamicColliders = [];
+            const center = this.person.getColliderPosition();
+            const hits = this.colliderSystem.checkCollisions(center, CONFIG.PERSON.RADIUS, dynamicColliders);
+            hits.forEach(hit => this.person.applyCollision(hit));
+
+            const speed = Math.hypot(this.person.velocity.x, this.person.velocity.z);
+
+            this.hud.update({
+                speed: speed,
+                altitude: this.person.position.y,
+                battery: this.person.life,
+                meterLabel: 'LIFE',
+                meterType: 'life',
+                rings: this.rings.collectedCount,
+                message: ''
+            });
+        } else if (this.drone) {
             this.tutorial.update(dt, move);
 
             this.battery.update(dt, this.drone.velocity, move);
@@ -187,8 +222,8 @@ export class App {
 
             if (collided) {
                 if (this.drone.velocity.length() > 1.0) {
-                     this.audio.playImpact();
-                     this.particles.emit(this.drone.position, 10, 0xff0000);
+                    this.audio.playImpact();
+                    this.particles.emit(this.drone.position, 10, 0xff0000);
                 }
             }
 
@@ -237,6 +272,8 @@ export class App {
                 speed: speed,
                 altitude: alt,
                 battery: this.battery.current,
+                meterLabel: 'BATTERY',
+                meterType: 'battery',
                 rings: this.rings.collectedCount,
                 message: statusMsg
             });
@@ -262,6 +299,34 @@ export class App {
         this.input.resetFrame();
     }
 
+    setMode(mode) {
+        if (this.mode === mode) return;
+        this.mode = mode;
+        this._syncModeVisibility();
+        this._resetGame();
+    }
+
+    togglePersonMode() {
+        const nextMode = this.mode === 'person' ? 'drone' : 'person';
+        this.setMode(nextMode);
+        if (this.notifications) {
+            const label = nextMode === 'person' ? 'Person Mode' : 'Drone Mode';
+            this.notifications.show(`${label} Enabled`, 'info', 2000);
+        }
+    }
+
+    _syncModeVisibility() {
+        if (this.drone && this.drone.mesh) {
+            this.drone.mesh.visible = this.mode === 'drone';
+        }
+        if (this.person && this.person.mesh) {
+            this.person.mesh.visible = this.mode === 'person';
+        }
+        if (this.cameraController) {
+            this.cameraController.drone = this.mode === 'person' ? this.person : this.drone;
+        }
+    }
+
     _resetGame() {
         // Check for Player Start points
         const starts = this.world.colliders.filter(e => e.type === 'playerStart');
@@ -271,18 +336,28 @@ export class App {
             // Use the mesh position to ensure we get the world transform
             this.drone.position.copy(start.mesh.position);
             this.drone.yaw = start.mesh.rotation.y;
+            this.person.position.copy(start.mesh.position);
+            this.person.yaw = start.mesh.rotation.y;
         } else {
             this.drone.position.set(0, 5, 0);
             this.drone.yaw = 0;
+            this.person.position.set(0, 0, 0);
+            this.person.yaw = 0;
         }
 
         this.drone.velocity.set(0, 0, 0);
         this.drone.tilt = { pitch: 0, roll: 0 };
 
+        this.person.velocity.set(0, 0, 0);
+        this.person.isGrounded = false;
+        this.person.life = CONFIG.PERSON.LIFE_MAX;
+
         // Sync visual mesh immediately to avoid one-frame jumps
         this.drone.mesh.position.copy(this.drone.position);
         this.drone.mesh.rotation.y = this.drone.yaw;
         this.drone.tiltGroup.rotation.set(0, 0, 0);
+        this.person.mesh.position.copy(this.person.position);
+        this.person.mesh.rotation.y = this.person.yaw;
 
         this.battery.reset();
         this.rings.reset();

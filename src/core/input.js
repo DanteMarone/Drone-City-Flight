@@ -16,6 +16,7 @@ export class InputManager {
             backward: false,
             left: false,
             right: false,
+            jump: false,
             cameraUp: false,
             cameraDown: false,
             boost: false
@@ -62,6 +63,7 @@ export class InputManager {
         this.actions.backward = !!k[b.BACKWARD] || !!k[b.BACKWARD_ALT];
         this.actions.left = !!k[b.LEFT] || !!k[b.LEFT_ALT];
         this.actions.right = !!k[b.RIGHT] || !!k[b.RIGHT_ALT];
+        this.actions.jump = !!k[b.JUMP];
         this.actions.cameraUp = !!k[b.CAMERA_UP];
         this.actions.cameraDown = !!k[b.CAMERA_DOWN];
         this.actions.boost = !!k[b.BOOST] || !!k['ShiftRight'];

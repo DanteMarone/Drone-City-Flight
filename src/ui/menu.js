@@ -21,6 +21,7 @@ export class MenuSystem {
         // Icons
         const iconPlay = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>`;
         const iconReset = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M17.65 6.35C16.2 4.9 14.21 4 12 4c-4.42 0-7.99 3.58-7.99 8s3.57 8 7.99 8c3.73 0 6.84-2.55 7.73-6h-2.08c-.82 2.33-3.04 4-5.65 4-3.31 0-6-2.69-6-6s2.69-6 6-6c1.66 0 3.14.69 4.22 1.78L13 11h7V4l-2.35 2.35z"/></svg>`;
+        const iconPerson = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-3.31 0-6 2.69-6 6v2h12v-2c0-3.31-2.69-6-6-6z"/></svg>`;
         const iconCamera = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="3.2"/><path d="M9 2L7.17 4H4c-1.1 0-2 .9-2 2v12c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V6c0-1.1-.9-2-2-2h-3.17L15 2H9zm3 15c-2.76 0-5-2.24-5-5s2.24-5 5-5 5 2.24 5 5-2.24 5-5 5z"/></svg>`;
         const iconCode = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M9.4 16.6L4.8 12l4.6-4.6L8 6l-6 6 6 6 1.4-1.4zm5.2 0l4.6-4.6-4.6-4.6L16 6l6 6-6 6-1.4-1.4z"/></svg>`;
         const iconFolder = `<svg aria-hidden="true" class="menu-icon" viewBox="0 0 24 24"><path d="M20 6h-8l-2-2H4c-1.1 0-1.99.9-1.99 2L2 18c0 1.1.9 2 2 2h16c1.1 0 2-.9 2-2V8c0-1.1-.9-2-2-2zm0 12H4V8h16v10z"/></svg>`;
@@ -34,6 +35,9 @@ export class MenuSystem {
                 </button>
                 <button id="btn-reset">
                     <span class="menu-btn-content">${iconReset} RESET DRONE</span>
+                </button>
+                <button id="btn-person-mode">
+                    <span class="menu-btn-content">${iconPerson} TOGGLE PERSON MODE</span>
                 </button>
 
                 <hr>
@@ -70,6 +74,7 @@ export class MenuSystem {
             box: menu.querySelector('.menu-box'),
             resume: menu.querySelector('#btn-resume'),
             reset: menu.querySelector('#btn-reset'),
+            personMode: menu.querySelector('#btn-person-mode'),
             photo: menu.querySelector('#btn-photo'),
             dev: menu.querySelector('#btn-dev'),
             loadMap: menu.querySelector('#btn-load-map'),
@@ -87,6 +92,10 @@ export class MenuSystem {
         this.dom.resume.onclick = () => this.hide();
         this.dom.reset.onclick = () => {
             this.app._resetGame();
+            this.hide();
+        };
+        this.dom.personMode.onclick = () => {
+            this.app.togglePersonMode();
             this.hide();
         };
 

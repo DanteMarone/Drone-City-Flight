@@ -22,6 +22,8 @@ export class World {
         this.colliders = [];
         // Optimized list for entities that actually need updates
         this.updatables = [];
+        // Optimized list for landing pads to avoid iterating all colliders in App.update
+        this.landingPads = [];
         this.ground = null;
 
         this.wind = { ...CONFIG.WORLD.WIND };
@@ -47,6 +49,7 @@ export class World {
     _generateWorld() {
         this.colliders = [];
         this.updatables = [];
+        this.landingPads = [];
 
         // Showcase landmark near spawn so players immediately see the new architecture.
         const landmark = this.factory.createSkyGardenTower({
@@ -85,6 +88,11 @@ export class World {
             this.updatables.push(entity);
         }
 
+        // Optimization: Maintain separate list for landing pads
+        if (entity.type === 'landingPad') {
+            this.landingPads.push(entity);
+        }
+
         // Logic specific to types
         if (entity.type === 'bird' && this.birdSystem) {
             this.birdSystem.add(entity.mesh);
@@ -107,6 +115,12 @@ export class World {
                 this.updatables.splice(upIndex, 1);
             }
 
+            // Also remove from landingPads if present
+            const lpIndex = this.landingPads.indexOf(entity);
+            if (lpIndex !== -1) {
+                this.landingPads.splice(lpIndex, 1);
+            }
+
             return entity;
         }
         return null;
@@ -124,6 +138,7 @@ export class World {
         });
         this.colliders = [];
         this.updatables = [];
+        this.landingPads = [];
         if (this.birdSystem) this.birdSystem.clear();
         if (this.lightSystem) this.lightSystem.clear();
         if (this.instancer) this.instancer.clear();

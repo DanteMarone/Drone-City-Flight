@@ -326,17 +326,29 @@ export class InteractionManager {
         const type = this.activePlacement.type;
         const ghost = this.ghostMesh;
 
-        // Params: length=1 ensures scale works as intended for texture mapping
-        const params = { length: 1 };
+        // Params logic
+        const params = {};
+        if (type === 'road') {
+            params.length = 1; // Roads use scaling for texture tiling
+        } else if (type === 'river') {
+            params.length = ghost.scale.z; // Rivers use geometry size
+        }
+
         const entity = EntityRegistry.create(type, params);
 
         if (entity && entity.mesh) {
             entity.mesh.position.copy(ghost.position);
             entity.mesh.rotation.copy(ghost.rotation);
-            entity.mesh.scale.copy(ghost.scale);
+
+            if (type === 'road') {
+                entity.mesh.scale.copy(ghost.scale);
+            } else {
+                // River geometry is already sized by params.length, keep scale at 1
+                entity.mesh.scale.set(1, 1, 1);
+            }
 
             entity.mesh.updateMatrixWorld();
-            // Re-create collider with new scale
+            // Re-create collider with new scale/geometry
             entity.box = entity.createCollider();
 
             this.app.renderer.scene.add(entity.mesh);

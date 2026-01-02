@@ -75,6 +75,7 @@ export class RiverEntity extends BaseEntity {
         this.params.width = w;
         this.params.length = l;
 
+        // Create geometry with specific length (River uses geometry sizing, not scaling)
         const geo = new THREE.PlaneGeometry(w, l);
         geo.rotateX(-Math.PI / 2);
         geo.translate(0, 0.06, 0);

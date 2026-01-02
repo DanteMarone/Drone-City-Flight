@@ -15,16 +15,18 @@ The tool reuses the `src/dev/interaction.js` logic for `road` placement, extendi
 3.  **Instantiation**:
     *   A ghost mesh (green wireframe) visualizes the placement.
     *   On mouse up, a `RiverEntity` is created.
-    *   The entity is instantiated with `length: 1` and then scaled on the Z-axis to match the dragged length. This scaling approach is efficient and matches the visual feedback.
+    *   The entity is instantiated with the dragged length passed to `params.length`, creating geometry of the correct size.
+    *   The mesh scale remains at `1`, preventing issues where the scale is reset by other tools.
 
 ### Entity: `RiverEntity`
 *   **Source**: `src/world/entities/infrastructure.js`
 *   **Default Dimensions**: Width 50, Length 50 (when placed manually via Palette).
 *   **Smart Placement**:
-    *   When placed via the tool, `params.length` is overridden to `1`.
-    *   The mesh is scaled to the dragged length (e.g., Z scale = 100).
+    *   When placed via the tool, `params.length` is set to the dragged length (e.g., 100).
+    *   The mesh geometry is constructed with this specific length, and `scale` remains `1`.
+    *   This ensures the size persists correctly when edited via the Inspector.
     *   The width remains at the default (50 units) unless configured otherwise.
-*   **Visuals**: Uses a standard material (`MeshStandardMaterial`) with a blue color (`0x2244aa`), enabling simple scaling without texture distortion issues (as it is a solid color).
+*   **Visuals**: Uses a standard material (`MeshStandardMaterial`) with a blue color (`0x2244aa`).
 
 ## Usage
 1.  Open **Dev Mode**.

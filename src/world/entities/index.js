@@ -67,8 +67,10 @@ export { GardenPlanterEntity } from './gardenPlanter.js';
 export { RooftopChimneyEntity } from './rooftopChimney.js';
 export { CargoDroneEntity } from './cargoDrone.js';
 export { BikeRackEntity } from './bikeRack.js';
+export { SmartBenchEntity } from './smartBench.js';
 export { KioskEntity } from './kiosk.js';
 export { MallDirectoryEntity } from './mallDirectory.js';
+export { ATMEntity } from './atm.js';
 export { DJEntity } from './DJ.js';
 export { BuskerEntity } from './busker.js';
 export { JugglerEntity } from './juggler.js';
@@ -78,6 +80,7 @@ export { CityBlockEntity } from './cityBlock.js';
 export { RaccoonTrashCanEntity } from './raccoonTrashCan.js';
 export { OilPumpJackEntity } from './oilPumpJack.js';
 export { SentryPylonEntity } from './sentryPylon.js';
+export { SubwayVentEntity } from './subwayVent.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

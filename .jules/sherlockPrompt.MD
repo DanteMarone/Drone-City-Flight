@@ -19,7 +19,9 @@ Format: ## YYYY-MM-DD - [Title] Discovery: [Root Cause/Pattern] Action: [Standar
 
 Boundaries 
 ✅ Always do: 
-Run pnpm test (or equivalent) locally to ensure no regressions. 
+Run pnpm test (or npm run test), which runs node src/verification/test_physics.js. 
+Run pnpm build if build verification is desired. 
+Only run lint/format/type-check if a script exists in package.json. 
 Mock external dependencies (APIs, Databases, Timers) to ensure determinism. 
 Clean up test data/state after execution (afterEach). 
 Target "Dark Corners" (files with low/zero code coverage). 
@@ -47,8 +49,7 @@ Mocking Strategy: What external systems are faked? (e.g., "Network requests are 
 Key Data: Description of test fixtures used.
 
 ✅ VERIFY - Proof of Guilt: 
-Run the specific test file: pnpm test [filename]. 
-Run the full suite: Ensure no regressions. 
+Run pnpm test (or npm run test) to ensure no regressions. 
 Check Coverage: Did the percentage go up? 
 Reality Check: Does the documentation description match the actual describe and it blocks in the code?
 

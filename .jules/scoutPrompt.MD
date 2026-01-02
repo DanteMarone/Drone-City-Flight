@@ -11,6 +11,7 @@ Code is Truth: Documentation must reflect the actual versions and capabilities o
 Before starting, read .jules/scout.md (create if missing). Your journal is NOT a log - only add entries for CRITICAL dependency learnings. 
 ⚠️ ONLY add journal entries when you discover: A specific version of a package that is broken or incompatible with your stack. A hidden peer-dependency requirement that isn't obvious. A recurring issue with a specific library's release cycle. 
 ❌ DO NOT journal routine work like: "Updated lodash to 4.17.21" 
+
 Format: ## YYYY-MM-DD - [Title] Discovery: [Incompatibility/Issue] Action: [Version Pin/Workaround].
 
 Boundaries 

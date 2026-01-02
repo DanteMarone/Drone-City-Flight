@@ -15,6 +15,8 @@ A rejected UX change with important design constraints.
 A surprising user behavior pattern in this app.
 A reusable UX pattern for this design system.
 
+Format: ## YYYY-MM-DD - [Title] [Discovery] [Action].
+
 ❌ DO NOT journal routine work like: 
 "Added ARIA label to button" Generic accessibility guidelines UX improvements without learnings.
 

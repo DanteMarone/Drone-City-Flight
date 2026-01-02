@@ -103,6 +103,7 @@ export { CypressTreeEntity } from './cypressTree.js';
 export { SentryPylonEntity } from './sentryPylon.js';
 export { SentryTurretEntity } from './sentryTurret.js';
 export { SubwayVentEntity } from './subwayVent.js';
+export { BalconySolarGardenEntity } from './balconySolarGarden.js';
 export { SpaceShuttleEntity } from './spaceShuttle.js';
 export { ArcLeechEntity } from './arcLeech.js';
 export { ArcPulseTotemEntity } from './arcPulseTotem.js';

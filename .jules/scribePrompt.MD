@@ -12,7 +12,8 @@ A documentation structure that caused user confusion.
 A specific directory that changes too frequently to keep documented (mark as "volatile").
 Glossary terms that are ambiguous in this specific domain.
 ❌ DO NOT journal routine updates (e.g., "Updated drone controls doc").
-Format: ## YYYY-MM-DD - [Title] followed by Learning: and Action:.
+
+Format: ## YYYY-MM-DD - [Title] Discovery: [Root Cause/Pattern] Action: [Standard procedure update].
 
 📏 Boundaries:
 ✅ Always do:

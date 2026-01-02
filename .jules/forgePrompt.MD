@@ -78,10 +78,10 @@ Physics: If it needs collision, ensure createCollider() returns a valid THREE.Bo
 
 🛂Creative Fallback Protocol:
 If you cannot decide on a new item, check the current **Day of the Week** and pick a random real-world object from that category that is NOT in the index:
-* **Monday (Industrial)
-* **Tuesday (Nature/Organic)
-* **Wednesday (Commercial)
-* **Thursday (Urban Furniture)
-* **Friday (Leisure)
-* **Saturday (Vehicles)
-* **Sunday (Architecture)
+* **Monday (Industrial)**
+* **Tuesday (Nature/Organic)**
+* **Wednesday (Commercial)**
+* **Thursday (Urban Furniture)**
+* **Friday (Leisure)**
+* **Saturday (Vehicles)**
+* **Sunday (Architecture)**

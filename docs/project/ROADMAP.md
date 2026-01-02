@@ -26,6 +26,10 @@
 *   **Smart Road Tool**
     *   Implemented "Anchor & Stretch" placement in `src/dev/interaction.js`.
     *   Added axis locking (North/South, East/West).
+*   **Smart River Tool**
+    *   Implemented "Anchor & Stretch" placement for `river` type.
+    *   Updated `RiverEntity` to support scaling.
+    *   Docs: `docs/features/smart_river_tool.md`
 *   **Grid Snap & Physics**
     *   Enforced strict integer snapping for road lengths.
     *   Verified collision scaling.

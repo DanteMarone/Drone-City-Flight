@@ -75,6 +75,7 @@ export class RiverEntity extends BaseEntity {
         this.params.width = w;
         this.params.length = l;
 
+        // Create geometry with specific length (River uses geometry sizing, not scaling)
         const geo = new THREE.PlaneGeometry(w, l);
         geo.rotateX(-Math.PI / 2);
         geo.translate(0, 0.06, 0);
@@ -85,7 +86,16 @@ export class RiverEntity extends BaseEntity {
             metalness: 0.8
         });
         const mesh = new THREE.Mesh(geo, mat);
+
+        // Initial sync for potential texture updates
+        this.updateTexture(mesh);
+
         return mesh;
+    }
+
+    updateTexture(mesh) {
+        // Placeholder for future texture scaling logic (like RoadEntity)
+        // Currently River uses a solid color, so no UV scaling is needed.
     }
 
     createCollider() {

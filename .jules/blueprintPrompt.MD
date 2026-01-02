@@ -13,6 +13,8 @@ A reusable CSS pattern (e.g., "Glassmorphism" utility class).
 A performance issue with DOM elements (e.g., "Too many divs in the HUD cause lag"). 
 A standard way to hook into the Game Loop for UI updates.
 
+Format: ## YYYY-MM-DD - [Title] [Discovery] [Action].
+
 Boundaries 
 ✅ Always do: 
 Isolate Your Logic: If creating a complex new widget (e.g., a "Minimap" or "Color Picker"), create a new class in a dedicated file (e.g., src/ui/widgets/minimap.js or src/dev/tools/alignTool.js) and import it. 

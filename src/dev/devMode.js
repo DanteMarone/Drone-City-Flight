@@ -287,6 +287,22 @@ export class DevMode {
         return this.clipboardManager.duplicateSelected();
     }
 
+    _deepClone(data) {
+        return this.clipboardManager._deepClone(data);
+    }
+
+    _instantiateFromClipboard(data) {
+        return this.clipboardManager._instantiateFromClipboard(data);
+    }
+
+    _removeObjects(objects) {
+        return this.clipboardManager._removeObjects(objects);
+    }
+
+    _recordCreation(objects, description = 'Create object') {
+        return this.clipboardManager._recordCreation(objects, description);
+    }
+
     deleteSelected() {
         return this.clipboardManager.deleteSelected();
     }

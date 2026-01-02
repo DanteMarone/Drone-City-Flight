@@ -69,6 +69,7 @@ export { CourierDroneEntity } from './courierDrone.js';
 export { PulseReactorEntity } from './pulseReactor.js';
 export { GardenPlanterEntity } from './gardenPlanter.js';
 export { RooftopChimneyEntity } from './rooftopChimney.js';
+export { WindowACUnitEntity } from './windowACUnit.js';
 export { RooftopWaterTowerEntity } from './rooftopWaterTower.js';
 export { MapleTreeEntity } from './mapleTree.js';
 export { CargoDroneEntity } from './cargoDrone.js';

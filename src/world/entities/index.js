@@ -111,6 +111,8 @@ export { ArcLeechEntity } from './arcLeech.js';
 export { ArcPulseTotemEntity } from './arcPulseTotem.js';
 export { DroneChaserEntity } from './droneChaser.js';
 export { RazorDroneEntity } from './razorDrone.js';
+export { SawbladeDroneEntity } from './sawbladeDrone.js';
+export { ShockBuzzDroneEntity } from './shockBuzzDrone.js';
 export { GuideDroneEntity } from './guideDrone.js';
 export { GuideBotEntity } from './guideBot.js';
 export { HelpfulNpcEntity } from './helpfulNpc.js';

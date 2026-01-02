@@ -83,6 +83,7 @@ export { LaunchServiceTowerEntity } from './launchServiceTower.js';
 export { LaunchShuttleEntity } from './launchShuttle.js';
 export { BalconyLaundryLineEntity } from './balconyLaundryLine.js';
 export { ApartmentLaundryLineEntity } from './apartmentLaundryLine.js';
+export { ApartmentBalconyGardenEntity } from './apartmentBalconyGarden.js';
 export { BalconyGardenEntity } from './balconyGarden.js';
 export { ATMEntity } from './atm.js';
 export { DJEntity } from './DJ.js';

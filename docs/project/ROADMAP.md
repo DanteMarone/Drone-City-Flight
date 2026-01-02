@@ -1,14 +1,18 @@
 # Project Roadmap
 
+## 🚧 Active / Ready for Dev
+*   [ ] **Smart River Tool**
+    *   Adapt the "Anchor & Stretch" logic from roads to rivers.
+    *   Spec: [`docs/specs/004-smart-river-tool.md`](../specs/004-smart-river-tool.md)
+
 ## 🚀 Next Up
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
-*   [ ] **Smart River Tool**
-    *   Adapt the "Anchor & Stretch" logic from roads to rivers.
 
 ## 📋 Backlog
 *   [ ] **Traffic System**
-    *   Re-implement traffic but using the new Entity/Waypoint system (Basic pathing is in, but autonomous traffic management is missing).
+    *   Re-implement traffic using the new Entity/Waypoint system (Basic pathing is in, but autonomous traffic management is missing).
+    *   *Note:* `src/world/entities/bus.js` and `vehicles.js` provide the base, but a global manager is needed.
 
 ## ✅ Completed
 *   **Sidewalk Corners**

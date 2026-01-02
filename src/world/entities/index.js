@@ -2,6 +2,7 @@ export { BaseEntity } from './base.js';
 export { EntityRegistry } from './registry.js';
 
 // Explicitly export new entities to ensure visibility and registration
+export { BeehiveEntity } from './beehive.js';
 export { PoliceCarEntity } from './policeCar.js';
 export { DeliveryVanEntity } from './deliveryVan.js';
 export { SkyGardenTowerEntity } from './skyGardenTower.js';

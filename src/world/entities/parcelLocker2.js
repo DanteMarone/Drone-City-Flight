@@ -87,7 +87,7 @@ const createDoorTexture = () => {
 export class ParcelLocker2Entity extends BaseEntity {
     constructor(params = {}) {
         super(params);
-        this.type = 'parcelLocker';
+        this.type = 'parcelLocker2';
         this._time = Math.random() * Math.PI * 2;
         this._screenMaterial = null;
         this._indicatorMaterial = null;

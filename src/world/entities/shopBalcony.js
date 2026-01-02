@@ -39,10 +39,10 @@ const createAwningTexture = () => {
     return texture;
 };
 
-export class ApartmentBalconyGardenEntity extends BaseEntity {
+export class ShopBalconyEntity extends BaseEntity {
     constructor(params = {}) {
         super(params);
-        this.type = 'apartmentBalconyGarden';
+        this.type = 'shopBalcony';
         this.time = 0;
         this.lightBulbs = [];
         this.chimeGroup = null;
@@ -50,7 +50,7 @@ export class ApartmentBalconyGardenEntity extends BaseEntity {
     }
 
     static get displayName() {
-        return 'Apartment Balcony Garden';
+        return 'Shop Balcony';
     }
 
     createMesh(params) {
@@ -243,4 +243,4 @@ export class ApartmentBalconyGardenEntity extends BaseEntity {
     }
 }
 
-EntityRegistry.register('apartmentBalconyGarden', ApartmentBalconyGardenEntity);
+EntityRegistry.register('shopBalcony', ShopBalconyEntity);

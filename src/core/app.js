@@ -370,6 +370,7 @@ export class App {
         this.person.yaw = spawnYaw;
         this.person.velocity.set(0, 0, 0);
         this.person.life.reset();
+        this.person.randomizeAppearance();
 
         this.battery.reset();
         this.rings.reset();

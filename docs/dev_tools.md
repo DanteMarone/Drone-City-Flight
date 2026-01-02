@@ -18,6 +18,8 @@ graph TD
     DevMode --> Grid[GridSystem]
     DevMode --> Cam[DevCameraController]
     DevMode --> Waypoint[WaypointManager]
+    DevMode --> Selection[DevSelectionManager]
+    DevMode --> Clipboard[DevClipboardManager]
 
     BuildUI --> TopBar
     BuildUI --> Toolbar
@@ -25,6 +27,7 @@ graph TD
     BuildUI --> Inspector
     BuildUI --> Palette
     BuildUI --> HistoryPanel
+    BuildUI --> Align[AlignTool]
 
     Gizmo --> Proxy[Transform Proxy]
     Gizmo --> Controls[TransformControls]
@@ -52,17 +55,17 @@ Wraps Three.js `TransformControls` to provide visual translation, rotation, and 
 
 #### 4. BuildUI (`src/dev/buildUI.js`)
 The UI Coordinator. It manages the lifecycle of the DOM-based overlay components located in `src/dev/ui/`.
-*   **TopBar (`src/dev/ui/topBar.js`)**: Main menu (File, Edit, View).
-*   **Toolbar (`src/dev/ui/toolbar.js`)**: Quick access buttons (Undo/Redo, Grid).
-*   **Outliner (`src/dev/ui/outliner.js`)**: Scene graph list showing categorized entities.
-*   **Inspector (`src/dev/ui/inspector.js`)**: Properties panel for selected objects and environment settings.
+*   **TopBar**: Main menu (File, Edit, View).
+*   **Toolbar**: Quick access buttons (Undo/Redo, Grid).
+*   **Outliner**: Scene graph list showing categorized entities.
+*   **Inspector**: Properties panel for selected objects and environment settings.
     *   **Multi-Selection**: When multiple objects are selected, the Inspector displays "Transform (Group)" controls linked to the `GizmoManager` proxy, allowing precise numeric manipulation of the entire group.
-*   **Palette (`src/dev/ui/palette.js`)**: Asset browser for drag-and-drop object creation.
-*   **HistoryPanel (`src/dev/ui/historyPanel.js`)**: Visual list of undo/redo stack.
+*   **Palette**: Asset browser for drag-and-drop object creation.
+*   **HistoryPanel**: Visual list of undo/redo stack.
 
 #### 5. CommandManager (`src/dev/history.js`)
 Implements the Command Pattern for Undo/Redo functionality.
-*   **Commands**: `TransformCommand`, `CreateObjectCommand`, `DeleteObjectCommand`, `WaypointCommand`.
+*   **Commands**: `TransformCommand`, `CreateObjectCommand`, `DeleteObjectCommand`, `WaypointCommand`, `PropertyChangeCommand`.
 *   **Snapshots**: Uses deep cloning (or simplified state objects) to capture the state of objects "before" and "after" an operation.
 
 #### 6. WaypointManager (`src/dev/waypointManager.js`)
@@ -70,6 +73,26 @@ Encapsulates all logic related to vehicle waypoints.
 *   **Responsibilities**: adding/removing waypoints, rendering the visualization lines/spheres, and updating paths in real-time.
 *   **Interaction**: `DevMode` delegates waypoint operations (like `add()`, `remove()`) to this manager.
 *   **Commands**: Generates `WaypointCommand` to support undo/redo for path changes.
+
+#### 7. DevSelectionManager (`src/dev/devSelectionManager.js`)
+Manages the logic for selecting one or multiple objects.
+*   **Responsibilities**: Handles single clicks, Shift-clicks for multi-selection, and updates the `selectedObjects` array in `DevMode`.
+*   **Sync**: Automatically attaches/detaches the Gizmo and triggers UI updates (`ui.onSelectionChanged`) whenever selection changes.
+
+#### 8. DevClipboardManager (`src/dev/devClipboardManager.js`)
+Handles Copy, Cut, Paste, and Duplicate operations.
+*   **Serialization**: Converts runtime objects into JSON data structures (similar to map saving) for storage in the clipboard.
+*   **Deserialization**: Rehydrates objects from JSON, handling UUID regeneration and deep cloning of parameters.
+*   **Smart Paste**: Automatically offsets pasted objects or snaps them to the grid/terrain if applicable.
+*   **Undo/Redo**: Generates `CreateObjectCommand` and `DeleteObjectCommand` to ensure clipboard actions are reversible.
+
+### Tools
+
+#### AlignTool (`src/dev/tools/alignTool.js`)
+A specialized UI panel that appears when multiple objects are selected.
+*   **Functionality**: Aligns selected objects along the X or Z axis (Min, Center, Max).
+*   **Implementation**: Calculates the bounding box of the selection group, determines the target alignment value, and applies new positions to all objects.
+*   **History**: Wraps the operation in a `TransformCommand` so alignment can be undone.
 
 ---
 
@@ -95,7 +118,7 @@ Used for variable-length infrastructure (Roads, Fences) or specific placements a
 
 ### Selection & Transformation
 1.  **Click**: `InteractionManager` raycasts to find a mesh.
-2.  **Select**: Calls `DevMode.selectObject()`.
+2.  **Select**: Calls `DevMode.selectObject()`, which delegates to `DevSelectionManager`.
 3.  **Attach**: `GizmoManager` calculates the selection centroid and moves the Proxy there.
 4.  **Manipulate**: User drags the Gizmo handles. `GizmoManager` updates the Proxy.
 5.  **Propagate**: Every frame during drag, `syncProxyToObjects()` applies the Proxy's delta matrix to all selected objects.
@@ -112,7 +135,7 @@ Vehicles (Cars, Pickups) use a waypoint system for pathfinding.
 
 ## Data & Serialization
 
-Maps are saved as JSON files. The `DevMode._serializeMesh()` method converts runtime objects into a data schema:
+Maps are saved as JSON files. The `DevMode` serialization logic (often shared with `DevClipboardManager`) converts runtime objects into a data schema:
 ```json
 {
   "type": "car",

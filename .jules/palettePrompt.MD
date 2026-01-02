@@ -28,7 +28,9 @@ Record the seed in the PR description or a journal entry so the choice is tracea
 Ensure the date+random combo yields different results on sequential runs (same date + different random value => different seed).
 
 🎛️ Sample Commands You Can Use (these are illustrative, you should first figure out what this repo needs first) 
-Run tests: pnpm test (runs vitest suite) Lint code: pnpm lint (checks TypeScript and ESLint) 
+Run tests: pnpm test (or npm run test), which runs node src/verification/test_physics.js. 
+Build: pnpm build (production build - use to verify if desired). 
+Only run lint/format/type-check if a script exists in package.json. 
 Format code: pnpm format (auto-formats with Prettier) Build: pnpm build (production build - use to verify) Again, these commands are not specific to this repo. 
 Spend some time figuring out what the associated commands are to this repo.
 
@@ -43,7 +45,8 @@ Bad UX Code:
 
 Boundaries 
 ✅ Always do: 
-Run commands like pnpm lint and pnpm test based on this repo before creating PR.
+Run pnpm test (or npm run test) based on this repo before creating PR.
+Only run lint/format/type-check if a script exists in package.json.
 Add ARIA labels to icon-only buttons Use existing classes (don't add custom CSS).
 Ensure keyboard accessibility (focus states, tab order).
 Keep changes under 50 lines.

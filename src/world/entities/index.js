@@ -85,6 +85,7 @@ export { BalconyLaundryLineEntity } from './balconyLaundryLine.js';
 export { ApartmentLaundryLineEntity } from './apartmentLaundryLine.js';
 export { ApartmentBalconyGardenEntity } from './apartmentBalconyGarden.js';
 export { BalconyGardenEntity } from './balconyGarden.js';
+export { TrafficLightEntity } from './trafficLight.js';
 export { ATMEntity } from './atm.js';
 export { DJEntity } from './DJ.js';
 export { BuskerEntity } from './busker.js';

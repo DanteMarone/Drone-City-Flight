@@ -112,6 +112,7 @@ export { SpaceShuttleEntity } from './spaceShuttle.js';
 export { ArcLeechEntity } from './arcLeech.js';
 export { ArcPulseTotemEntity } from './arcPulseTotem.js';
 export { DroneChaserEntity } from './droneChaser.js';
+export { StreetClockEntity } from './streetClock.js';
 export { WifiBeaconEntity } from './wifiBeacon.js';
 export { RazorDroneEntity } from './razorDrone.js';
 export { SawbladeDroneEntity } from './sawbladeDrone.js';

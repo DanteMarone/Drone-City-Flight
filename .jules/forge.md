@@ -68,3 +68,9 @@ Mechanical linkages can be simulated visually without a physics engine by using 
 Canvas-based hazard stripes add instant "hostile" flavor to industrial props.
 - **Pattern:** Rotating the canvas context and painting alternating stripes yields a clean caution pattern that reads well on cylindrical meshes.
 - **Technique:** Overlaying subtle dark noise blocks keeps the stripes from looking too pristine.
+
+## 2023-10-24 - Beehive (Forge)
+**Learning:**
+Simulating swarm behavior with a small number of particles is sufficient for props.
+- **Pattern:** Using 3-5 orbiting meshes (`THREE.Mesh` with `BoxGeometry`) instead of a full particle system provides high visibility and control at a negligible cost for single props.
+- **Technique:** Storing orbit parameters (angle, speed, radius) in `userData` of each bee mesh allows independent, organic-looking movement within a single `update(dt)` loop.

@@ -62,3 +62,9 @@ Cheap emergency lighting effects can be achieved by toggling emissive intensity 
 Mechanical linkages can be simulated visually without a physics engine by using simple trigonometric relationships.
 - **Pattern:** Using a central "crank" angle (`Math.sin(time)`) to drive multiple independent parts (Beam rotation, Pitman Arm position, Counterweight rotation) creates the illusion of a connected mechanical system.
 - **Technique:** Positioning the "Pitman Arm" at the crank's handle location while setting its rotation to roughly point at the beam pivot is cheaper than solving Inverse Kinematics and looks correct from a distance.
+
+## 2026-01-02 - Sentry Turret (Forge)
+**Learning:**
+Canvas-based hazard stripes add instant "hostile" flavor to industrial props.
+- **Pattern:** Rotating the canvas context and painting alternating stripes yields a clean caution pattern that reads well on cylindrical meshes.
+- **Technique:** Overlaying subtle dark noise blocks keeps the stripes from looking too pristine.

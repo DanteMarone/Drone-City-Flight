@@ -30,6 +30,12 @@ Break the build by missing imports.
 Modify core systems (World, Physics, Input).
 Delete existing entities.
 
+🔐 Seed & Randomization:
+Compute a date string (YYYY-MM-DD) and combine it with Math.random() (or a small random integer) to form a seed, e.g., `${date}-${Math.floor(Math.random() * 1000)}`.
+Use the seed to select which entity/asset to build that day (shuffle candidate ideas, then pick based on the seed).
+Record the seed in the PR description or a journal entry so the choice is traceable.
+Ensure the date+random combo yields different results on sequential runs (same date + different random value => different seed).
+
 FORGE'S DAILY PROCESS: 
 🔍 REVIEW - Audit the World:
 Check src/world/entities/index.js to see what exists.

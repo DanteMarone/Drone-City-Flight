@@ -1,8 +1,11 @@
 // src/ui/hud.js
+import { Minimap } from './widgets/minimap.js';
+
 export class HUD {
     constructor() {
         this.elements = {};
         this.onPause = null;
+        this.minimap = null;
         this._createDOM();
     }
 
@@ -80,11 +83,21 @@ export class HUD {
             if (this.onPause) this.onPause();
             this.elements.pauseBtn.blur();
         };
+
+        // Initialize Minimap
+        this.minimap = new Minimap();
+        this.elements.container.appendChild(this.minimap.container);
     }
 
     setVisible(visible) {
         if (visible) this.elements.container.classList.remove('hidden');
         else this.elements.container.classList.add('hidden');
+    }
+
+    updateMinimap(playerPos, playerRotationY, entities) {
+        if (this.minimap) {
+            this.minimap.update(playerPos, playerRotationY, entities);
+        }
     }
 
     update(data) {

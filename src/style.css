@@ -709,3 +709,52 @@ canvas {
     font-family: monospace;
     text-transform: uppercase;
 }
+
+/* Minimap Widget */
+.hud-minimap {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 200px;
+    background: rgba(0, 0, 0, 0.7);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    overflow: hidden;
+    pointer-events: none;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+    z-index: 5;
+}
+
+.hud-minimap canvas {
+    width: 100%;
+    height: 100%;
+}
+
+.hud-minimap::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 8px;
+    height: 8px;
+    background: #0ff;
+    border: 1px solid white;
+    border-radius: 50%;
+    transform: translate(-50%, -50%);
+    box-shadow: 0 0 5px #0ff;
+    z-index: 10;
+}
+
+.hud-minimap-border {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    box-sizing: border-box;
+    pointer-events: none;
+}

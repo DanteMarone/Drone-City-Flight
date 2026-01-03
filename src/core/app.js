@@ -299,6 +299,15 @@ export class App {
             );
         }
 
+        // Update Minimap (if not in DevMode)
+        if (this.hud && this.world) {
+            const player = this.mode === 'person' ? this.person : this.drone;
+            // Get all renderable entities for minimap (Static + Birds? + Vehicles)
+            // For performance, we might want to filter or cache this.
+            // Using world.colliders gives us everything.
+            this.hud.updateMinimap(player.position, player.yaw, this.world.colliders);
+        }
+
         this.input.resetFrame();
     }
 

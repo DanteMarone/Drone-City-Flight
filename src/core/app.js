@@ -21,6 +21,7 @@ import { CONFIG } from '../config.js';
 import { DevMode } from '../dev/devMode.js';
 import { PhotoMode } from '../ui/photoMode.js';
 import { NotificationSystem } from '../ui/notifications.js';
+import { HelpSystem } from '../ui/help.js';
 import { EnvironmentSystem } from '../world/environmentSystem.js';
 
 export class App {
@@ -38,6 +39,7 @@ export class App {
         this.input = new InputManager();
         this.notifications = new NotificationSystem(); // Init Notification System
         this.hud = new HUD();
+        this.help = new HelpSystem(this);
         this.menu = new MenuSystem(this);
         this.hud.onPause = () => this.menu.toggle();
         this.audio = new AudioManager();

@@ -40,6 +40,9 @@ export class MenuSystem {
                 <button id="btn-photo">
                     <span class="menu-btn-content">${iconCamera} PHOTO MODE</span>
                 </button>
+                <button id="btn-help">
+                    <span class="menu-btn-content">❓ CONTROLS</span>
+                </button>
                 <button id="btn-dev">
                     <span class="menu-btn-content">${iconCode} DEVELOPER MODE</span>
                 </button>
@@ -71,6 +74,7 @@ export class MenuSystem {
             resume: menu.querySelector('#btn-resume'),
             reset: menu.querySelector('#btn-reset'),
             photo: menu.querySelector('#btn-photo'),
+            help: menu.querySelector('#btn-help'),
             dev: menu.querySelector('#btn-dev'),
             loadMap: menu.querySelector('#btn-load-map'),
             bloom: menu.querySelector('#opt-bloom'),
@@ -93,6 +97,27 @@ export class MenuSystem {
         this.dom.photo.onclick = () => {
             this.hide();
             if (this.app.photoMode) this.app.photoMode.enable();
+        };
+
+        this.dom.help.onclick = () => {
+            // Do not hide menu? Or hide menu and show help?
+            // Usually help is an overlay on top of menu or replaces it.
+            // Let's hide menu and show help.
+            // But we need a way to come back. Help system close should just close help.
+            // If help is closed, what happens? If we hide menu, app is unpaused unless help manages pause.
+            // Better: HelpSystem should just overlay and NOT hide menu if possible, or HelpSystem handles its own state.
+            // But HelpSystem logic says "Close -> hide()".
+            // Let's hide menu.
+            this.hide();
+            // Since hide() unpauses, we need to handle that.
+            // Actually, `HelpSystem.show()` should pause the app too if not paused.
+            // But `App.menu` toggles pause.
+            // If we hide menu, it unpauses.
+            // So we should probably keep menu open or let help manage pause.
+            // For now, let's call show() which sets active.
+
+            // To prevent unpausing, we can immediately show help which re-pauses or sets visible.
+            if (this.app.help) this.app.help.show();
         };
 
         this.dom.dev.onclick = () => {

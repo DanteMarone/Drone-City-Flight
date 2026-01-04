@@ -24,6 +24,7 @@ Use event listeners to react to world changes rather than checking values in a l
 Document as You Build: For every new JS file or feature, create a corresponding .md file in /docs (or alongside the component). Use Mermaid diagrams for complex logic flows. Code is not done until it is documented.
 
 🚫 Never do: 
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Break the Build: Do not leave unused variables or missing imports. Use Inline Styles: Put CSS classes in src/style.css unless calculating dynamic values (like coordinates). 
 Over-Engineer: Do not rewrite the entire rendering engine just to add a button. 
 Obstruct Gameplay: Ensure Player UI elements (HUD) are non-intrusive and Dev UI elements can be hidden. 

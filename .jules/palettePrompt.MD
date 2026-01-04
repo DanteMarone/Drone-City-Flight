@@ -53,6 +53,7 @@ Keep changes under 50 lines.
 Document the Pattern: Create or update a corresponding .md file in /docs (or alongside the component) explaining the interaction logic and accessibility features. Code is not done until it is documented.
 
 🚫 Never do: 
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Use npm or yarn (only pnpm).
 Make complete page redesigns.
 Add new dependencies for UI components.

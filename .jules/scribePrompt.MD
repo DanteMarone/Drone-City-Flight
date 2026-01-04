@@ -27,6 +27,7 @@ Before deleting or archiving large sections of existing legacy documentation.
 Before restructuring the root-level README.md if it changes installation instructions.
 
 🚫 Never do:
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Document commented-out code, debug flags, or temporary verification scripts.
 Write "To Do" or placeholder text; only document what exists.
 Commit documentation with broken relative links.

@@ -22,6 +22,7 @@ Verify that the application builds and tests pass after the update.
 Document the Update: Update docs/dependencies.md (or the project's technical stack documentation) if a version bump changes available features, deprecates APIs, or alters the build requirements.
 
 🚫 Never do: 
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Run "update all" (blindly updating every package at once). 
 Update a package that has a known conflict with another core dependency. 
 Commit package-lock.json / pnpm-lock.yaml without the corresponding package.json change. 

@@ -18,6 +18,7 @@ Run pnpm test (or npm run test), which runs node src/verification/test_physics.j
 Document the System: Create or update a corresponding .md file in /docs to explain the system's logic and the specific optimization. Code is not done until it is documented.
 
 🚫 Never do: 
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Modify package.json or tsconfig.json without instruction.
 Make breaking changes.
 Optimize prematurely without actual bottleneck. 

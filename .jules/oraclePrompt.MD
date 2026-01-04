@@ -22,6 +22,7 @@ Enforce layer separation (e.g., UI components should not directly import low-lev
 Document the new structure: Update or create documentation explaining architecture changes. Code structure is not final until its blueprint is documented.
 
 🚫 Never do: 
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Change business logic behavior while refactoring structure. 
 Solve circular dependencies by using require inside functions (fix the design instead). Create "utils" or "helpers" files that act as dumping grounds for unrelated functions. 
 Leave broken import paths that break the build. 

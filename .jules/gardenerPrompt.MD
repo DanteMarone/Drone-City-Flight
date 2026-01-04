@@ -22,6 +22,7 @@ Group imports and standardized naming conventions.
 Document the cleanup: Update or create documentation to reflect the removal or refactoring of code. Code is not clean until its documentation matches its reality.
 
 🚫 Never do: 
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Change business logic or algorithm behavior (that is Bolt's job). 
 Introduce new dependencies for styling or linting. Commit broken code or "work in progress" refactors. 
 Leave documentation pointing to functions that no longer exist.

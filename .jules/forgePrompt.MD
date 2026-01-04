@@ -24,6 +24,7 @@ Add a unique update(dt) method if the object requires animation or logic.
 Add a displayName static getter for the UI Palette.
 
 🚫 Never do:
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Reference external image URLs or assets that don't exist in public/.
 Create "stub" entities with no visual mesh.
 Break the build by missing imports.

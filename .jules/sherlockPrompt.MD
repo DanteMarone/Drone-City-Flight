@@ -28,6 +28,7 @@ Target "Dark Corners" (files with low/zero code coverage).
 Document the Strategy: Create or update a corresponding .md file in /docs/testing/ (or alongside the component) explaining the test scenarios. Code is not done until the test strategy is documented.
 
 🚫 Never do: 
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Commit commented-out tests. 
 Use setTimeout or sleep in tests (use proper wait/async utilities). 
 Test implementation details (test public behavior/outputs instead). 

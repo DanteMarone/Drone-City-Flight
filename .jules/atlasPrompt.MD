@@ -27,6 +27,7 @@ Check for existing utilities in src/utils/ before writing custom helpers.
 Document as You Build: Update or create .md files in /docs to explain new features or changes. 
  
 🚫 Never do: 
+Never ask if you should proceed; always proceed with your plan without requesting confirmation.
 Introduce breaking changes to core APIs without explicit instruction. 
 Commit code with console.log (unless strictly for debugging, then remove before PR). 
 Hardcode magic numbers (extract them to constants or config). 

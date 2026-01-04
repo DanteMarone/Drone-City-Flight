@@ -82,7 +82,7 @@ export class Outliner {
                     // Allow clicking anywhere on row to select
                     item.onclick = (e) => {
                         // Don't trigger if clicked on visibility toggle
-                        if (e.target.classList.contains('dev-outliner-visibility')) return;
+                        if (e.target.closest('.dev-outliner-visibility')) return;
                         // Multi-select with shift
                         this.devMode.selectObject(entity.mesh, e.shiftKey);
                     };
@@ -93,13 +93,17 @@ export class Outliner {
                     item.appendChild(name);
 
                     // Visibility Toggle
-                    const vis = document.createElement('div');
-                    vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'is-hidden'}`;
-                    vis.title = 'Toggle Visibility';
+                    const vis = document.createElement('button');
+                    vis.className = `dev-btn-icon dev-outliner-visibility ${entity.mesh.visible ? '' : 'is-hidden'}`;
+                    vis.innerHTML = '👁';
+                    vis.title = entity.mesh.visible ? 'Hide Object' : 'Show Object';
+                    vis.setAttribute('aria-label', entity.mesh.visible ? `Hide ${displayName}` : `Show ${displayName}`);
                     vis.onclick = (e) => {
                         e.stopPropagation();
                         entity.mesh.visible = !entity.mesh.visible;
-                        vis.className = `dev-outliner-visibility ${entity.mesh.visible ? '' : 'is-hidden'}`;
+                        vis.className = `dev-btn-icon dev-outliner-visibility ${entity.mesh.visible ? '' : 'is-hidden'}`;
+                        vis.title = entity.mesh.visible ? 'Hide Object' : 'Show Object';
+                        vis.setAttribute('aria-label', entity.mesh.visible ? `Hide ${displayName}` : `Show ${displayName}`);
                     };
                     item.appendChild(vis);
 

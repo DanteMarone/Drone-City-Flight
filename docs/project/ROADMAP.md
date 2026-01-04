@@ -1,20 +1,22 @@
 # Project Roadmap
 
-## 🚧 Active / Ready for Dev
-*   [ ] **Smart River Tool**
-    *   Adapt the "Anchor & Stretch" logic from roads to rivers.
-    *   Spec: [`docs/specs/004-smart-river-tool.md`](../specs/004-smart-river-tool.md)
-
 ## 🚀 Next Up
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
+    *   *Status:* Ready for Design/Dev
 
 ## 📋 Backlog
 *   [ ] **Traffic System**
     *   Re-implement traffic using the new Entity/Waypoint system (Basic pathing is in, but autonomous traffic management is missing).
     *   *Note:* `src/world/entities/bus.js` and `vehicles.js` provide the base, but a global manager is needed.
+*   [ ] **District Generation V2**
+    *   Move from grid-based districts to organic/spline-based zoning.
 
 ## ✅ Completed
+*   **Smart River Tool**
+    *   Implemented "Anchor & Stretch" placement for `river` type.
+    *   Updated `RiverEntity` to support scaling.
+    *   Docs: `docs/features/smart_river_tool.md`
 *   **Sidewalk Corners**
     *   Implemented `SidewalkCornerEntity` (1x1 unit).
     *   Added `createSidewalkBlank` texture for seamless connections.
@@ -26,10 +28,6 @@
 *   **Smart Road Tool**
     *   Implemented "Anchor & Stretch" placement in `src/dev/interaction.js`.
     *   Added axis locking (North/South, East/West).
-*   **Smart River Tool**
-    *   Implemented "Anchor & Stretch" placement for `river` type.
-    *   Updated `RiverEntity` to support scaling.
-    *   Docs: `docs/features/smart_river_tool.md`
 *   **Grid Snap & Physics**
     *   Enforced strict integer snapping for road lengths.
     *   Verified collision scaling.

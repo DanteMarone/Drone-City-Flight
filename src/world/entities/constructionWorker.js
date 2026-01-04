@@ -3,6 +3,7 @@ import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 
 const _tempVec = new THREE.Vector3();
+const _tempVec2 = new THREE.Vector3();
 
 /**
  * Construction Worker Entity
@@ -195,8 +196,9 @@ export class ConstructionWorkerEntity extends BaseEntity {
                      // Offset to front where jackhammer is
                      const forwardOffset = 0.6;
                      // Rotate offset by entity rotation
-                     const forward = new THREE.Vector3(0, 0, forwardOffset).applyQuaternion(this.mesh.quaternion);
-                     _tempVec.add(forward);
+                     // OPTIMIZATION: Use scratch vector instead of new THREE.Vector3
+                     _tempVec2.set(0, 0, forwardOffset).applyQuaternion(this.mesh.quaternion);
+                     _tempVec.add(_tempVec2);
 
                      // Random spread
                      _tempVec.x += (Math.random() - 0.5) * 0.4;

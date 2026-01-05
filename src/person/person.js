@@ -3,6 +3,7 @@ import * as THREE from 'three';
 import { CONFIG } from '../config.js';
 import { damp } from '../utils/math.js';
 import { LifeManager } from './life.js';
+import { FBXCharacter } from './fbx-character.js';
 
 const MODEL_DIMENSIONS = {
     torso: {
@@ -156,7 +157,7 @@ const pickDistinct = (items, avoid) => {
 };
 
 export class Person {
-    constructor(scene) {
+    constructor(scene, useFBX = true) {
         this.scene = scene;
         this.position = new THREE.Vector3(0, 1, 0);
         this.velocity = new THREE.Vector3(0, 0, 0);
@@ -164,10 +165,57 @@ export class Person {
         this.grounded = false;
         this.life = new LifeManager();
         this.appearance = this._createRandomAppearance();
+        this.useFBX = useFBX;
+        this.fbxCharacter = null;
+        this.isMoving = false;
+        this.isJumping = false;
+        this.wasGrounded = true;
 
         this.mesh = new THREE.Group();
-        this._buildMesh();
+
+        if (useFBX) {
+            this._loadFBXCharacter();
+        } else {
+            this._buildMesh();
+        }
+
         this.scene.add(this.mesh);
+    }
+
+    async _loadFBXCharacter() {
+        this.fbxCharacter = new FBXCharacter();
+
+        try {
+            console.log('Starting FBX character load...');
+            // Use the idle animation FBX as the base model since it contains the skeleton
+            // The T-pose FBX doesn't have bones, so we use an animated one instead
+            const model = await this.fbxCharacter.load({
+                modelPath: new URL('./player_male01_idle.fbx', import.meta.url).href,
+                animationPaths: {
+                    idle: new URL('./player_male01_idle.fbx', import.meta.url).href,
+                    walking: new URL('./player_male01_walking.fbx', import.meta.url).href,
+                    movingJump: new URL('./player_male01_moving_jump.fbx', import.meta.url).href,
+                    standingJump: new URL('./player_male01_standing_jump.fbx', import.meta.url).href
+                },
+                onProgress: (xhr) => {
+                    if (xhr.lengthComputable) {
+                        const percentComplete = (xhr.loaded / xhr.total) * 100;
+                        console.log(`Loading FBX: ${percentComplete.toFixed(2)}%`);
+                    }
+                }
+            });
+
+            console.log('FBX character loaded successfully!');
+            this.mesh.add(model);
+
+            // Start with idle animation
+            this.fbxCharacter.playAnimation('idle');
+            console.log('Playing idle animation');
+        } catch (error) {
+            console.error('Failed to load FBX character, falling back to basic mesh:', error);
+            this.useFBX = false;
+            this._buildMesh();
+        }
     }
 
     _buildMesh() {
@@ -496,7 +544,47 @@ export class Person {
 
     update(dt, input, colliderSystem, dynamicColliders = []) {
         this._updatePhysics(dt, input, colliderSystem, dynamicColliders);
+        this._updateAnimations(dt, input);
         this._syncMesh();
+    }
+
+    _updateAnimations(dt, input) {
+        if (!this.useFBX || !this.fbxCharacter || !this.fbxCharacter.loaded()) {
+            return;
+        }
+
+        // Update animation mixer
+        this.fbxCharacter.update(dt);
+
+        // Determine character state
+        const moveInput = new THREE.Vector3(input.x || 0, 0, input.z || 0);
+        const isMoving = moveInput.lengthSq() > 0.01;
+        const justJumped = input.jump && this.grounded;
+        const justLanded = !this.wasGrounded && this.grounded;
+
+        // Handle animation transitions
+        if (justJumped) {
+            // Choose jump animation based on movement
+            const jumpAnim = isMoving ? 'movingJump' : 'standingJump';
+            this.fbxCharacter.playAnimation(jumpAnim, { loop: false });
+            this.isJumping = true;
+        } else if (this.isJumping && justLanded) {
+            // Landed, transition back to appropriate animation
+            this.isJumping = false;
+            const targetAnim = isMoving ? 'walking' : 'idle';
+            this.fbxCharacter.playAnimation(targetAnim);
+        } else if (!this.isJumping) {
+            // Normal ground movement
+            if (isMoving && !this.isMoving) {
+                this.fbxCharacter.playAnimation('walking');
+                this.isMoving = true;
+            } else if (!isMoving && this.isMoving) {
+                this.fbxCharacter.playAnimation('idle');
+                this.isMoving = false;
+            }
+        }
+
+        this.wasGrounded = this.grounded;
     }
 
     _updatePhysics(dt, input, colliderSystem, dynamicColliders) {

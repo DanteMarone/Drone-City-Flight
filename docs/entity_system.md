@@ -166,6 +166,7 @@ Some entities require logic that goes beyond simple self-updates or need to inte
 
 *   **[Bird System](./bird_system.md)**: Manages `BirdEntity` instances, handling AI states (Patrol, Chase) and battery interactions.
 *   **[NPC System](./npc_system.md)**: Manages active agents like `AngryPersonEntity`, detailing their behaviors, configuration, and combat logic.
+*   **[Space Center](./space_center.md)**: Documentation for the Launch Complex entities, including Shuttles, Towers, and Observatory.
 *   **[Buildings System](./buildings.md)**: Documentation for Residential and Commercial structures (`House`, `OfficePark`, etc.) and their procedural elements.
 *   **[Ring System](./ring_system.md)**: Manages the Ring Collection minigame, including spawning, collision checks, and scoring.
 *   **[Time Cycle](./time_cycle.md)**: Manages the `Sun` and global lighting, though not strictly an "entity" in the registry sense.

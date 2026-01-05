@@ -1,9 +1,11 @@
 // src/person/fbx-character.js
 import * as THREE from 'three';
 import { FBXLoader } from 'three/examples/jsm/loaders/FBXLoader.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 
 /**
  * FBX-based character with Mixamo animation support
+ * Supports loading GLB models with FBX animations
  */
 export class FBXCharacter {
     constructor() {
@@ -12,21 +14,25 @@ export class FBXCharacter {
         this.animations = new Map();
         this.currentAction = null;
         this.isLoaded = false;
-        this.loader = new FBXLoader();
+        this.fbxLoader = new FBXLoader();
+        this.gltfLoader = new GLTFLoader();
     }
 
     /**
-     * Load the base FBX model and all animations
+     * Load the base model and all animations
      * @param {Object} options - Loading options
-     * @param {string} options.modelPath - Path to base T-pose FBX
+     * @param {string} options.modelPath - Path to base model (FBX or GLB)
      * @param {Object} options.animationPaths - Map of animation names to paths
      * @param {Function} options.onProgress - Progress callback
      * @returns {Promise<THREE.Group>}
      */
     async load({ modelPath, animationPaths = {}, onProgress }) {
         try {
-            // Load base model
-            this.model = await this._loadFBX(modelPath, onProgress);
+            // Load base model - detect format by extension
+            const isGLB = modelPath.toLowerCase().endsWith('.glb') || modelPath.toLowerCase().endsWith('.gltf');
+            this.model = isGLB
+                ? await this._loadGLB(modelPath, onProgress)
+                : await this._loadFBX(modelPath, onProgress);
 
             // Create animation mixer
             this.mixer = new THREE.AnimationMixer(this.model);
@@ -111,9 +117,24 @@ export class FBXCharacter {
      */
     _loadFBX(path, onProgress) {
         return new Promise((resolve, reject) => {
-            this.loader.load(
+            this.fbxLoader.load(
                 path,
                 (fbx) => resolve(fbx),
+                onProgress,
+                (error) => reject(error)
+            );
+        });
+    }
+
+    /**
+     * Load a GLB file
+     * @private
+     */
+    _loadGLB(path, onProgress) {
+        return new Promise((resolve, reject) => {
+            this.gltfLoader.load(
+                path,
+                (gltf) => resolve(gltf.scene),
                 onProgress,
                 (error) => reject(error)
             );
@@ -141,11 +162,20 @@ export class FBXCharacter {
 
         console.log('FBX model loaded and scaled:', this.model);
 
-        // Enable shadows for all meshes
+        // Enable shadows and apply a simple material to all meshes
         this.model.traverse((child) => {
             if (child.isMesh) {
                 child.castShadow = true;
                 child.receiveShadow = true;
+
+                // If the mesh doesn't have a proper material, apply a default one
+                if (!child.material || !child.material.map) {
+                    child.material = new THREE.MeshStandardMaterial({
+                        color: 0x8888aa,  // Light blue-gray color
+                        roughness: 0.7,
+                        metalness: 0.1
+                    });
+                }
             }
         });
     }

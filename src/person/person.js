@@ -188,7 +188,7 @@ export class Person {
         try {
             console.log('Starting FBX character load...');
             // Use the idle animation FBX as the base model since it contains the skeleton
-            // The T-pose FBX doesn't have bones, so we use an animated one instead
+            // TODO: Replace with GLB file when available for better textures
             const model = await this.fbxCharacter.load({
                 modelPath: new URL('./player_male01_idle.fbx', import.meta.url).href,
                 animationPaths: {

@@ -20,6 +20,14 @@ export class Minimap {
 
         this.dom = document.createElement('div');
         this.dom.className = 'minimap-container';
+        // Force styles to ensure visibility if CSS fails to load/apply
+        this.dom.style.position = 'absolute';
+        this.dom.style.bottom = '20px';
+        this.dom.style.right = '20px';
+        this.dom.style.width = '150px';
+        this.dom.style.height = '150px';
+        this.dom.style.zIndex = '2000';
+        this.dom.style.pointerEvents = 'none';
 
         this.canvas = document.createElement('canvas');
         this.canvas.width = this.size;

@@ -182,6 +182,7 @@ export class App {
                 showSecondary: false,
                 message: ""
             });
+            this.minimap.update();
         } else if (this.drone) {
             this.tutorial.update(dt, move);
 
@@ -281,8 +282,9 @@ export class App {
                 });
 
                 this.compass.update(dt);
-                this.minimap.update();
             }
+            // Always update minimap if active
+            this.minimap.update();
         }
 
         if (this.mode === 'person') {

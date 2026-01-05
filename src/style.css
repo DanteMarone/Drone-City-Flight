@@ -860,7 +860,7 @@ canvas {
     width: 150px;
     height: 150px;
     pointer-events: none;
-    z-index: 100;
+    z-index: 2000;
 }
 
 .minimap-canvas {

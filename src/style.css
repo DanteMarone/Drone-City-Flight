@@ -851,3 +851,22 @@ canvas {
     opacity: 0.5;
     margin-left: 4px;
 }
+
+/* Minimap Widget */
+.minimap-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 150px;
+    height: 150px;
+    pointer-events: none;
+    z-index: 2000;
+}
+
+.minimap-canvas {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0, 0, 0, 0.5);
+    border: 2px solid rgba(255, 255, 255, 0.2);
+}

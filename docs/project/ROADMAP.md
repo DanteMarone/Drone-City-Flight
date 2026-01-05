@@ -4,6 +4,7 @@
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
     *   *Status:* Ready for Design/Dev
+    *   *Spec:* `docs/specs/005-organic-roads.md` (To be created)
 
 ## 📋 Backlog
 *   [ ] **Traffic System**
@@ -20,11 +21,11 @@
 *   **Sidewalk Corners**
     *   Implemented `SidewalkCornerEntity` (1x1 unit).
     *   Added `createSidewalkBlank` texture for seamless connections.
-    *   Docs: `docs/features/sidewalk_corners.md`
+    *   Docs: `docs/specs/003-sidewalk-corners.md`
 *   **Static Intersections**
     *   Implemented `IntersectionEntity` with 4-way, 3-way, and Turn variants.
     *   Added `createAsphaltBlank` texture for clean junctions.
-    *   Docs: `docs/features/intersections.md`
+    *   Docs: `docs/specs/001-intersections.md`
 *   **Smart Road Tool**
     *   Implemented "Anchor & Stretch" placement in `src/dev/interaction.js`.
     *   Added axis locking (North/South, East/West).

@@ -74,3 +74,9 @@ Canvas-based hazard stripes add instant "hostile" flavor to industrial props.
 Simulating swarm behavior with a small number of particles is sufficient for props.
 - **Pattern:** Using 3-5 orbiting meshes (`THREE.Mesh` with `BoxGeometry`) instead of a full particle system provides high visibility and control at a negligible cost for single props.
 - **Technique:** Storing orbit parameters (angle, speed, radius) in `userData` of each bee mesh allows independent, organic-looking movement within a single `update(dt)` loop.
+
+## 2026-01-03 - Fire Truck (Forge)
+**Learning:**
+Complex angled sub-assemblies are best constructed flat and then rotated as a group.
+- **Pattern:** Building the ladder assembly (rails and rungs) aligned to the world Z-axis, then adding it to a `THREE.Group` and rotating that group on the X-axis.
+- **Technique:** This avoids calculating trigonometry for every single rung position. You just place them at `z = i * spacing`, and the parent group handles the 15-degree incline.

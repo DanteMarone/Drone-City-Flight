@@ -53,9 +53,19 @@ export class TopBar {
         // Close menus when clicking outside
         document.addEventListener('click', (e) => {
             if (!e.target.closest('.dev-menu-btn')) {
-                document.querySelectorAll('.dev-dropdown').forEach(d => d.classList.remove('visible'));
-                document.querySelectorAll('.dev-menu-btn').forEach(b => b.classList.remove('active'));
+                this._closeAllMenus();
             }
+        });
+    }
+
+    _closeAllMenus() {
+        document.querySelectorAll('.dev-dropdown').forEach(d => {
+            d.classList.remove('visible');
+            d.setAttribute('aria-hidden', 'true');
+        });
+        document.querySelectorAll('.dev-menu-btn').forEach(b => {
+            b.classList.remove('active');
+            b.setAttribute('aria-expanded', 'false');
         });
     }
 
@@ -66,50 +76,96 @@ export class TopBar {
         const btn = document.createElement('button');
         btn.className = 'dev-menu-btn';
         btn.textContent = label;
+        btn.setAttribute('aria-haspopup', 'true');
+        btn.setAttribute('aria-expanded', 'false');
 
         const dropdown = document.createElement('div');
         dropdown.className = 'dev-dropdown';
+        dropdown.setAttribute('role', 'menu');
+        dropdown.setAttribute('aria-label', label);
+        dropdown.setAttribute('aria-hidden', 'true');
 
         btn.onclick = (e) => {
             e.stopPropagation();
             const wasVisible = dropdown.classList.contains('visible');
-            // Close all others
-            document.querySelectorAll('.dev-dropdown').forEach(d => d.classList.remove('visible'));
-            document.querySelectorAll('.dev-menu-btn').forEach(b => b.classList.remove('active'));
+
+            this._closeAllMenus();
 
             if (!wasVisible) {
                 dropdown.classList.add('visible');
+                dropdown.setAttribute('aria-hidden', 'false');
                 btn.classList.add('active');
+                btn.setAttribute('aria-expanded', 'true');
+
+                // Focus first item
+                const firstItem = dropdown.querySelector('.dev-dropdown-item');
+                if (firstItem) firstItem.focus();
             }
         };
+
+        const menuItems = [];
 
         items.forEach(item => {
             if (item.separator) {
                 const sep = document.createElement('div');
                 sep.className = 'dev-dropdown-separator';
+                sep.setAttribute('role', 'separator');
                 dropdown.appendChild(sep);
             } else {
-                const div = document.createElement('div');
-                div.className = 'dev-dropdown-item';
+                const button = document.createElement('button');
+                button.className = 'dev-dropdown-item';
+                button.setAttribute('role', 'menuitem');
+                // Ensure dark background and text
+                button.style.backgroundColor = 'transparent';
+                button.style.color = '#ccc';
+                button.style.border = 'none';
 
                 const span = document.createElement('span');
                 span.textContent = item.label;
-                div.appendChild(span);
+                button.appendChild(span);
 
                 if (item.shortcut) {
                     const sc = document.createElement('span');
                     sc.className = 'dev-dropdown-shortcut';
                     sc.textContent = item.shortcut;
-                    div.appendChild(sc);
+                    button.appendChild(sc);
                 }
 
-                div.onclick = () => {
+                button.onclick = (e) => {
+                    e.stopPropagation(); // Prevent re-triggering body click
                     item.action();
-                    dropdown.classList.remove('visible');
-                    btn.classList.remove('active');
+                    this._closeAllMenus();
+                    btn.focus(); // Return focus to the menu button
                 };
-                dropdown.appendChild(div);
+
+                menuItems.push(button);
+                dropdown.appendChild(button);
             }
+        });
+
+        // Keyboard Navigation (Arrow Keys)
+        menuItems.forEach((button, index) => {
+            button.onkeydown = (e) => {
+                if (e.key === 'Escape') {
+                    this._closeAllMenus();
+                    btn.focus();
+                    e.preventDefault();
+                } else if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    const nextIndex = (index + 1) % menuItems.length;
+                    menuItems[nextIndex].focus();
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    const prevIndex = (index - 1 + menuItems.length) % menuItems.length;
+                    menuItems[prevIndex].focus();
+                } else if (e.key === 'Home') {
+                    e.preventDefault();
+                    menuItems[0].focus();
+                } else if (e.key === 'End') {
+                    e.preventDefault();
+                    menuItems[menuItems.length - 1].focus();
+                }
+            };
         });
 
         container.appendChild(btn);
@@ -121,7 +177,8 @@ export class TopBar {
         const fileInput = document.createElement('input');
         fileInput.type = 'file';
         fileInput.accept = '.json';
-        fileInput.style.display = 'none';
+        fileInput.className = 'visually-hidden'; // Use the CSS class
+        fileInput.setAttribute('aria-hidden', 'true');
         fileInput.onchange = (e) => {
             if (e.target.files.length > 0) {
                 this.devMode.loadMap(e.target.files[0]);

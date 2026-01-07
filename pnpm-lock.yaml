@@ -8,9 +8,9 @@ importers:
 
   .:
     dependencies:
-      jsdom:
-        specifier: ^27.4.0
-        version: 27.4.0
+      fflate:
+        specifier: ^0.8.2
+        version: 0.8.2
       postprocessing:
         specifier: ^6.38.0
         version: 6.38.0(three@0.181.2)
@@ -21,6 +21,9 @@ importers:
       '@playwright/test':
         specifier: ^1.57.0
         version: 1.57.0
+      jsdom:
+        specifier: ^27.4.0
+        version: 27.4.0
       playwright:
         specifier: ^1.57.0
         version: 1.57.0
@@ -405,6 +408,9 @@ packages:
     peerDependenciesMeta:
       picomatch:
         optional: true
+
+  fflate@0.8.2:
+    resolution: {integrity: sha512-cPJU47OaAoCbg0pBvzsgpTPhmhqI5eJjh/JIu8tPj5q+T7iLvW/JAYUqmE7KOB4R1ZyEhzBaIQpQpardBF5z8A==}
 
   fsevents@2.3.2:
     resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
@@ -864,6 +870,8 @@ snapshots:
   fdir@6.5.0(picomatch@4.0.3):
     optionalDependencies:
       picomatch: 4.0.3
+
+  fflate@0.8.2: {}
 
   fsevents@2.3.2:
     optional: true

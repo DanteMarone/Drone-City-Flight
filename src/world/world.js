@@ -1,7 +1,6 @@
 // src/world/world.js
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { ObjectFactory } from './factory.js';
 import { BirdSystem } from './birdSystem.js';
 import { LightSystem } from './lightSystem.js';
 import { InstancedEntitySystem } from './instancing.js';
@@ -15,7 +14,6 @@ export class World {
         this.birdSystem = new BirdSystem(scene);
         this.lightSystem = new LightSystem(scene);
         this.instancer = new InstancedEntitySystem(scene);
-        this.factory = new ObjectFactory(scene);
         this.timeCycle = new TimeCycle();
 
         // this.colliders now holds BaseEntity instances (which match {mesh, box} interface)
@@ -52,14 +50,17 @@ export class World {
         this.landingPads = [];
 
         // Showcase landmark near spawn so players immediately see the new architecture.
-        const landmark = this.factory.createSkyGardenTower({
+        const landmark = EntityRegistry.create('sky_garden_tower', {
             x: 35,
             z: -28,
             width: 28,
             height: 74,
             rotY: Math.PI / 8
         });
-        this.addEntity(landmark);
+        if (landmark && landmark.mesh) {
+            this.scene.add(landmark.mesh);
+            this.addEntity(landmark);
+        }
     }
 
     update(dt, camera) {
@@ -199,7 +200,7 @@ export class World {
                 }
 
                 const entity = EntityRegistry.create(obj.type, params);
-                if (entity) {
+                if (entity && entity.mesh) {
                     // Restore exact transform if serialization was precise
                     // BaseEntity init sets position from params.
                     if (obj.rotation) {

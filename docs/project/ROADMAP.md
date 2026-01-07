@@ -4,6 +4,7 @@
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
     *   *Status:* Ready for Design/Dev
+    *   *Spec:* `docs/specs/005-organic-roads.md` (To be created)
 
 ## 📋 Backlog
 *   [ ] **Traffic System**

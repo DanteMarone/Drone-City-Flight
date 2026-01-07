@@ -1,7 +1,3 @@
-## 2024-05-23 - Physics Test Pitfalls
-**Discovery:** Implicit environment checks (like Ground collision at y=0) can cause false positives in unit tests that place objects at the origin (0,0,0).
-**Action:** When testing physics systems with environmental boundaries, always offset test fixtures away from the boundary (e.g., place objects at y=50) or explicitly filter the output to ignore environmental hits.
-
-## 2024-05-23 - TimeCycle Math Precision
-**Discovery:** Floating point comparisons for time wrapping (24 -> 0) require epsilon checks.
-**Action:** Use `Math.abs(diff) < 0.0001` assertions for all time-based logic.
+## 2024-05-23 - History System Logic Discovery: Lazy Resolution Pattern
+**Discovery:** The `TransformCommand` in `src/dev/history.js` relies on a "Lazy Resolution" pattern (`_resolveStates`) where it stores `objectUuid` but attempts to find the live object in `world.colliders` at the moment of execution (undo/redo). This is critical for supporting undo operations after a "Delete" or "Load Map" action where the original object reference in memory might have been destroyed and replaced by a new instance with the same UUID.
+**Action:** When testing system that persist state across object lifecycles (like Undo/Redo or Save/Load), tests must explicitly verify that operations work using UUID lookups, not just direct object references. I implemented `should resolve objects by UUID if object reference is missing` in `src/verification/test_history.js` to enforce this pattern.

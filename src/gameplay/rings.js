@@ -9,6 +9,7 @@ export class RingManager {
         this.colliderSystem = colliderSystem;
         this.rings = [];
         this.collectedCount = 0;
+        this._cachedColliders = null; // Cache for collision physics
 
         // Geometry shared
         this.geo = new THREE.TorusGeometry(1.5, 0.2, 8, 16);
@@ -26,6 +27,7 @@ export class RingManager {
         this.rings.forEach(r => this.scene.remove(r.mesh));
         this.rings = [];
         this.collectedCount = 0;
+        this._cachedColliders = null;
     }
 
     loadRings(ringsData) {
@@ -50,6 +52,7 @@ export class RingManager {
 
         this.scene.add(mesh);
         this.rings.push({ mesh });
+        this._cachedColliders = null; // Invalidate cache
     }
 
     exportRings() {
@@ -155,12 +158,25 @@ export class RingManager {
         if (idx > -1) this.rings.splice(idx, 1);
 
         this.collectedCount++;
+        this._cachedColliders = null; // Invalidate cache
     }
 
     reset() {
         this.rings.forEach(r => this.scene.remove(r.mesh));
         this.rings = [];
         this.collectedCount = 0;
+        this._cachedColliders = null;
         this.spawnRing();
+    }
+
+    getColliders() {
+        if (!this._cachedColliders) {
+            this._cachedColliders = this.rings.map(r => ({
+                type: 'ring',
+                mesh: r.mesh,
+                box: null
+            }));
+        }
+        return this._cachedColliders;
     }
 }

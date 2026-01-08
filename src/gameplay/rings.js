@@ -20,12 +20,31 @@ export class RingManager {
 
         // Initial ring
         this.spawnRing();
+
+        // Bolt: Cache for physics colliders to avoid mapping every frame
+        this._cachedColliders = null;
+    }
+
+    getColliders() {
+        if (!this._cachedColliders) {
+            this._cachedColliders = this.rings.map(r => ({
+                type: 'ring',
+                mesh: r.mesh,
+                box: null
+            }));
+        }
+        return this._cachedColliders;
+    }
+
+    _invalidateCache() {
+        this._cachedColliders = null;
     }
 
     clear() {
         this.rings.forEach(r => this.scene.remove(r.mesh));
         this.rings = [];
         this.collectedCount = 0;
+        this._invalidateCache();
     }
 
     loadRings(ringsData) {
@@ -50,6 +69,7 @@ export class RingManager {
 
         this.scene.add(mesh);
         this.rings.push({ mesh });
+        this._invalidateCache();
     }
 
     exportRings() {
@@ -147,6 +167,7 @@ export class RingManager {
         this.scene.add(mesh);
 
         this.rings.push({ mesh });
+        this._invalidateCache();
     }
 
     collectRing(ring) {
@@ -155,12 +176,14 @@ export class RingManager {
         if (idx > -1) this.rings.splice(idx, 1);
 
         this.collectedCount++;
+        this._invalidateCache();
     }
 
     reset() {
         this.rings.forEach(r => this.scene.remove(r.mesh));
         this.rings = [];
         this.collectedCount = 0;
+        this._invalidateCache();
         this.spawnRing();
     }
 }

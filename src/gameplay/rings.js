@@ -144,6 +144,9 @@ export class RingManager {
         mesh.rotation.x = 0;
         mesh.rotation.y = Math.random() * Math.PI;
 
+        // Force matrix update for physics check in same frame
+        mesh.updateMatrixWorld();
+
         this.scene.add(mesh);
 
         this.rings.push({ mesh });

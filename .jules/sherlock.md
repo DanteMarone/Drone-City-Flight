@@ -9,3 +9,7 @@
 ## 2025-02-14 - Node.js Module Resolution
 **Discovery:** Running tests that import 'three' (ESM) in Node directly requires `NODE_PATH` to be set to the local `node_modules` because Node's ESM loader doesn't search `node_modules` by default for bare specifiers in some configurations without `package.json` "type": "module" fully resolved or standard resolution strategy.
 **Action:** Run tests with `export NODE_PATH=$(pwd)/node_modules && node ...` to ensure dependencies are found.
+
+## 2025-02-14 - Physics Logic on New Objects
+**Discovery:** Logic relying on `matrixWorld` (like `invert()`) for newly created objects fails because the matrix is Identity until the next render frame. This caused newly spawned rings to be instantly collected (false positive) if the drone was at (0,0,0).
+**Action:** Explicitly call `object.updateMatrixWorld()` on new entities if their transform is accessed for logic in the same frame.

@@ -2,6 +2,8 @@ import * as THREE from 'three';
 import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 
+const _tempColor = new THREE.Color();
+
 export class LandingPadEntity extends BaseEntity {
     constructor(params) {
         super(params);
@@ -90,14 +92,14 @@ export class LandingPadEntity extends BaseEntity {
 
         // Cycle colors: Green -> Blue -> Red
         const hue = (this.timer * 0.5) % 1;
-        const color = new THREE.Color().setHSL(hue, 1, 0.5);
+        _tempColor.setHSL(hue, 1, 0.5);
 
         this.lights.forEach(light => {
-            light.material.color.copy(color);
+            light.material.color.copy(_tempColor);
         });
 
         if (this._virtualLight) {
-            this._virtualLight.color.copy(color);
+            this._virtualLight.color.copy(_tempColor);
         }
     }
 }

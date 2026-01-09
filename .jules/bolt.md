@@ -5,3 +5,7 @@
 ## 2024-12-14 - [Hidden Allocations]
 **Learning:** Even simple logic like `new THREE.Vector3(0, 0, offset).applyQuaternion(...)` inside an `update()` loop creates significant GC pressure when scaled to many entities.
 **Action:** Use module-level scratch vectors (`_tempVec.set(...)`) instead of `new` for intermediate calculations in update loops.
+
+## 2024-12-14 - [Per-Frame Material Updates]
+**Learning:** `new THREE.Color()` in an `update()` loop is just as bad as `new THREE.Vector3()`. Visual effects (pulsing lights, changing hues) often sneak these allocations in.
+**Action:** Use module-level `_tempColor` scratch objects for any color animation logic.

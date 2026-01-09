@@ -19,6 +19,23 @@ export function createPanel(className, title) {
 }
 
 /**
+ * Makes a non-interactive element keyboard accessible by adding role, tabindex, and key handlers.
+ * @param {HTMLElement} element - The DOM element to make accessible.
+ * @param {Function} action - The callback to execute on Click, Enter, or Space.
+ */
+export function makeAccessible(element, action) {
+    element.tabIndex = 0;
+    element.role = 'button';
+    element.onclick = action;
+    element.onkeydown = (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+            e.preventDefault();
+            action(e);
+        }
+    };
+}
+
+/**
  * Determines the category for a given entity type string.
  * @param {string} type - The entity type string.
  * @returns {string} The category name.

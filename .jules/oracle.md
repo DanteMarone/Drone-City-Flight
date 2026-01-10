@@ -21,3 +21,6 @@ Discovery: App-level update logic repeatedly mixed global lighting state with sk
 ## 2026-01-02 - [Refactor] DevMode Modular Managers
 Discovery: `src/dev/devMode.js` mixed selection, clipboard serialization, and deletion flows with core dev-mode orchestration, creating tight coupling between editor state and world mutation.
 Action: [Separation of Concerns] Split selection and clipboard responsibilities into `DevSelectionManager` and `DevClipboardManager`, keeping DevMode as the coordinator and documenting the dependency flow in `docs/architecture/README.md`.
+## 2026-05-21 - [Refactor] Person Procedural Generation
+**Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
+**Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".

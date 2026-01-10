@@ -1,6 +1,6 @@
 import * as THREE from 'three';
 
-class BaseCommand {
+export class BaseCommand {
     constructor(description = '') {
         this.description = description;
     }

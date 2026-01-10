@@ -58,7 +58,7 @@ The UI Coordinator. It is strictly responsible for layout management and the lif
 *   **TopBar (`src/dev/ui/topBar.js`)**: Main menu (File, Edit, View).
 *   **Toolbar (`src/dev/ui/toolbar.js`)**: Quick access buttons (Undo/Redo, Grid).
 *   **Outliner (`src/dev/ui/outliner.js`)**: Scene graph list showing categorized entities.
-*   **Inspector (`src/dev/ui/inspector.js`)**: Properties panel for selected objects and environment settings.
+*   **Inspector (`src/dev/ui/inspector.js`)**: Properties panel for selected objects and environment settings. [See Architecture](./architecture/dev_ui_inspector.md)
     *   **Responsibility**: The Inspector encapsulates all logic for creating property inputs (vectors, colors, checkboxes) and applying changes to objects.
     *   **Multi-Selection**: When multiple objects are selected, the Inspector displays "Transform (Group)" controls linked to the `GizmoManager` proxy.
 *   **Palette (`src/dev/ui/palette.js`)**: Asset browser for drag-and-drop object creation.

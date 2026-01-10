@@ -1,16 +1,11 @@
-## 2024-05-22 - [Refactor] BuildUI Monolith Split
-**Discovery:** `src/dev/buildUI.js` was identified as a "God Class" (950+ lines), managing unrelated UI concerns (TopBar, Outliner, Inspector, Palette, History) in a single file. This violated the Single Responsibility Principle and made maintenance difficult.
+# Oracle's Architectural Journal
 
-**Action:** [Separation of Concerns]
-Split `BuildUI.js` into modular components within `src/dev/ui/`:
-- `TopBar` (Menus)
-- `Toolbar` (Quick actions)
-- `Outliner` (Scene graph)
-- `Inspector` (Properties & Environment)
-- `Palette` (Asset browser)
-- `HistoryPanel` (Undo/Redo list)
-- `domUtils` (Shared helpers)
+## 2024-10-25 - Removal of Redundant ObjectFactory
+**Discovery:**
+The `ObjectFactory` class (`src/world/factory.js`) was acting as a "Zombie Class" - a thin wrapper around `EntityRegistry` that added little value but obscured the dependency graph. It was used inconsistently alongside `EntityRegistry`, causing split usage patterns in `InteractionManager` and `World`.
 
+**Action:**
+Removed `ObjectFactory` and standardized on `EntityRegistry` as the single source of truth for entity instantiation. Consumers (World, InteractionManager) are now responsible for the side effect of adding the entity to the scene graph (`scene.add(entity.mesh)`), which makes the side effects explicit rather than hidden inside a factory method. This decouples the `world` directory from having a self-referential factory that just calls into `entities/index.js`.
 `BuildUI` now acts as a pure coordinator/facade, instantiating these components and delegating updates. This improves readability and maintainability without changing external APIs.
 
 ## 2024-10-24 - Dead Code in BuildUI
@@ -21,3 +16,6 @@ Discovery: App-level update logic repeatedly mixed global lighting state with sk
 ## 2026-01-02 - [Refactor] DevMode Modular Managers
 Discovery: `src/dev/devMode.js` mixed selection, clipboard serialization, and deletion flows with core dev-mode orchestration, creating tight coupling between editor state and world mutation.
 Action: [Separation of Concerns] Split selection and clipboard responsibilities into `DevSelectionManager` and `DevClipboardManager`, keeping DevMode as the coordinator and documenting the dependency flow in `docs/architecture/README.md`.
+## 2026-05-21 - [Refactor] Person Procedural Generation
+**Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
+**Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".

@@ -5,3 +5,7 @@
 ## 2024-05-23 - TimeCycle Math Precision
 **Discovery:** Floating point comparisons for time wrapping (24 -> 0) require epsilon checks.
 **Action:** Use `Math.abs(diff) < 0.0001` assertions for all time-based logic.
+
+## 2025-02-14 - Node.js Module Resolution
+**Discovery:** Running tests that import 'three' (ESM) in Node directly requires `NODE_PATH` to be set to the local `node_modules` because Node's ESM loader doesn't search `node_modules` by default for bare specifiers in some configurations without `package.json` "type": "module" fully resolved or standard resolution strategy.
+**Action:** Run tests with `export NODE_PATH=$(pwd)/node_modules && node ...` to ensure dependencies are found.

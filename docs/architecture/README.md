@@ -43,3 +43,32 @@ classDiagram
 
 **Rule:** dev UI components should continue to call `DevMode` methods instead of
 reaching into selection/clipboard internals, keeping dependency flow one-way.
+
+## Person Entity Structure
+
+The `Person` entity separates behavior from visual construction to maintain a clean entity class.
+
+**Dependency direction**
+- `Person` manages state (physics, input, lifecycle).
+- `procedural` manages the static construction of the visual mesh.
+- `FBXCharacter` manages 3rd party asset loading and animation mixing.
+
+```mermaid
+classDiagram
+    class Person {
+        +update()
+        +setVisible()
+    }
+    class Procedural {
+        +buildPersonMesh()
+        +createRandomAppearance()
+    }
+    class FBXCharacter {
+        +load()
+        +update()
+        +playAnimation()
+    }
+
+    Person --> Procedural : delegates mesh build
+    Person --> FBXCharacter : delegates animation
+```

@@ -1,13 +1,12 @@
 // src/world/generation.js
 import * as THREE from 'three';
 import { CONFIG } from '../config.js';
-import { ObjectFactory } from './factory.js';
+import { EntityRegistry } from './entities/index.js';
 
 export class DistrictGenerator {
     constructor(scene, colliderSystem) {
         this.scene = scene;
         this.colliderSystem = colliderSystem;
-        this.factory = new ObjectFactory(scene);
     }
 
     generateCityLayout() {
@@ -39,12 +38,18 @@ export class DistrictGenerator {
 
                 if (Math.abs(wx) < 20 && Math.abs(wz) < 20) continue;
 
+                let entity = null;
                 if (type === 'downtown') {
-                    generated.push(this.factory.createSkyscraper({ x: wx, z: wz, width: blockSize }));
+                    entity = EntityRegistry.create('skyscraper', { x: wx, z: wz, width: blockSize });
                 } else if (type === 'commercial') {
-                    generated.push(this.factory.createShop({ x: wx, z: wz, width: blockSize }));
+                    entity = EntityRegistry.create('shop', { x: wx, z: wz, width: blockSize });
                 } else if (type === 'suburbs') {
-                    generated.push(this.factory.createHouse({ x: wx, z: wz, width: blockSize }));
+                    entity = EntityRegistry.create('house', { x: wx, z: wz, width: blockSize });
+                }
+
+                if (entity && entity.mesh) {
+                    this.scene.add(entity.mesh);
+                    generated.push(entity);
                 }
             }
         }
@@ -56,6 +61,9 @@ export class DistrictGenerator {
         // Factory makes segments.
         // For compatibility with old look, we can just make a big plane manually or add a createLargeRoad method.
         // Or just use the factory to make a huge road.
-        this.factory.createRoad({ x: 0, z: 0, width: 600, length: 200 });
+        const road = EntityRegistry.create('road', { x: 0, z: 0, width: 600, length: 200 });
+        if (road && road.mesh) {
+            this.scene.add(road.mesh);
+        }
     }
 }

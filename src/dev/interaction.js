@@ -1,6 +1,5 @@
 // src/dev/interaction.js
 import * as THREE from 'three';
-import { ObjectFactory } from '../world/factory.js';
 import { TransformCommand } from './history.js';
 import { EntityRegistry } from '../world/entities/index.js';
 
@@ -10,8 +9,6 @@ export class InteractionManager {
         this.devMode = devMode;
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
-
-        this.factory = new ObjectFactory(app.renderer.scene);
 
         this.draggedType = null;
         this.active = false;
@@ -476,9 +473,10 @@ export function setupDragDrop(interaction, container) {
                     interaction.devMode._recordCreation([spawned.mesh], 'Create ring');
                 }
             } else {
-                const entity = interaction.factory.createObject(type, { x: point.x, z: point.z });
+                const entity = EntityRegistry.create(type, { x: point.x, z: point.z });
 
                 if (entity && entity.mesh) {
+                    interaction.app.renderer.scene.add(entity.mesh);
                     interaction.app.world.addEntity(entity);
 
                     if (interaction.app.colliderSystem) {

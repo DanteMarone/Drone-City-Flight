@@ -17,7 +17,20 @@
 *   **Status:** 📋 Backlog
 *   **Notes:** Basic vehicle pathing exists (`VehicleEntity`), but no global manager to spawn/despawn or manage density.
 
+### 3. Radar System (Backlog)
+*   **Goal:** Implement functional radar scanning for enemies/rings.
+*   **Status:** 📋 Backlog
+*   **Notes:** Visual placeholder exists in HUD.
+
+### 4. HUD Icons (Backlog)
+*   **Goal:** Replace CSS/SVG placeholders with real icon assets.
+*   **Status:** 📋 Backlog
+
 ## ✅ Completed Features
+
+### UI / HUD
+*   [x] **Sci-Fi HUD Overhaul**: Implemented new layout (Compass Strip, Telemetry Stack, Radar Placeholder).
+*   [x] **Compass Strip**: Scrolling directional tape based on drone yaw.
 
 ### Infrastructure
 *   [x] **Smart River Tool**: "Anchor & Stretch" placement logic (v1.0)

@@ -1,0 +1,53 @@
+# Page snapshot
+
+```yaml
+- generic [active] [ref=e1]:
+  - generic:
+    - generic:
+      - alert:
+        - generic:
+          - img
+        - generic: System Initialized
+    - generic:
+      - generic [ref=e4]:
+        - button "Pause Game" [ref=e5] [cursor=pointer]:
+          - img [ref=e6]
+        - generic [ref=e9]: BATTERY
+        - generic [ref=e13]: PILOT
+      - generic:
+        - generic:
+          - generic: ALT
+          - generic: 0m
+        - generic:
+          - generic: SPD
+          - generic: "0"
+        - generic:
+          - generic: RNG
+          - generic: "0"
+    - generic:
+      - generic:
+        - generic: "N"
+        - generic: NE
+        - generic: E
+        - generic: SE
+        - generic: S
+        - generic: SW
+        - generic: W
+        - generic: NW
+        - generic: "N"
+        - generic: NE
+        - generic: E
+        - generic: SE
+        - generic: S
+        - generic: SW
+        - generic: W
+        - generic: NW
+        - generic: "N"
+        - generic: NE
+        - generic: E
+        - generic: SE
+        - generic: S
+        - generic: SW
+        - generic: W
+        - generic: NW
+```

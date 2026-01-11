@@ -1,4 +1,3 @@
-// src/ui/compass.js
 import * as THREE from 'three';
 
 export class RingCompass {
@@ -7,128 +6,196 @@ export class RingCompass {
         this.drone = drone;
         this.ringsManager = ringsManager;
 
-        this.arrow = null;
+        this.container = null;
+        this.strip = null;
+
+        // Config
+        this.pixelsPerDeg = 3.0; // 300px = 100 degrees visible
+        this.markerWidth = 135; // 45 degrees * 3.0 = 135px spacing
+
         this._init();
     }
 
     _init() {
-        // A simple 3D arrow that hovers above the drone?
-        // Or a 2D HUD element?
-        // Spec 4.10: "HUD indicator points toward nearest active ring"
-        // Let's do a 2D HUD Arrow for better visibility.
+        // Create container attached to UI layer
+        // Ideally this should be inside .hud-top-bar, but we'll append to ui-layer
+        // and rely on absolute positioning or manual appending by HUD if we refactor.
+        // Current Plan Step 5 will refactor HUD, but Compass logic needs to work now.
+        // We will append to 'ui-layer' but with absolute styling matching CSS.
 
         const layer = document.getElementById('ui-layer');
-        this.dom = document.createElement('div');
-        this.dom.className = 'hud-compass';
-        this.dom.innerHTML = `
-            <div class="compass-arrow">➤</div>
-            <div class="compass-dist">0m</div>
-        `;
-        layer.appendChild(this.dom);
 
-        this.arrowEl = this.dom.querySelector('.compass-arrow');
-        this.distEl = this.dom.querySelector('.compass-dist');
+        this.container = document.createElement('div');
+        this.container.className = 'compass-container';
+        // Force styling if CSS didn't pick up (it should have)
+        // Center it horizontally at top
+        this.container.style.position = 'absolute';
+        this.container.style.top = '20px';
+        this.container.style.left = '50%';
+        this.container.style.transform = 'translateX(-50%)';
+
+        this.strip = document.createElement('div');
+        this.strip.className = 'compass-strip';
+
+        // Create 3 cycles of content to ensure seamless wrapping
+        // N, NE, E, SE, S, SW, W, NW
+        const points = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+        let html = '';
+
+        // We render 3 full sets.
+        // Set 0: -360 to 0
+        // Set 1: 0 to 360 (Center)
+        // Set 2: 360 to 720
+
+        for (let k = 0; k < 3; k++) {
+            points.forEach(p => {
+                // Inline style for marker width
+                html += `<div style="
+                    min-width: ${this.markerWidth}px;
+                    text-align: center;
+                    color: ${p.length === 1 ? '#0ff' : 'rgba(255,255,255,0.7)'};
+                    font-weight: ${p.length === 1 ? 'bold' : 'normal'};
+                    font-size: ${p.length === 1 ? '16px' : '12px'};
+                ">${p}</div>`;
+            });
+        }
+
+        this.strip.innerHTML = html;
+        this.container.appendChild(this.strip);
+
+        // Add Center Marker (Triangle)
+        const marker = document.createElement('div');
+        marker.className = 'compass-marker';
+        this.container.appendChild(marker);
+
+        layer.appendChild(this.container);
     }
 
     update(dt) {
-        const rings = this.ringsManager.rings;
-        if (rings.length === 0) {
-            this.dom.style.opacity = 0;
-            return;
-        }
+        if (!this.drone || !this.drone.mesh) return;
 
-        // Find nearest
-        let nearest = null;
-        let minDist = Infinity;
-        const dPos = this.drone.position;
+        // Get Yaw
+        // ThreeJS standard: Rotate Y.
+        // We assume 0 is -Z (North).
+        // CCW rotation (Left) is positive Y rotation.
+        let yaw = this.drone.mesh.rotation.y;
 
-        rings.forEach(r => {
-            const d = r.mesh.position.distanceTo(dPos);
-            if (d < minDist) {
-                minDist = d;
-                nearest = r.mesh.position;
-            }
-        });
+        // Convert to degrees
+        let deg = yaw * (180 / Math.PI);
 
-        if (nearest) {
-            this.dom.style.opacity = 1;
-            this.distEl.innerText = `${minDist.toFixed(0)}m`;
+        // Normalize to 0-360
+        // deg can be negative or > 360
+        deg = deg % 360;
+        if (deg < 0) deg += 360;
 
-            // Calculate angle relative to camera view or drone forward?
-            // Usually relative to screen center.
-            // We need to project the target position into screen space?
-            // Simpler: Just point relative to Drone Heading (if FPV) or Camera Forward.
+        // Calculate offset
+        // We want 'N' (0 deg) to be centered.
+        // The strip has 3 cycles. 'N' of the 2nd cycle is at index 8.
+        // 8 * markerWidth.
 
-            // Let's use 3D projection to screen to place it on the edge of screen?
-            // "Compass" usually means top of screen strip, or an arrow around the player.
+        const startOffset = 8 * this.markerWidth; // Pixels to reach start of Cycle 1
 
-            // Calculate angle relative to Drone Forward
-            // In ThreeJS: Forward is -Z. Right is +X.
-            // Math.atan2(x, z) assumes 0 is +Z.
-            // Target vector relative to drone
-            const dx = nearest.x - dPos.x;
-            const dz = nearest.z - dPos.z;
+        // Current rotation offset
+        // If we turn Left (+deg), the strip should move Right (-deg visual?).
+        // If I face West (Left, +90), 'W' should appear.
+        // 'W' is to the Right of 'N' in the list?
+        // Sequence: N, NE, E, SE, S, SW, W, NW.
+        // If I look 90 deg (E? or W?)
+        // Standard Map: East is 90.
+        // ThreeJS: +X is Right (East?). -Z is Forward (North).
+        // Rotation +Y is CCW. +Z -> +X.
+        // So 0=N, 90=W (Left turn), -90=E (Right turn).
+        // If I turn Left (+90), I face West.
+        // 'W' is at index 6 (N=0, NE=1... W=6).
+        // 6 * 45 = 270 deg in list?
+        // Wait, standard compass list is Clockwise? N -> E -> S -> W.
+        // List above: N, NE, E... that is Clockwise.
+        // If I turn Left (CCW), I should see West.
+        // But West is at end of list (Clockwise from N).
+        // So if I turn Left (+Yaw), I go "Backwards" in the compass tape?
+        // Or does the tape move Left/Right?
+        // If I turn Left, the world moves Right.
+        // So 'W' (which is "Left" of N in world) should slide into view from Left?
+        // No, 'W' is "Left" of N.
+        // If I hold a compass tape: W -- N -- E.
+        // If I turn Left, I look at W. The tape slides Right.
+        // My list: N, NE, E... This is N -> Right -> E.
+        // So the list represents "Rightward" directions.
+        // So Leftward directions are to the left of N.
+        // W is at -90 (or 270).
+        // So if I turn Left (+90), I want to see -90 offset.
+        // offset = deg * pixelsPerDeg?
 
-            // Angle of target in world space (0 at +Z, PI/2 at +X)
-            // atan2(x, z)
-            const targetAngle = Math.atan2(dx, dz);
+        // Let's rely on standard: Heading increases CW?
+        // ThreeJS +Y is CCW.
+        // So Heading = -Yaw.
+        // If Yaw=90 (Left), Heading=270 (West).
+        // We want to show 270.
+        // 270 corresponds to 'W' (index 6).
+        // 6 * 45 = 270.
+        // So Pixel Offset = 270 * 3.0?
 
-            // Drone Yaw: 0 means facing -Z?
-            // Check drone.js: "this.mesh.rotation.y = this.yaw;"
-            // Standard ThreeJS: 0 rotation faces initial state.
-            // Initial state: Drone usually modeled facing -Z or +Z?
-            // Drone body is box. Nose is at -0.4 Z. So Forward is -Z.
-            // If yaw = 0, drone faces -Z.
+        // The strip moves such that the target degree is at center.
+        // Center position = - (startOffset + (heading * pixelsPerDeg)).
+        // But we need to check if List is CW or CCW.
+        // List: N, NE, E... (CW).
+        // If Heading increases CW (N->E), we move further down the list.
+        // So we slide strip Left (negative translateX).
 
-            // We want angle relative to drone nose.
-            // Vector to target: (dx, dz).
-            // Rotate this vector by -Yaw to align with drone local space?
+        // So:
+        // Heading (CW) = -deg (since deg is CCW).
+        // Normalize Heading 0-360.
 
-            // Or simpler:
-            // Drone Forward Angle in World (relative to +Z):
-            // If yaw=0, forward is -Z (Angle PI).
-            // If yaw=PI/2 (Left turn), forward is -X (Angle -PI/2).
-            // Actually, let's verify standard ThreeJS rotation.
-            // Rot Y positive is CCW around Y.
-            // +Z -> +X is -90 deg?
-            // Let's stick to `angleDiff = targetAngle - droneAngle`.
+        let heading = -deg;
+        if (heading < 0) heading += 360;
 
-            // If yaw = 0, drone looks at -Z. targetAngle should be relative to -Z.
-            // targetAngle = atan2(x, z). 0 is +Z. PI is -Z.
-            // So if target is at -Z, targetAngle is PI.
-            // We want arrow to point UP (0 deg) when target is in front.
-            // So we want (targetAngle - PI) = 0.
+        // Now heading 0=N, 90=E, 180=S, 270=W.
+        // List aligns with this (N=0, E=2, etc).
+        // index = heading / 45.
+        // offset in pixels = heading * (markerWidth / 45).
 
-            // If yaw rotates, say Yaw = PI/2 (turned Left, facing +X).
-            // Target at +X. targetAngle = PI/2.
-            // We want arrow UP (0 deg).
-            // Formula: arrowAngle = targetAngle - (Yaw + PI).
-            // Check: PI/2 - (PI/2 + PI) = -PI.
-            // -PI corresponds to pointing UP? No, usually 0 is Up in CSS rotation?
-            // CSS rotate(0deg) is usually UP if the icon is drawn UP.
-            // Let's assume Arrow icon ➤ points Right by default?
-            // HTML: ➤ is right pointing.
-            // So 0 deg points Right. -90 deg points Up.
+        const pxPerHeading = this.markerWidth / 45.0;
+        const currentOffset = heading * pxPerHeading;
 
-            // Desired visual: Point towards target relative to drone forward.
-            // Bearing = targetAngle - (DroneYaw + PI).
-            // If Bearing is 0 (Front), we want Arrow to point Up.
-            // Since Arrow ➤ points Right, we need rotate(-90deg).
+        // Total transform
+        // We shift by startOffset (to center the 2nd cycle N)
+        // Then shift by currentOffset.
+        // We align center of 'N' to center of container.
+        // 'N' element width is markerWidth. center is markerWidth/2.
+        // But we want 'N' to be at 0 relative to center line.
+        // CSS: left: 50%. translateX(-50%).
+        // Inside strip:
+        // [Cycle0][Cycle1][Cycle2]
+        // We want Cycle1 N (index 0 relative to Cycle1) to be at x=0 if heading=0.
+        // But Flexbox flows L->R.
+        // Cycle 1 starts at x = Cycle0_Width.
+        // We want Cycle1_Start + (ItemWidth/2) to be at 0?
+        // No, we want the CENTER of the N item to be at the Center of the Container.
 
-            // Formula:
-            // rot = (targetAngle - (this.drone.yaw + Math.PI)) * 180/PI - 90;
+        // Let Cycle0_Width = 8 * markerWidth.
+        // Target X = - (Cycle0_Width + currentOffset) + (markerWidth / 2)?
+        // Wait, simpler:
+        // Render: [N][NE]...
+        // At heading 0, we want N centered.
+        // N is the first item of Cycle 1.
+        // Its center is at `Cycle0_Width + markerWidth/2`.
+        // So we translate strip by `- (Cycle0_Width + markerWidth/2)`.
 
-            let bearing = targetAngle - (this.drone.yaw + Math.PI);
-            // Negate bearing because CSS rotation is CW but Math angle is CCW-ish relative to screen?
-            // See Plan Step 1 analysis:
-            // Bearing 0 -> Up (-90). (0 -> -90)
-            // Bearing -90 (Right) -> Right (0). (-90 -> 0)
-            // Bearing 90 (Left) -> Left (180). (90 -> -180)
-            // Function: f(b) = -b - 90.
+        const baseShift = (8 * this.markerWidth) + (this.markerWidth / 2);
+        const totalShift = baseShift + currentOffset;
 
-            let deg = (-bearing * 180 / Math.PI) - 90;
+        // Apply
+        // We need to center the strip element itself?
+        // CSS: .compass-strip { left: 50%; transform: translateX(...) }
+        // The value in translateX should be relative to the strip's own origin (left edge).
+        // So translateX(-totalShift px).
 
-            this.arrowEl.style.transform = `rotate(${deg}deg)`;
-        }
+        // Refinement: Wrapping.
+        // If we rotate too much, we jump cycles?
+        // No, currentOffset is 0-360 mapped. It stays within Cycle 1.
+        // We always render Cycle 1.
+        // Since we have Cycle 0 and Cycle 2, we have buffer.
+
+        this.strip.style.transform = `translateX(-${totalShift}px)`;
     }
 }

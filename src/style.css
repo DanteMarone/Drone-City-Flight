@@ -237,6 +237,56 @@ canvas {
     to { opacity: 1; }
 }
 
+/* Radar */
+.radar-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 140px;
+    height: 140px;
+    background: rgba(0, 15, 30, 0.6);
+    border: 2px solid rgba(0, 255, 255, 0.5);
+    border-radius: 50%;
+    overflow: hidden;
+    box-shadow: 0 0 15px rgba(0, 255, 255, 0.2);
+    pointer-events: none;
+}
+
+.radar-grid {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-image:
+        radial-gradient(transparent 33%, rgba(0, 255, 255, 0.3) 34%, transparent 35%),
+        radial-gradient(transparent 66%, rgba(0, 255, 255, 0.3) 67%, transparent 68%),
+        linear-gradient(rgba(0, 255, 255, 0.2) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(0, 255, 255, 0.2) 1px, transparent 1px);
+    background-size: 100% 100%, 100% 100%, 20px 20px, 20px 20px;
+    background-position: center;
+    border-radius: 50%;
+    opacity: 0.5;
+}
+
+.radar-sweep {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 50%;
+    height: 50%;
+    background: linear-gradient(90deg, rgba(0, 255, 255, 0.4), transparent);
+    transform-origin: top left;
+    animation: radar-spin 3s infinite linear;
+    border-top: 2px solid rgba(0, 255, 255, 0.8);
+    box-shadow: 0 0 10px rgba(0, 255, 255, 0.5);
+}
+
+@keyframes radar-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
 /* Controls Hint */
 .controls-hint {
     position: absolute;

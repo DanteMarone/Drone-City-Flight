@@ -1,30 +1,39 @@
-# CommandManager Tests
+# History System Testing Strategy
 
 ## Scope
-This test suite covers the `CommandManager` class in `src/dev/history.js`, which is responsible for handling the Undo/Redo system in Developer Mode.
+This document outlines the testing strategy for the `DevMode` History System, specifically focusing on `TransformCommand` and `CommandManager`. These components are critical for the editor's Undo/Redo functionality and data persistence.
+
+## Components Tested
+*   **CommandManager**: Stack management (undo/redo), JSON serialization.
+*   **TransformCommand**: State capture, lazy resolution of objects via UUID, application of transforms.
+*   **PropertyChangeCommand**: Modification of object properties.
 
 ## Scenarios
-1.  **Stack Management**:
-    *   Verifies that pushing a command adds it to the `undoStack`.
-    *   Verifies that pushing a command clears the `redoStack`.
-    *   Verifies that `undo()` moves a command from `undoStack` to `redoStack`.
-    *   Verifies that `redo()` moves a command from `redoStack` to `undoStack`.
 
-2.  **PropertyChangeCommand**:
-    *   Verifies that `undo()` restores the previous property value.
-    *   Verifies that `redo()` applies the new property value.
-    *   Verifies handling of `userData.params` vs direct `userData` properties.
+### TransformCommand
+1.  **Lazy Resolution**:
+    *   **Goal**: Verify that commands stored with only UUIDs (e.g., after loading from JSON) correctly resolve to runtime objects when executed.
+    *   **Test**: Create a command with a `beforeState` containing a UUID but `object: null`. Mock `devMode.app.world.colliders` to contain the matching object. Execute `undo()` and verify `applyTransformSnapshot` is called with the resolved object.
+2.  **Missing Object**:
+    *   **Goal**: Ensure that if an object referenced by a command no longer exists in the world, the command fails gracefully without crashing.
+    *   **Test**: Create a command with a UUID that does not exist in `colliders`. Execute `undo()`/`redo()` and verify `applyTransformSnapshot` is NOT called.
+3.  **Serialization (JSON)**:
+    *   **Goal**: Verify that commands can be serialized to plain JSON and reconstructed.
+    *   **Test**: `toJSON()` should produce an object with `type: 'Transform'`, `description`, and state arrays containing only data (Vector3/Euler serialized as objects). `fromJSON()` should reconstruct `THREE.Vector3` and `THREE.Euler` instances.
 
-3.  **Serialization**:
-    *   Verifies that `CommandManager` can be serialized to JSON (`toJSON`).
-    *   Verifies that `CommandManager` can be reconstructed from JSON (`fromJSON`).
-    *   Ensures strict type checking during deserialization.
+### CommandManager
+1.  **Stack Operations**: Verify `push`, `undo`, `redo` maintain the correct stack order and clear the redo stack on new actions.
+2.  **Batch Serialization**: Verify `toJSON()` serializes the entire stack and `fromJSON()` restores it.
 
 ## Mocking Strategy
-*   **DevMode**: A minimal mock object is created with `app`, `world`, and `ui` properties to avoid instantiating the full application logic.
-*   **World/Colliders**: A simple array mock is used to simulate the entity list.
-*   **Entities**: Simple objects with `mesh` and `userData` are created to simulate game entities, avoiding Three.js mesh overhead.
+*   **DevMode**: A partial mock object is created with:
+    *   `app.world.colliders`: An array to simulate the Entity Registry.
+    *   `applyTransformSnapshot(states)`: A spy function to verify transform application.
+    *   `selectedObjects`: An array for selection state.
+    *   `ui.updateProperties()`: A no-op function.
+*   **World Objects**: Mock objects are created with `mesh.userData.uuid` and `mesh.userData.params` to simulate `BaseEntity` instances.
+*   **THREE.js**: The tests run in a Node.js environment. `THREE` is imported directly. `Vector3` and `Euler` are used as real instances, not mocks.
 
 ## Key Data
-*   **UUIDs**: Hardcoded UUIDs (e.g., `'test-uuid'`) are used to link commands to mock objects.
-*   **Property Values**: Simple primitives (numbers, booleans) are used to test property changes.
+*   **UUIDs**: Strings like `'uuid-1'`, `'uuid-2'`.
+*   **Transforms**: Specific values (e.g., `pos: 10,20,30`) are used to verify application.

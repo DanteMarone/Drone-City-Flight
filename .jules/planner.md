@@ -9,9 +9,8 @@
 ## 2025-05-19 - Traffic System De-prioritization
 **Decision:** Keep "Traffic System" in the backlog.
 **Rationale:** While vehicle pathing exists, a full traffic manager (spawn/despawn logic, collision avoidance between autonomous cars) is complex. Focus on map creation tools (Curves) first to enable the environment where traffic will eventually flow.
-# Planner's Journal
 
-## 2025-05-15 - Initial Assessment
-**Decision:** Standardize Infrastructure and Plan Organic Curves.
-**Rationale:** The project has successfully implemented "Smart" tools for straight roads and rivers. The next logical step, as identified in the roadmap, is to support organic curves (Bezier) to break the grid monotony. I will define the spec for this.
-**Action:** Create `docs/specs/005-organic-roads.md` and update status.
+## 2025-05-20 - Organic Curve Greenlight
+**Decision:** Move "Organic Curve Support" to Active Development.
+**Rationale:** Specification `docs/specs/005-organic-roads.md` is complete. Codebase verification confirms that prerequisites (Smart Road Tool, Infrastructure entities) are stable.
+**Action:** Update `PROJECT_STATUS.md` to "Active Construction" for this feature.

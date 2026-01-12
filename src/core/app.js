@@ -22,6 +22,7 @@ import { DevMode } from '../dev/devMode.js';
 import { PhotoMode } from '../ui/photoMode.js';
 import { NotificationSystem } from '../ui/notifications.js';
 import { HelpSystem } from '../ui/help.js';
+import { Minimap } from '../ui/minimap.js';
 import { EnvironmentSystem } from '../world/environmentSystem.js';
 
 export class App {
@@ -66,7 +67,8 @@ export class App {
         this.rings = new RingManager(this.renderer.scene, this.drone, this.colliderSystem);
 
         this.tutorial = new TutorialManager(this);
-        this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
+        this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings);
+        this.minimap = new Minimap(this.renderer.scene, this.drone, this.world, this.rings);
 
         this.environment = new EnvironmentSystem(this.renderer);
 
@@ -180,6 +182,7 @@ export class App {
                 showSecondary: false,
                 message: ""
             });
+            this.minimap.update();
         } else if (this.drone) {
             this.tutorial.update(dt, move);
 
@@ -278,8 +281,10 @@ export class App {
                     message: statusMsg
                 });
 
-                this.compass.update(dt); // New
+                this.compass.update(dt);
             }
+            // Always update minimap if active
+            this.minimap.update();
         }
 
         if (this.mode === 'person') {

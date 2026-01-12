@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "jsdom": "^27.4.0",
-    "postprocessing": "^6.38.0",
+    "postprocessing": "^6.38.2",
     "three": "^0.181.2"
   }
 }

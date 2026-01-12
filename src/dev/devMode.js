@@ -60,9 +60,10 @@ export class DevMode {
         // 1. Hide Drone
         if (this.app.drone) this.app.drone.mesh.visible = false;
 
-        // 2. Hide HUD (Terminal)
+        // 2. Hide HUD (Terminal) & Minimap
         const hudEl = document.querySelector('.hud-container');
         if (hudEl) hudEl.style.display = 'none';
+        if (this.app.minimap) this.app.minimap.setVisible(false);
 
         // Dismiss Tutorial Permanently
         if (this.app.tutorial) {
@@ -104,6 +105,7 @@ export class DevMode {
         if (this.app.drone) this.app.drone.mesh.visible = true;
         const hudEl = document.querySelector('.hud-container');
         if (hudEl) hudEl.style.display = 'block';
+        if (this.app.minimap) this.app.minimap.setVisible(true);
 
         this.cameraController.enabled = false;
         this.app.cameraController.enabled = true;

@@ -23,6 +23,7 @@ import { PhotoMode } from '../ui/photoMode.js';
 import { NotificationSystem } from '../ui/notifications.js';
 import { HelpSystem } from '../ui/help.js';
 import { EnvironmentSystem } from '../world/environmentSystem.js';
+import { Minimap } from '../ui/minimap.js';
 
 export class App {
     constructor() {
@@ -39,6 +40,7 @@ export class App {
         this.input = new InputManager();
         this.notifications = new NotificationSystem(); // Init Notification System
         this.hud = new HUD();
+        this.minimap = new Minimap(this);
         this.help = new HelpSystem(this);
         this.menu = new MenuSystem(this);
         this.hud.onPause = () => this.menu.toggle();
@@ -180,6 +182,7 @@ export class App {
                 showSecondary: false,
                 message: ""
             });
+            this.minimap.update(dt);
         } else if (this.drone) {
             this.tutorial.update(dt, move);
 
@@ -279,6 +282,7 @@ export class App {
                 });
 
                 this.compass.update(dt); // New
+                this.minimap.update(dt);
             }
         }
 

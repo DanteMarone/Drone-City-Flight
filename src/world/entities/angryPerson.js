@@ -7,6 +7,10 @@ const _tempForward = new THREE.Vector3();
 const _tempDir = new THREE.Vector3();
 const GRAVITY = new THREE.Vector3(0, -9.8, 0);
 
+// OPTIMIZATION: Shared Geometry/Material for projectiles to reduce GC and draw call overhead
+const PROJECTILE_GEO = new THREE.IcosahedronGeometry(0.15, 0); // Low poly rock
+const PROJECTILE_MAT = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
+
 const STYLES = [
     { name: 'Classic', pants: 0x111199, shirt: 0xcc0000, skin: 0xffccaa }, // Blue pants, Red shirt
     { name: 'Business', pants: 0x333333, shirt: 0xffffff, skin: 0xffdbac, tie: true }, // Grey/Black pants, White shirt
@@ -191,9 +195,8 @@ export class AngryPersonEntity extends BaseEntity {
 
     throwObject(target) {
         // Create Projectile Mesh (Rock/Box)
-        const geo = new THREE.IcosahedronGeometry(0.15, 0); // Low poly rock
-        const mat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
-        const mesh = new THREE.Mesh(geo, mat);
+        // OPTIMIZATION: Use shared geometry and material
+        const mesh = new THREE.Mesh(PROJECTILE_GEO, PROJECTILE_MAT);
         mesh.castShadow = true;
         mesh.receiveShadow = true;
 
@@ -288,7 +291,9 @@ export class AngryPersonEntity extends BaseEntity {
         if (p.mesh.parent) {
             p.mesh.parent.remove(p.mesh);
         }
-        if (p.mesh.geometry) p.mesh.geometry.dispose();
+        // OPTIMIZATION: Do NOT dispose shared geometry/material
+        // if (p.mesh.geometry) p.mesh.geometry.dispose();
+
         this.projectiles.splice(index, 1);
     }
 

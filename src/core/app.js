@@ -23,6 +23,7 @@ import { PhotoMode } from '../ui/photoMode.js';
 import { NotificationSystem } from '../ui/notifications.js';
 import { HelpSystem } from '../ui/help.js';
 import { EnvironmentSystem } from '../world/environmentSystem.js';
+import * as THREE from 'three';
 
 export class App {
     constructor() {
@@ -30,6 +31,7 @@ export class App {
         this.lastTime = 0;
         this.running = false;
         this.paused = false;
+        this._tempVec = new THREE.Vector3();
     }
 
     init() {
@@ -160,11 +162,8 @@ export class App {
             this.particles.update(dt);
             this.rings.update(dt);
 
-            const ringColliders = this.rings.rings.map(r => ({
-                type: 'ring',
-                mesh: r.mesh,
-                box: null
-            }));
+            // Bolt Optimization: Use cached colliders
+            const ringColliders = this.rings.getColliders();
 
             this.person.update(dt, move, this.colliderSystem, ringColliders);
 
@@ -194,15 +193,15 @@ export class App {
             this.drone.update(dt, move);
 
             // Collisions
-            const ringColliders = this.rings.rings.map(r => ({
-                type: 'ring',
-                mesh: r.mesh,
-                box: null // Special handling
-            }));
+            // Bolt Optimization: Use cached colliders
+            const ringColliders = this.rings.getColliders();
+            // Since we only have rings as dynamic for now, we can pass them directly
+            // or if we had others, we'd concat. But concat creates new array.
+            // ColliderSystem.checkCollisions takes dynamicColliders array.
+            // PhysicsEngine.resolveCollisions takes dynamicColliders array.
+            // Let's just pass ringColliders directly if it's the only source.
 
-            const dynamicColliders = [...ringColliders];
-
-            const collided = this.physics.resolveCollisions(this.drone, dynamicColliders);
+            const collided = this.physics.resolveCollisions(this.drone, ringColliders);
 
             if (collided) {
                 if (this.drone.velocity.length() > 1.0) {
@@ -223,7 +222,8 @@ export class App {
             // Bolt Optimization: Iterate only landingPads instead of all world.colliders
             this.world.landingPads.forEach(entity => {
                 if (entity.mesh) {
-                    const localPos = this.drone.position.clone();
+                    // Bolt Optimization: Use cached vector instead of clone()
+                    const localPos = this._tempVec.copy(this.drone.position);
                     entity.mesh.worldToLocal(localPos);
 
                     // Local bounds: X:[-4,4], Z:[-4,4]

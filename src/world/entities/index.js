@@ -123,6 +123,7 @@ export { ShockBuzzDroneEntity } from './shockBuzzDrone.js';
 export { GuideDroneEntity } from './guideDrone.js';
 export { GuideBotEntity } from './guideBot.js';
 export { HelpfulNpcEntity } from './helpfulNpc.js';
+export { TubeManEntity } from './tubeMan.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.

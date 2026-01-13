@@ -1,16 +1,16 @@
 # Project Status & Tracking
 
 **Status:** 🟢 Active
-**Last Updated:** 2025-05-19
+**Last Updated:** 2025-05-20
 **Agent:** Planner 📅
 
 ## 🎯 Current Objectives
 
-### 1. Organic Curve Support (Next Up)
+### 1. Organic Curve Support (Active Construction)
 *   **Goal:** Implement Bezier curve roads for non-grid layouts.
-*   **Status:** 🏗️ In Design (Spec Created)
-*   **Action Item:** Prototype `CurveRoadEntity` based on `docs/specs/005-organic-roads.md`.
-*   **Dependencies:** `RoadEntity` refactor, `InteractionManager` spline logic.
+*   **Status:** 🏗️ In Progress
+*   **Action Item:** Implement `CurveRoadEntity` and Interaction Tool updates based on Spec 005.
+*   **Spec:** `docs/specs/005-organic-roads.md` (Approved)
 
 ### 2. Traffic System (Backlog)
 *   **Goal:** Re-implement traffic using the new Entity/Waypoint system.

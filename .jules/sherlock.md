@@ -13,3 +13,7 @@
 ## 2025-02-14 - Matrix World Updates in Tests
 **Discovery:** Three.js objects do not update their `matrixWorld` automatically when added to a scene in a headless (no-renderer) test environment. Physics logic relying on `matrixWorld` (like `applyMatrix4(mesh.matrixWorld)`) will use the Identity matrix, potentially causing false positives if test objects default to (0,0,0).
 **Action:** Explicitly call `obj.updateMatrixWorld(true)` in test helpers or after modifying transforms in tests.
+
+## 2025-02-14 - JSDOM Global Event Mocks
+**Discovery:** Modules that attach listeners to `window` or `document` (like `InteractionManager`) fail in Node unless `window`, `document`, and `Event` are globally exposed via JSDOM. `Event` is often missed but required for `new Event()` or prototype checks.
+**Action:** When mocking browser APIs for logic tests, explicitly bind `global.Event = dom.window.Event` alongside `window` and `document`.

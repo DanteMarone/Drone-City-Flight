@@ -87,6 +87,7 @@ export class World {
         // BaseEntity.prototype.update is empty.
         if (entity.update !== BaseEntity.prototype.update) {
             this.updatables.push(entity);
+            entity.isDynamic = true; // Bolt: Flag for collision optimization
         }
 
         // Optimization: Maintain separate list for landing pads

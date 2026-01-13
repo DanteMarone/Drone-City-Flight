@@ -9,3 +9,7 @@
 ## 2024-12-14 - [Per-Frame Material Updates]
 **Learning:** `new THREE.Color()` in an `update()` loop is just as bad as `new THREE.Vector3()`. Visual effects (pulsing lights, changing hues) often sneak these allocations in.
 **Action:** Use module-level `_tempColor` scratch objects for any color animation logic.
+
+## 2024-12-14 - [Recursive World Matrix Transform]
+**Learning:** `ColliderSystem` was recalculating the World AABB for every sub-mesh of every nearby static object every frame using `applyMatrix4`. For complex static scenes, this transforms millions of vertices (implicitly via box corners) needlessly.
+**Action:** Pre-calculate and cache the world AABB (`userData.worldBox`) for static meshes at creation time, and only invalidate it if they move (`updateBody`).

@@ -23,6 +23,23 @@ export class ColliderSystem {
             if (c.box) { // Only add if it has a bounding box (roads might not)
                 this.staticColliders.push(c);
                 this.spatialHash.insert(c, c.box);
+
+                // Bolt Optimization: Pre-compute world boxes for true statics
+                if (!c.isDynamic && c.mesh) {
+                    this._cacheWorldBounds(c.mesh);
+                }
+            }
+        });
+    }
+
+    _cacheWorldBounds(mesh) {
+        mesh.traverse(child => {
+            if (child.isMesh && child.geometry) {
+                if (!child.geometry.boundingBox) child.geometry.computeBoundingBox();
+                const box = new THREE.Box3();
+                box.copy(child.geometry.boundingBox);
+                box.applyMatrix4(child.matrixWorld);
+                child.userData.worldBox = box;
             }
         });
     }
@@ -49,10 +66,22 @@ export class ColliderSystem {
             // Update box to match new mesh transform
             collider.box.setFromObject(mesh);
 
+            // Bolt: Invalidate cache since object moved
+            this._invalidateCache(mesh);
+
             // Rebuild Spatial Hash (easiest way to move it)
             this.remove(mesh);
             this.staticColliders.push(collider);
             this.spatialHash.insert(collider, collider.box);
+        }
+    }
+
+    _invalidateCache(object) {
+        if (object.userData && object.userData.worldBox) {
+            object.userData.worldBox = null;
+        }
+        if (object.children) {
+            object.children.forEach(c => this._invalidateCache(c));
         }
     }
 
@@ -164,17 +193,23 @@ export class ColliderSystem {
     _checkMeshRecursively(object, sphere, hits, rootEntity) {
         // If it's a Mesh (and visible), check its bounding box
         if (object.isMesh && object.visible) {
-             // Calculate World Box for this Mesh Only
-             if (object.geometry) {
-                 if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+            // Bolt Optimization: Use cached world box if available
+            let boxToCheck = object.userData.worldBox;
 
-                 this._tempBox.copy(object.geometry.boundingBox);
-                 this._tempBox.applyMatrix4(object.matrixWorld);
+            if (!boxToCheck) {
+                // Calculate World Box for this Mesh Only
+                if (object.geometry) {
+                    if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
 
-                 if (this._tempBox.intersectsSphere(sphere)) {
-                     this._addBoxHit(this._tempBox, sphere, rootEntity, hits);
-                 }
-             }
+                    this._tempBox.copy(object.geometry.boundingBox);
+                    this._tempBox.applyMatrix4(object.matrixWorld);
+                    boxToCheck = this._tempBox;
+                }
+            }
+
+            if (boxToCheck && boxToCheck.intersectsSphere(sphere)) {
+                this._addBoxHit(boxToCheck, sphere, rootEntity, hits);
+            }
         }
 
         // Recursively check children

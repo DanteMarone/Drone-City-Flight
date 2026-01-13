@@ -52,6 +52,14 @@ flowchart TD
     Ground --> Return([Return Hits Array])
 ```
 
+## Optimization: Static World AABB Caching
+To avoid expensive matrix transformations (`applyMatrix4`) every frame, the system caches the World AABB for static objects.
+
+-   **Static Objects**: Entities that do not override `update()` are flagged as static.
+-   **Caching**: `ColliderSystem.addStatic()` traverses the mesh hierarchy and computes the World AABB for each sub-mesh, storing it in `mesh.userData.worldBox`.
+-   **Usage**: The narrowphase check uses the cached `worldBox` if available.
+-   **Invalidation**: If an object is moved via `updateBody()` (e.g. in Dev Mode), the cache is recursively invalidated (`worldBox = null`).
+
 ## Narrowphase Logic
 
 ### Standard Objects (Sphere vs AABB)

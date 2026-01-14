@@ -131,6 +131,7 @@ Vehicles (Cars, Pickups) use a waypoint system for pathfinding.
 *   **Manager**: `WaypointManager` handles the creation and updates of these visuals.
 *   **Editing**: Selecting a car reveals "Add Waypoint" buttons in the `BuildUI` properties panel, which call `devMode.waypoints.add()`.
 *   **Logic**: Waypoints are `Vector3`s stored in `userData.waypoints`. The visual line is rebuilt whenever these change.
+*   **More Info**: See **[Vehicle System](./vehicle_system.md)** for detailed behavioral logic.
 
 ---
 

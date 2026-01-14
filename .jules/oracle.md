@@ -19,3 +19,12 @@ Action: [Separation of Concerns] Split selection and clipboard responsibilities 
 ## 2026-05-21 - [Refactor] Person Procedural Generation
 **Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
 **Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".
+
+## 2025-01-14 - Decoupled Resizer Logic
+**Discovery:**
+`src/dev/buildUI.js` was mixing UI orchestration (initializing panels, managing visibility) with low-level DOM manipulation for resizing interactions. This violated the Single Responsibility Principle and cluttered the class.
+
+**Action:**
+Extracted the resizing logic into a new `ResizerHandler` class in `src/dev/ui/resizer.js`.
+- `BuildUI` now delegates resizer initialization to `ResizerHandler`.
+- `ResizerHandler` is purely responsible for handling mouse events and updating CSS variables for layout sizing.

@@ -759,8 +759,12 @@ body {
 .dev-palette-tab {
     padding: 6px 12px;
     cursor: pointer;
+    background: transparent;
+    border: none;
     border-right: 1px solid #444;
     color: #888;
+    font-family: inherit;
+    font-size: inherit;
 }
 .dev-palette-tab:hover { background: #333; color: #fff; }
 .dev-palette-tab.active { background: #333; color: white; border-bottom: 2px solid #2196F3; }

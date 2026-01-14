@@ -28,6 +28,7 @@ export class Palette {
 
         const tabsDiv = document.createElement('div');
         tabsDiv.className = 'dev-palette-tabs';
+        tabsDiv.setAttribute('role', 'tablist');
         this.tabsDiv = tabsDiv;
         header.appendChild(tabsDiv);
 
@@ -59,20 +60,55 @@ export class Palette {
 
     refresh() {
         if (!this.content) return;
+
+        // Preserve focus
+        const currentFocus = document.activeElement;
+        let focusIndex = -1;
+        if (this.tabsDiv.contains(currentFocus)) {
+             focusIndex = Array.from(this.tabsDiv.children).indexOf(currentFocus);
+        }
+
         this.tabsDiv.innerHTML = '';
         this.content.innerHTML = '';
 
         const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
-        categories.forEach(cat => {
-            const tab = document.createElement('div');
-            tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
+        categories.forEach((cat, index) => {
+            const isActive = this.selectedCategory === cat;
+            const tab = document.createElement('button');
+            tab.className = `dev-palette-tab ${isActive ? 'active' : ''}`;
             tab.textContent = cat;
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-selected', isActive);
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
+
             tab.onclick = () => {
                 this.selectedCategory = cat;
                 this.refresh();
             };
+
+            tab.onkeydown = (e) => {
+                let nextIdx = -1;
+                if (e.key === 'ArrowRight') nextIdx = (index + 1) % categories.length;
+                if (e.key === 'ArrowLeft') nextIdx = (index - 1 + categories.length) % categories.length;
+
+                if (nextIdx !== -1) {
+                    e.preventDefault();
+                    this.selectedCategory = categories[nextIdx];
+                    this.refresh();
+                    setTimeout(() => {
+                        const tabs = this.tabsDiv.querySelectorAll('[role="tab"]');
+                        if (tabs[nextIdx]) tabs[nextIdx].focus();
+                    }, 0);
+                }
+            };
+
             this.tabsDiv.appendChild(tab);
         });
+
+        if (focusIndex !== -1 && !this.tabsDiv.contains(document.activeElement)) {
+             const tabs = this.tabsDiv.children;
+             if (tabs[focusIndex]) tabs[focusIndex].focus();
+        }
 
         // Populate Grid
         EntityRegistry.registry.forEach((Cls, type) => {

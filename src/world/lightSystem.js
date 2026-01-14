@@ -11,6 +11,10 @@ export class LightSystem {
 
         // Cached vector for distance calculations
         this._tempVec = new THREE.Vector3();
+
+        // Optimization: Throttle sorting
+        this._frameCount = 4; // Start at 4 so first update (5) triggers sort
+        this._sortInterval = 5; // Sort every 5 frames
     }
 
     _initPool() {
@@ -35,7 +39,8 @@ export class LightSystem {
             pos: position.clone(),
             color: new THREE.Color(color),
             intensity,
-            range
+            range,
+            _distSq: Infinity // Initialize to avoid hidden class change
         };
         this.virtualLights.push(source);
         return source;
@@ -72,37 +77,54 @@ export class LightSystem {
         }
 
         const cameraPos = camera.position;
+        this._frameCount++;
 
         // 2. Sort Virtual Lights by distance to Camera
-        // We calculate squared distance for all virtual lights
-        // To avoid creating objects per frame, we could store distSq in the virtualLight object
-        // but virtualLights array might change (if we add removal logic, but currently we just append)
-        // For 100-200 lights, sort is fast enough.
+        // Optimization: Only sort every N frames to save CPU.
+        // During the intervals, we just update the assigned lights.
+        const shouldSort = (this._frameCount % this._sortInterval === 0);
 
-        for (let i = 0; i < this.virtualLights.length; i++) {
-            const vl = this.virtualLights[i];
-            // Update position if attached to a mesh
-            if (vl.parentMesh) {
-                // Check if mesh is still in scene?
-                // Optimization: Trust it exists or check every N frames.
-                // Or just update.
-                vl.parentMesh.updateMatrixWorld(); // Should be updated by scene graph, but just in case
-                vl.pos.setFromMatrixPosition(vl.parentMesh.matrixWorld);
+        if (shouldSort) {
+            const len = this.virtualLights.length;
+            for (let i = 0; i < len; i++) {
+                const vl = this.virtualLights[i];
+                // Update position if attached to a mesh
+                if (vl.parentMesh) {
+                    // Optimization: Remove forced updateMatrixWorld().
+                    // Rely on the scene graph to have updated matrices (or use previous frame's).
+                    // This avoids traversing the hierarchy or recomposing matrices for hundreds of lights per frame.
+                    vl.pos.setFromMatrixPosition(vl.parentMesh.matrixWorld);
+                }
+                vl._distSq = vl.pos.distanceToSquared(cameraPos);
             }
-            vl._distSq = vl.pos.distanceToSquared(cameraPos);
+
+            this.virtualLights.sort((a, b) => a._distSq - b._distSq);
         }
 
-        this.virtualLights.sort((a, b) => a._distSq - b._distSq);
-
         // 3. Assign Real Lights to the closest Virtual Lights
+        // We iterate through the top K sorted lights.
+        // Even if we didn't sort this frame, the list is roughly sorted from previous frames.
+
         for (let i = 0; i < this.maxLights; i++) {
             const real = this.realLights[i];
             const virtual = this.virtualLights[i];
 
             if (virtual) {
+                // If we skipped sorting, we should still update the position of the *active* lights
+                // so they don't lag behind moving objects (like cars).
+                if (!shouldSort && virtual.parentMesh) {
+                     virtual.pos.setFromMatrixPosition(virtual.parentMesh.matrixWorld);
+                     // We could re-check distSq here to see if it's still valid,
+                     // but for 5 frames it's fine.
+                }
+
                 // Check if it's within a reasonable render distance (e.g. 500)
                 // 500^2 = 250000
-                if (virtual._distSq < 250000) {
+                // If we didn't sort, _distSq is stale, but we can recompute it just for the check
+                // or just trust the stale value. Let's recompute for accuracy on the active ones.
+                const distSq = (!shouldSort) ? virtual.pos.distanceToSquared(cameraPos) : virtual._distSq;
+
+                if (distSq < 250000) {
                     real.position.copy(virtual.pos);
                     real.color.copy(virtual.color);
                     real.intensity = virtual.intensity * globalDim;
@@ -148,22 +170,13 @@ export class LightSystem {
         }
 
         // 2. Register with system
-        // We need the world position.
-        // Note: If the mesh moves (e.g. car light), we need to update the virtual light.
-        // The current 'register' method stores a cloned position (static).
-        // For moving lights, we might need a 'track' method or update virtualLights logic.
-        // For now, assuming static placement or one-time registration.
-        // The prompt says "source object: { position: Vector3 ... }".
-        // It doesn't explicitly mention moving lights, but "street lamps, windows, landing pads" are static.
-        // If we need moving lights, we'd need to store the mesh reference and update pos in update().
-
-        // Let's support an optional parentMesh tracking.
         const source = {
             pos: new THREE.Vector3(), // Placeholder, updated below
             color: new THREE.Color(color),
             intensity,
             range,
-            parentMesh: mesh
+            parentMesh: mesh,
+            _distSq: Infinity
         };
 
         // Initial position

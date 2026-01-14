@@ -13,3 +13,7 @@
 ## 2025-02-14 - Matrix World Updates in Tests
 **Discovery:** Three.js objects do not update their `matrixWorld` automatically when added to a scene in a headless (no-renderer) test environment. Physics logic relying on `matrixWorld` (like `applyMatrix4(mesh.matrixWorld)`) will use the Identity matrix, potentially causing false positives if test objects default to (0,0,0).
 **Action:** Explicitly call `obj.updateMatrixWorld(true)` in test helpers or after modifying transforms in tests.
+
+## 2025-02-14 - Vehicle Logic Discovery: High Speed + Short Path = Instant Return
+**Discovery:** While testing `PickupTruckEntity`'s wait logic, I discovered that if the vehicle speed is high (100) and the path is short (2 units), a large `dt` (3.1s) causes the vehicle to travel to the end, wait (logic processed in same frame?), reverse, and travel *back* to the start within a single update call. This caused the `waitTimer` to appear stuck or reset unexpectedly because it hit the *other* endpoint in the same frame.
+**Action:** Updated test strategy to ensure `dt` and `speed` are calibrated such that the vehicle cannot traverse the entire path in a single frame when testing intermediate states like "waiting" or "just started moving".

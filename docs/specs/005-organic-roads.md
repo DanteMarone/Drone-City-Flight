@@ -1,7 +1,7 @@
 # Spec 005: Organic Road Support
 
 **Feature:** Bezier/Spline-based Roads
-**Status:** Draft
+**Status:** Approved
 **Owner:** Planner
 
 ## 1. Overview

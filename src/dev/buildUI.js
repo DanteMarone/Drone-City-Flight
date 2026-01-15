@@ -1,5 +1,6 @@
 import { ThumbnailRenderer } from './thumbnailRenderer.js';
 import { AlignTool } from './tools/alignTool.js';
+import { CommandPalette } from './tools/commandPalette.js';
 import { TopBar } from './ui/topBar.js';
 import { Toolbar } from './ui/toolbar.js';
 import { Outliner } from './ui/outliner.js';
@@ -13,6 +14,7 @@ export class BuildUI {
         this.container = null;
         this.thumbnailRenderer = new ThumbnailRenderer();
         this.alignTool = null;
+        this.commandPalette = null;
 
         // Sub-components
         this.topBar = null;
@@ -40,6 +42,7 @@ export class BuildUI {
     init(devMode) {
         this.devMode = devMode; // Ensure it's set if passed in init
         this.alignTool = new AlignTool(devMode);
+        this.commandPalette = new CommandPalette(devMode);
 
         // Root
         this.container = document.createElement('div');

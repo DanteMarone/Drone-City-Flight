@@ -240,6 +240,13 @@ export class DevMode {
         if (!this.enabled) return;
         if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
+        // Command Palette (Ctrl+K or Cmd+K)
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyK') {
+            e.preventDefault();
+            this.ui.commandPalette.toggle();
+            return;
+        }
+
         if (e.code === 'Delete') {
             e.preventDefault();
             this.deleteSelected();

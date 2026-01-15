@@ -167,7 +167,31 @@ export class Inspector {
         delBtn.className = 'dev-btn dev-btn-danger';
         delBtn.textContent = 'Delete Selected';
         delBtn.style.marginTop = '10px';
-        delBtn.onclick = () => this.devMode.deleteSelected();
+        delBtn.setAttribute('aria-live', 'polite'); // Announce changes to screen readers
+
+        let deleteConfirmTimer = null;
+
+        delBtn.onclick = () => {
+            if (delBtn.dataset.confirm === 'true') {
+                // Confirmed
+                this.devMode.deleteSelected();
+                if (deleteConfirmTimer) clearTimeout(deleteConfirmTimer);
+            } else {
+                // First click - Request Confirmation
+                delBtn.dataset.confirm = 'true';
+                delBtn.textContent = 'Confirm Delete?';
+                delBtn.style.backgroundColor = '#d32f2f'; // Brighter red
+                delBtn.style.borderColor = '#f44336';
+
+                // Auto-reset after 3s
+                deleteConfirmTimer = setTimeout(() => {
+                    delBtn.dataset.confirm = 'false';
+                    delBtn.textContent = 'Delete Selected';
+                    delBtn.style.backgroundColor = '';
+                    delBtn.style.borderColor = '';
+                }, 3000);
+            }
+        };
         this.content.appendChild(delBtn);
     }
 

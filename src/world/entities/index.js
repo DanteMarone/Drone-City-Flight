@@ -123,9 +123,10 @@ export { ShockBuzzDroneEntity } from './shockBuzzDrone.js';
 export { GuideDroneEntity } from './guideDrone.js';
 export { GuideBotEntity } from './guideBot.js';
 export { HelpfulNpcEntity } from './helpfulNpc.js';
+export { HotAirBalloonEntity } from './hotAirBalloon.js';
 
 
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated
 // without manual imports.
-import.meta.glob('./*.js', { eager: true });
+import.meta.glob(['./*.js', '!./*.test.js'], { eager: true });

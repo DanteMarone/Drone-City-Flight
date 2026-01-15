@@ -128,4 +128,7 @@ export { HelpfulNpcEntity } from './helpfulNpc.js';
 // Eagerly load all entity modules to trigger their registrations.
 // Vite will execute each module once, ensuring EntityRegistry is populated
 // without manual imports.
-import.meta.glob('./*.js', { eager: true });
+// Note: Conditional check prevents Node.js test runner failure
+if (typeof import.meta !== 'undefined' && import.meta.glob) {
+  import.meta.glob('./*.js', { eager: true });
+}

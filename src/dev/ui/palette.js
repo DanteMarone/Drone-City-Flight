@@ -27,7 +27,8 @@ export class Palette {
         header.style.alignItems = 'center';
 
         const tabsDiv = document.createElement('div');
-        tabsDiv.className = 'dev-palette-tabs';
+        tabsDiv.className = 'asset-tabs';
+        tabsDiv.setAttribute('role', 'tablist');
         this.tabsDiv = tabsDiv;
         header.appendChild(tabsDiv);
 
@@ -50,7 +51,7 @@ export class Palette {
         container.appendChild(header);
 
         this.content = document.createElement('div');
-        this.content.className = 'dev-palette-grid';
+        this.content.className = 'asset-grid';
         container.appendChild(this.content);
 
         this.parentContainer.appendChild(container); // Append panel to root
@@ -64,9 +65,12 @@ export class Palette {
 
         const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
         categories.forEach(cat => {
-            const tab = document.createElement('div');
-            tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
+            const isActive = this.selectedCategory === cat;
+            const tab = document.createElement('button');
+            tab.className = `asset-tab ${isActive ? 'active' : ''}`;
             tab.textContent = cat;
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-selected', isActive);
             tab.onclick = () => {
                 this.selectedCategory = cat;
                 this.refresh();
@@ -88,13 +92,13 @@ export class Palette {
             }
 
             const item = document.createElement('button');
-            item.className = 'dev-palette-item';
+            item.className = 'asset-item';
             item.draggable = true;
             item.ariaLabel = `Place ${Cls.displayName || type}`;
 
             // Thumbnail
             const img = document.createElement('img');
-            img.className = 'dev-palette-thumb';
+            img.className = 'asset-thumb';
             if (this.thumbnails.has(type)) {
                 img.src = this.thumbnails.get(type);
             } else {
@@ -111,7 +115,7 @@ export class Palette {
 
             // Label
             const label = document.createElement('div');
-            label.className = 'dev-palette-name';
+            label.className = 'asset-name';
             label.textContent = Cls.displayName || type;
             item.appendChild(label);
 

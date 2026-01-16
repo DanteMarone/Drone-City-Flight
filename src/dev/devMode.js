@@ -8,6 +8,7 @@ import { DevClipboardManager } from './devClipboardManager.js';
 import { DevSelectionManager } from './devSelectionManager.js';
 import { CommandManager, TransformCommand, cloneTransform } from './history.js';
 import { WaypointManager } from './waypointManager.js';
+import { PerformanceMonitor } from './tools/performanceMonitor.js';
 
 export class DevMode {
     constructor(app) {
@@ -30,6 +31,7 @@ export class DevMode {
         this.waypoints = new WaypointManager(this);
         this.selectionManager = new DevSelectionManager(this);
         this.clipboardManager = new DevClipboardManager(this);
+        this.performanceMonitor = new PerformanceMonitor(app);
 
         // One-time setup for drag-drop
         setupDragDrop(this.interaction, this.app.container);
@@ -164,6 +166,9 @@ export class DevMode {
 
         // Update Line Visuals if a waypoint is being moved
         this.waypoints.update(dt);
+
+        // Update Performance Monitor
+        this.performanceMonitor.update(dt);
     }
 
     captureTransforms(targets = this.selectedObjects) {

@@ -851,3 +851,46 @@ canvas {
     opacity: 0.5;
     margin-left: 4px;
 }
+
+/* Performance Monitor */
+.perf-monitor {
+    position: fixed;
+    top: 50px;
+    right: 20px;
+    width: 200px;
+    background: rgba(15, 20, 25, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 4px;
+    padding: 10px;
+    color: #eee;
+    font-family: 'Courier New', monospace;
+    font-size: 12px;
+    z-index: 2000;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(4px);
+}
+
+.perf-row {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    padding-bottom: 4px;
+}
+
+.perf-row:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.perf-label {
+    color: #888;
+    font-weight: bold;
+}
+
+.perf-value {
+    color: #0ff;
+    font-weight: bold;
+}

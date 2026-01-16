@@ -45,7 +45,8 @@ export class TopBar {
              { label: 'Toggle HUD', action: () => {
                  const hud = document.querySelector('.hud-container');
                  if(hud) hud.style.display = hud.style.display === 'none' ? 'block' : 'none';
-             }}
+             }},
+             { label: 'Toggle Performance Stats', action: () => this.devMode.performanceMonitor.toggle() }
         ]);
 
         this.parentContainer.appendChild(bar);

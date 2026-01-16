@@ -1,23 +1,32 @@
 # Dev Mode Inspector UI
 
 ## Overview
-The **Inspector** (`src/dev/ui/inspector.js`) is the primary interface for modifying object properties and world settings in the Level Editor. It dynamically generates UI controls based on the selected object's data and state.
+The **Inspector** (`src/dev/ui/inspector.js`) is the primary interface for modifying object properties and world settings in the Level Editor. It functions as a high-level coordinator that delegates rendering to specialized sub-components.
 
 ## Architecture
 
-The Inspector is a sub-component of `BuildUI` and operates in two modes (tabs):
-1.  **Properties**: Context-sensitive controls for the currently selected object(s).
-2.  **World**: Global environment settings (Time, Wind, Gameplay).
+The Inspector is a sub-component of `BuildUI` and manages two distinct modes (tabs), implemented as separate classes:
+1.  **Properties** (`src/dev/ui/propertiesInspector.js`): Context-sensitive controls for the currently selected object(s).
+2.  **World** (`src/dev/ui/worldInspector.js`): Global environment settings (Time, Wind, Gameplay).
+
+Generic UI widgets (Vector Input, Number Input, etc.) are centralized in `src/dev/ui/widgets/inputs.js`.
 
 ```mermaid
 graph TD
     Select[Selection Manager] -->|Updates| DevMode
     DevMode -->|Triggers| Inspector[Inspector.refresh]
+    Inspector -->|Delegate| PropInsp[PropertiesInspector]
+    Inspector -->|Delegate| WorldInsp[WorldInspector]
 
     subgraph Properties Tab
-        Inspector -->|Single Object| Params[Parameter Reflection]
-        Inspector -->|Multi-Select| Proxy[Group Transform]
-        Inspector -->|Vehicle| Waypoints[Waypoint Controls]
+        PropInsp -->|Single Object| Params[Parameter Reflection]
+        PropInsp -->|Multi-Select| Proxy[Group Transform]
+        PropInsp -->|Vehicle| Waypoints[Waypoint Controls]
+    end
+
+    subgraph World Tab
+        WorldInsp --> Time[Time Cycle]
+        WorldInsp --> Wind[Wind Settings]
     end
 
     Params -->|Input Event| Cmd[Command Manager]
@@ -30,7 +39,7 @@ graph TD
 ## Key Features
 
 ### 1. Dynamic Parameter Reflection
-For single-object selections, the Inspector iterates through `object.userData.params` to generate inputs automatically. It uses naming conventions and type checks to select the appropriate widget:
+Managed by `PropertiesInspector`. For single-object selections, it iterates through `object.userData.params` to generate inputs automatically. It uses naming conventions and type checks to select the appropriate widget:
 
 | Data Type | Heuristic | Widget |
 | :--- | :--- | :--- |
@@ -42,7 +51,7 @@ For single-object selections, the Inspector iterates through `object.userData.pa
 **Developer Note:** To expose a new property to the editor, simply add it to `this.params` (or `userData.params`) in your Entity class. The Inspector ignores internal keys like `uuid`, `type`, `x`, `y`, `z`, `width`, `height`, `depth`.
 
 ### 2. Multi-Selection & Proxy
-When multiple objects are selected, the Inspector:
+When multiple objects are selected, `PropertiesInspector`:
 *   Hides individual parameters.
 *   Displays **"Transform (Group)"** controls.
 *   Binds inputs to `devMode.gizmo.proxy` (the invisible object at the selection centroid).
@@ -55,13 +64,13 @@ The Inspector includes hardcoded support for `VehicleEntity` types (`car`, `pick
 
 ### 4. Integration with Tools
 *   **Align Tool**: If the `AlignTool` is active (multi-selection), its UI is embedded directly into the Inspector panel via `alignTool.createUI()`.
-*   **Lock Aspect Ratio**: The Scale input includes a "Lock" checkbox that forces uniform scaling (x=y=z) when any axis is modified.
+*   **Lock Aspect Ratio**: The Scale input (via `createScaleInput` in `inputs.js`) includes a "Lock" checkbox that forces uniform scaling (x=y=z) when any axis is modified.
 
 ## Data Flow & Synchronization
 
 ### The `sync()` Loop
 During high-frequency operations (like dragging the Gizmo), rebuilding the entire DOM via `refresh()` is too slow.
-*   **Method**: `Inspector.sync()`
+*   **Method**: `Inspector.sync()` (Delegates to `PropertiesInspector.sync()`)
 *   **Usage**: Called every frame by `BuildUI.update` and by `GizmoManager` during drag events.
 *   **Logic**: It finds existing input elements by ID (e.g., `#insp-Position-x`) and updates their `.value` to match the object's current transform, ensuring the UI stays responsive without losing focus.
 
@@ -72,5 +81,5 @@ All property changes go through the Command System to support Undo/Redo:
 
 ## Dependencies
 *   **Parent**: `src/dev/buildUI.js`
-*   **Widgets**: `src/dev/ui/widgets/colorPicker.js`
+*   **Widgets**: `src/dev/ui/widgets/inputs.js`, `src/dev/ui/widgets/colorPicker.js`
 *   **Systems**: `GizmoManager` (for Proxy), `CommandManager` (for History), `AlignTool`.

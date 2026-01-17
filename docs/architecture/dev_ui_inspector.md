@@ -5,65 +5,61 @@ The **Inspector** (`src/dev/ui/inspector.js`) is the primary interface for modif
 
 ## Architecture
 
-The Inspector is a sub-component of `BuildUI` and operates in two modes (tabs):
-1.  **Properties**: Context-sensitive controls for the currently selected object(s).
-2.  **World**: Global environment settings (Time, Wind, Gameplay).
+The Inspector is a modular coordinator that manages tabs and delegates rendering to specialized sub-inspectors:
+1.  **Properties Inspector** (`src/dev/ui/propertiesInspector.js`): Context-sensitive controls for selected objects.
+2.  **World Inspector** (`src/dev/ui/worldInspector.js`): Global environment settings.
+3.  **Widgets** (`src/dev/ui/widgets/inputs.js`): Reusable UI components (Vector3, Number, etc.).
 
 ```mermaid
-graph TD
-    Select[Selection Manager] -->|Updates| DevMode
-    DevMode -->|Triggers| Inspector[Inspector.refresh]
+classDiagram
+    class Inspector {
+        +refresh()
+        +sync()
+    }
+    class PropertiesInspector {
+        +render(container)
+        +sync()
+        -_applyTransform()
+    }
+    class WorldInspector {
+        +render(container)
+    }
+    class InputWidgets {
+        <<module>>
+        +createVectorInput()
+        +createNumberInput()
+    }
 
-    subgraph Properties Tab
-        Inspector -->|Single Object| Params[Parameter Reflection]
-        Inspector -->|Multi-Select| Proxy[Group Transform]
-        Inspector -->|Vehicle| Waypoints[Waypoint Controls]
-    end
-
-    Params -->|Input Event| Cmd[Command Manager]
-    Proxy -->|Input Event| Cmd
-
-    Cmd -->|Execute| Object[Scene Object]
-    Cmd -->|Push| History[Undo Stack]
+    Inspector --> PropertiesInspector : delegates Properties tab
+    Inspector --> WorldInspector : delegates World tab
+    PropertiesInspector ..> InputWidgets : uses
+    WorldInspector ..> InputWidgets : uses
 ```
+
+## Sub-Systems
+
+### 1. Properties Inspector
+Handles object selection, transformation, and parameter editing.
+*   **Dynamic Reflection**: Iterates `object.userData.params` to generate inputs (Color, Number, Boolean).
+*   **Multi-Selection**: Detects if multiple objects are selected and binds controls to the `GizmoProxy` instead of individual objects.
+*   **Vehicle Integration**: Renders Waypoint controls ('Add', 'Remove') if the object is a vehicle.
+*   **Synchronization**: The `sync()` method updates input values (like Position/Rotation) in real-time during gizmo manipulation without rebuilding the DOM.
+
+### 2. World Inspector
+Handles global environment variables found in `app.world`.
+*   **Time**: Sliders for `timeCycle.time` and speed.
+*   **Wind**: Controls for wind speed and direction.
+*   **Gameplay**: Global settings like `batteryDrain`.
 
 ## Key Features
 
-### 1. Dynamic Parameter Reflection
-For single-object selections, the Inspector iterates through `object.userData.params` to generate inputs automatically. It uses naming conventions and type checks to select the appropriate widget:
-
+### Dynamic Parameter Reflection
+For single-object selections, the Inspector automatically generates inputs:
 | Data Type | Heuristic | Widget |
 | :--- | :--- | :--- |
-| **Color** | Key contains 'color' OR string starts with '#' | `ColorPickerWidget` (Hex + Swatch) |
-| **Number** | `typeof val === 'number'` | Number Input |
-| **Boolean** | `typeof val === 'boolean'` | Checkbox |
-| **String** | `typeof val === 'string'` | Text Input |
-
-**Developer Note:** To expose a new property to the editor, simply add it to `this.params` (or `userData.params`) in your Entity class. The Inspector ignores internal keys like `uuid`, `type`, `x`, `y`, `z`, `width`, `height`, `depth`.
-
-### 2. Multi-Selection & Proxy
-When multiple objects are selected, the Inspector:
-*   Hides individual parameters.
-*   Displays **"Transform (Group)"** controls.
-*   Binds inputs to `devMode.gizmo.proxy` (the invisible object at the selection centroid).
-*   **Synchronization**: Modifying these inputs triggers `_applyProxyTransform`, which updates the proxy and immediately calls `gizmo.syncProxyToObjects()` to propagate the delta to all selected entities.
-
-### 3. Vehicle Integration
-The Inspector includes hardcoded support for `VehicleEntity` types (`car`, `pickupTruck`, `bicycle`).
-*   **Waypoints**: Adds "Add/Remove Waypoint" buttons.
-*   **Wait Time**: dedicated input for `waitTime` if present in `userData`.
-
-### 4. Integration with Tools
-*   **Align Tool**: If the `AlignTool` is active (multi-selection), its UI is embedded directly into the Inspector panel via `alignTool.createUI()`.
-*   **Lock Aspect Ratio**: The Scale input includes a "Lock" checkbox that forces uniform scaling (x=y=z) when any axis is modified.
-
-## Data Flow & Synchronization
-
-### The `sync()` Loop
-During high-frequency operations (like dragging the Gizmo), rebuilding the entire DOM via `refresh()` is too slow.
-*   **Method**: `Inspector.sync()`
-*   **Usage**: Called every frame by `BuildUI.update` and by `GizmoManager` during drag events.
-*   **Logic**: It finds existing input elements by ID (e.g., `#insp-Position-x`) and updates their `.value` to match the object's current transform, ensuring the UI stays responsive without losing focus.
+| **Color** | Key contains 'color' OR starts with '#' | `ColorPickerWidget` |
+| **Number** | `typeof val === 'number'` | `createNumberInput` |
+| **Boolean** | `typeof val === 'boolean'` | `createCheckbox` |
 
 ### History Integration
 All property changes go through the Command System to support Undo/Redo:
@@ -72,5 +68,5 @@ All property changes go through the Command System to support Undo/Redo:
 
 ## Dependencies
 *   **Parent**: `src/dev/buildUI.js`
-*   **Widgets**: `src/dev/ui/widgets/colorPicker.js`
+*   **Widgets**: `src/dev/ui/widgets/colorPicker.js`, `src/dev/ui/widgets/inputs.js`
 *   **Systems**: `GizmoManager` (for Proxy), `CommandManager` (for History), `AlignTool`.

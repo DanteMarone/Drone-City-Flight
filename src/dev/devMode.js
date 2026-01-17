@@ -8,6 +8,7 @@ import { DevClipboardManager } from './devClipboardManager.js';
 import { DevSelectionManager } from './devSelectionManager.js';
 import { CommandManager, TransformCommand, cloneTransform } from './history.js';
 import { WaypointManager } from './waypointManager.js';
+import { CommandPalette } from './tools/commandPalette.js';
 
 export class DevMode {
     constructor(app) {
@@ -36,6 +37,10 @@ export class DevMode {
 
         // Init UI
         this.ui.init(this);
+
+        // Init Command Palette
+        this.commandPalette = new CommandPalette(this);
+        this._registerDefaultCommands();
 
         // Listen for toggle key
         window.addEventListener('keydown', (e) => {
@@ -237,6 +242,13 @@ export class DevMode {
     }
 
     _handleShortcuts(e) {
+        // Global shortcut for Command Palette (Ctrl+K or Cmd+K) - works even if Dev Mode is disabled (to enable it)
+        if ((e.ctrlKey || e.metaKey) && e.code === 'KeyK') {
+            e.preventDefault();
+            this.commandPalette.toggle();
+            return;
+        }
+
         if (!this.enabled) return;
         if (e.target && ['INPUT', 'TEXTAREA'].includes(e.target.tagName)) return;
 
@@ -350,5 +362,47 @@ export class DevMode {
             }
         };
         reader.readAsText(file);
+    }
+
+    _registerDefaultCommands() {
+        const cp = this.commandPalette;
+
+        // General
+        cp.registerCommand('toggle_dev', 'Toggle Developer Mode', () => this.toggle(), '`');
+        cp.registerCommand('reload', 'Reload Page', () => window.location.reload(), 'Ctrl+R');
+
+        // Map Operations
+        cp.registerCommand('clear_map', 'Clear Map', () => {
+            if (confirm('Are you sure you want to clear the map?')) this.clearMap();
+        });
+        cp.registerCommand('save_map', 'Save Map', () => this.saveMap());
+        // Load map requires file input, trickier via command palette without UI, skipping for now or TODO
+
+        // Selection
+        cp.registerCommand('delete_selected', 'Delete Selected', () => this.deleteSelected(), 'Del');
+        cp.registerCommand('copy_selected', 'Copy Selected', () => this.copySelected(), 'Ctrl+C');
+        cp.registerCommand('paste_selected', 'Paste', () => this.pasteClipboard(), 'Ctrl+V');
+        cp.registerCommand('duplicate_selected', 'Duplicate Selected', () => this.duplicateSelected(), 'Ctrl+D');
+        cp.registerCommand('deselect_all', 'Deselect All', () => this.selectObject(null), 'Esc');
+
+        // View/Camera
+        cp.registerCommand('reset_camera', 'Reset Camera', () => {
+             this.cameraController.reset(); // Assuming it has reset, if not we can impl
+        });
+
+        // Toggles
+        cp.registerCommand('toggle_grid', 'Toggle Grid', () => {
+            this.grid.enabled = !this.grid.enabled;
+            this.grid.helper.visible = this.grid.enabled;
+        });
+        cp.registerCommand('toggle_gizmo', 'Toggle Gizmo Space (Local/World)', () => {
+            this.gizmo.setSpace(this.gizmo.control.space === 'local' ? 'world' : 'local');
+        });
+
+        // Fun
+        cp.registerCommand('spawn_drone', 'Spawn Drone', () => {
+            // Check if done exists, if not spawn it (logic depends on app)
+            console.log("Spawn Drone command triggered");
+        });
     }
 }

@@ -80,3 +80,9 @@ Simulating swarm behavior with a small number of particles is sufficient for pro
 Complex angled sub-assemblies are best constructed flat and then rotated as a group.
 - **Pattern:** Building the ladder assembly (rails and rungs) aligned to the world Z-axis, then adding it to a `THREE.Group` and rotating that group on the X-axis.
 - **Technique:** This avoids calculating trigonometry for every single rung position. You just place them at `z = i * spacing`, and the parent group handles the 15-degree incline.
+
+## 2026-01-17 - Street Sweeper (Forge)
+**Learning:**
+Functional vehicles gain "life" through secondary mechanical animations.
+- **Discovery:** Simply rotating child meshes (brushes) around their own axes in `update(dt)` transforms a static block into a working machine.
+- **Action:** Implemented a Street Sweeper with dual front brushes and a rear roller that spin based on delta time.

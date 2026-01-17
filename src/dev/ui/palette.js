@@ -28,6 +28,8 @@ export class Palette {
 
         const tabsDiv = document.createElement('div');
         tabsDiv.className = 'dev-palette-tabs';
+        tabsDiv.role = 'tablist';
+        tabsDiv.ariaLabel = 'Asset Categories';
         this.tabsDiv = tabsDiv;
         header.appendChild(tabsDiv);
 
@@ -51,6 +53,8 @@ export class Palette {
 
         this.content = document.createElement('div');
         this.content.className = 'dev-palette-grid';
+        this.content.id = 'dev-palette-grid';
+        this.content.role = 'tabpanel';
         container.appendChild(this.content);
 
         this.parentContainer.appendChild(container); // Append panel to root
@@ -59,19 +63,47 @@ export class Palette {
 
     refresh() {
         if (!this.content) return;
+
+        // Save focus state before rebuilding
+        const activeElement = document.activeElement;
+        const focusedCategory = (activeElement && activeElement.classList.contains('dev-palette-tab'))
+            ? activeElement.textContent
+            : null;
+
         this.tabsDiv.innerHTML = '';
         this.content.innerHTML = '';
 
         const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
         categories.forEach(cat => {
-            const tab = document.createElement('div');
+            const tab = document.createElement('button');
             tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
             tab.textContent = cat;
+
+            // Accessibility
+            tab.role = 'tab';
+            tab.ariaSelected = this.selectedCategory === cat;
+            tab.ariaControls = 'dev-palette-grid';
+
+            // Reset button styles to match div look
+            tab.style.background = 'transparent';
+            tab.style.border = 'none';
+            tab.style.borderRight = '1px solid #444'; // Re-apply existing style
+            tab.style.color = 'inherit';
+            tab.style.font = 'inherit';
+            tab.style.textAlign = 'inherit';
+            tab.style.padding = '6px 12px'; // Re-apply padding if needed, though class has it. Button might override.
+
             tab.onclick = () => {
                 this.selectedCategory = cat;
                 this.refresh();
             };
             this.tabsDiv.appendChild(tab);
+
+            // Restore focus
+            if (focusedCategory === cat) {
+                // Defer focus to ensure DOM is ready
+                setTimeout(() => tab.focus(), 0);
+            }
         });
 
         // Populate Grid

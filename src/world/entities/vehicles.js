@@ -9,6 +9,7 @@ const _targetPos = new THREE.Vector3();
 const _localTarget = new THREE.Vector3();
 const _currentLocal = new THREE.Vector3();
 const _dir = new THREE.Vector3();
+const _diff = new THREE.Vector3(); // Bolt: Added scratch vector for optimization
 
 export class VehicleEntity extends BaseEntity {
     constructor(params) {
@@ -147,12 +148,21 @@ export class VehicleEntity extends BaseEntity {
         _currentLocal.copy(modelGroup.position);
 
         const speed = Math.max(0, this.baseSpeed);
-        const dist = _currentLocal.distanceTo(_localTarget);
         const moveAmount = speed * dt;
+        const moveAmountSq = moveAmount * moveAmount;
 
-        if (dist > moveAmount) {
-            // dir = localTarget - currentLocal
-            _dir.subVectors(_localTarget, _currentLocal).normalize();
+        // Bolt Optimization: Use Squared Distance to check arrival to avoid sqrt
+        // Calculate vector from current to target
+        _diff.subVectors(_localTarget, _currentLocal);
+        const distSq = _diff.lengthSq();
+
+        if (distSq > moveAmountSq) {
+            // We haven't arrived yet.
+            // Calculate actual distance only once for normalization
+            const dist = Math.sqrt(distSq);
+
+            // Normalized direction: diff / dist
+            _dir.copy(_diff).multiplyScalar(1 / dist);
 
             // Move in Local Space
             modelGroup.position.addScaledVector(_dir, moveAmount);
@@ -161,7 +171,7 @@ export class VehicleEntity extends BaseEntity {
             modelGroup.lookAt(_targetPos);
 
         } else {
-            // Snap
+            // Arrived / Snap
             modelGroup.position.copy(_localTarget);
 
             if (targetIdx < totalPoints - 1) {
@@ -330,11 +340,17 @@ export class PickupTruckEntity extends CarEntity {
         _currentLocal.copy(modelGroup.position);
 
         const speed = Math.max(0, this.baseSpeed);
-        const dist = _currentLocal.distanceTo(_localTarget);
         const moveAmount = speed * dt;
+        const moveAmountSq = moveAmount * moveAmount;
 
-        if (dist > moveAmount) {
-            _dir.subVectors(_localTarget, _currentLocal).normalize();
+        // Bolt Optimization: Use Squared Distance
+        _diff.subVectors(_localTarget, _currentLocal);
+        const distSq = _diff.lengthSq();
+
+        if (distSq > moveAmountSq) {
+             const dist = Math.sqrt(distSq);
+            _dir.copy(_diff).multiplyScalar(1 / dist); // Normalize
+
             modelGroup.position.addScaledVector(_dir, moveAmount);
             modelGroup.lookAt(_targetPos);
         } else {

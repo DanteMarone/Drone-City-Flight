@@ -5,6 +5,15 @@ import { EntityRegistry } from './registry.js';
 import { mergeGeometries } from 'three/examples/jsm/utils/BufferGeometryUtils.js';
 import { CONFIG } from '../../config.js';
 
+// Scratch vectors for vehicle updates to prevent GC
+// Note: We can re-use the ones from vehicles.js ideally, but they are not exported.
+// Creating local scratch vectors for BusEntity.
+const _targetPos = new THREE.Vector3();
+const _localTarget = new THREE.Vector3();
+const _currentLocal = new THREE.Vector3();
+const _dir = new THREE.Vector3();
+const _diff = new THREE.Vector3();
+
 export class BusEntity extends VehicleEntity {
     constructor(params) {
         super(params);
@@ -31,8 +40,17 @@ export class BusEntity extends VehicleEntity {
         const modelGroup = this.mesh.getObjectByName('modelGroup');
         if (!modelGroup) return;
 
-        const path = [this.mesh.position.clone(), ...this.waypoints];
-        if (path.length < 2) return;
+        // Note: Creating array `path` here [mesh.pos, ...waypoints] is expensive!
+        // Optimization: Use index logic like VehicleEntity instead of creating array.
+        // VehicleEntity uses:
+        //  0 -> mesh.position (Spawn Point)
+        //  1 -> waypoints[0]
+        //  ...
+
+        const waypoints = this.waypoints;
+        const totalPoints = 1 + waypoints.length;
+
+        if (totalPoints < 2) return;
 
         // Sync params
         const currentWait = this.mesh.userData.waitTime ?? this.waitTime;
@@ -46,10 +64,8 @@ export class BusEntity extends VehicleEntity {
 
                 // Advance to next waypoint
                 let nextIdx = this.mesh.userData.targetIndex + 1;
-                if (nextIdx >= path.length) {
-                    nextIdx = 0; // Loop back to start (which is mesh.position, but functionally index 0 of path array)
-                    // Note: path[0] is the original spawn point. path[1] is the first waypoint.
-                    // If we loop to 0, we drive back to spawn.
+                if (nextIdx >= totalPoints) {
+                    nextIdx = 0; // Loop back to start (Spawn point)
                 }
                 this.mesh.userData.targetIndex = nextIdx;
             }
@@ -59,34 +75,41 @@ export class BusEntity extends VehicleEntity {
         // Handle Movement
         let targetIdx = this.mesh.userData.targetIndex;
         if (targetIdx === undefined) targetIdx = 1;
-        targetIdx = THREE.MathUtils.clamp(targetIdx, 0, path.length - 1);
+        targetIdx = THREE.MathUtils.clamp(targetIdx, 0, totalPoints - 1);
 
-        const targetPos = path[targetIdx];
+        // Get target position without allocation
+        if (targetIdx === 0) {
+            _targetPos.copy(this.mesh.position);
+        } else {
+            _targetPos.copy(waypoints[targetIdx - 1]);
+        }
 
-        // Convert Target to Local Space
-        const localTarget = this.mesh.worldToLocal(targetPos.clone());
-        const currentLocal = modelGroup.position.clone();
+        // Convert Target (World) to Local Space of Vehicle Mesh (Parent)
+        _localTarget.copy(_targetPos);
+        this.mesh.worldToLocal(_localTarget);
+
+        _currentLocal.copy(modelGroup.position);
 
         const speed = Math.max(0, this.baseSpeed);
-        const dist = currentLocal.distanceTo(localTarget);
         const moveAmount = speed * dt;
+        const moveAmountSq = moveAmount * moveAmount;
 
-        if (dist > moveAmount) {
-            const dir = localTarget.sub(currentLocal).normalize();
-            const moveVec = dir.multiplyScalar(moveAmount);
-            modelGroup.position.add(moveVec);
+        // Bolt Optimization: Use Squared Distance
+        _diff.subVectors(_localTarget, _currentLocal);
+        const distSq = _diff.lengthSq();
+
+        if (distSq > moveAmountSq) {
+             const dist = Math.sqrt(distSq);
+             _dir.copy(_diff).multiplyScalar(1 / dist); // Normalize
+
+            modelGroup.position.addScaledVector(_dir, moveAmount);
 
             // Look at target
-            // We need to look at the target position in World Space to use lookAt correctly?
-            // Actually modelGroup is child of mesh.
-            // mesh might be rotated.
-            // VehicleEntity does: modelGroup.lookAt(targetPos);
-            // This works because lookAt uses world coords and updates local rotation relative to parent.
-            modelGroup.lookAt(targetPos);
+            modelGroup.lookAt(_targetPos);
 
         } else {
             // Arrived
-            modelGroup.position.copy(localTarget);
+            modelGroup.position.copy(_localTarget);
 
             // Start Waiting
             this.isWaiting = true;
@@ -96,15 +119,18 @@ export class BusEntity extends VehicleEntity {
         }
 
         // Update Collider Box
-        if (this.box) {
+        if (this.box || this.boundingSphere) {
             modelGroup.updateMatrixWorld();
 
-            if (this._localBox) {
-                // Optimized: Transform cached local box
-                this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
-            } else {
-                this.box.makeEmpty();
-                this.box.expandByObject(modelGroup);
+            if (this.boundingSphere && this._localSphere) {
+                this.boundingSphere.copy(this._localSphere).applyMatrix4(modelGroup.matrixWorld);
+            } else if (this.box) {
+                if (this._localBox) {
+                    this.box.copy(this._localBox).applyMatrix4(modelGroup.matrixWorld);
+                } else {
+                    this.box.makeEmpty();
+                    this.box.expandByObject(modelGroup);
+                }
             }
         }
     }

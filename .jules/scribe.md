@@ -18,3 +18,7 @@ Entries must follow this format:
 ## 2024-05-23 - [Performance Documentation]
 **Learning:** The codebase contains critical optimization systems (like `instancing.js`) that reside in `src/world/` alongside gameplay logic. To clearly distinguish "Architecture/Features" from "Optimization/Engineering", I have established a `docs/performance/` directory.
 **Action:** Created `docs/performance/instancing.md` and linked it from `docs/entity_system.md`. Future optimizations (Occlusion Culling, LODs, Memory Management) should be documented here.
+
+## 2024-05-24 - Undocumented Vehicle Logic
+**Learning:** The vehicle entities (`vehicles.js`, `bus.js`) contained significant hidden complexity regarding path following, waypoint editing, and state machines (Stop-and-Go vs Ping-Pong) that was not referenced in the high-level Entity System docs.
+**Action:** Created `docs/vehicles.md` to explicate the logic and Developer Mode workflow, and linked it in `docs/entity_system.md`.

@@ -13,3 +13,7 @@
 ## 2025-02-14 - Matrix World Updates in Tests
 **Discovery:** Three.js objects do not update their `matrixWorld` automatically when added to a scene in a headless (no-renderer) test environment. Physics logic relying on `matrixWorld` (like `applyMatrix4(mesh.matrixWorld)`) will use the Identity matrix, potentially causing false positives if test objects default to (0,0,0).
 **Action:** Explicitly call `obj.updateMatrixWorld(true)` in test helpers or after modifying transforms in tests.
+
+## 2025-02-14 - Vite Glob Imports in Tests
+**Discovery:** Code relying on `import.meta.glob` (Vite-specific) fails in standard Node.js test runners.
+**Action:** Refactor imports to avoid files containing `import.meta.glob` during unit tests (e.g., import specific modules instead of the aggregator), or ensure the aggregator side-effects are handled at the application root rather than in the class files being tested.

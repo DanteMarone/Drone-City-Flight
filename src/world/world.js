@@ -4,7 +4,7 @@ import { CONFIG } from '../config.js';
 import { BirdSystem } from './birdSystem.js';
 import { LightSystem } from './lightSystem.js';
 import { InstancedEntitySystem } from './instancing.js';
-import { EntityRegistry } from './entities/index.js';
+import { EntityRegistry } from './entities/registry.js';
 import { BaseEntity } from './entities/base.js';
 import { TimeCycle } from './timeCycle.js';
 

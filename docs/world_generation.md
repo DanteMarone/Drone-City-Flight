@@ -10,8 +10,7 @@ The system follows a hierarchical creation flow:
 ```mermaid
 graph TD
     World[World.js] -->|Instantiates| Gen[DistrictGenerator]
-    Gen -->|Calls| Factory[ObjectFactory]
-    Factory -->|Wraps| Registry[EntityRegistry]
+    Gen -->|Calls| Registry[EntityRegistry]
     Registry -->|Spawns| Entity[BaseEntity]
 
     subgraph Districts
@@ -32,11 +31,7 @@ graph TD
     *   Defines the parameters for each district (Block Size, Street Width).
     *   Iterates through a grid to place buildings.
 
-2.  **`ObjectFactory` (`src/world/factory.js`)**:
-    *   A helper class that simplifies entity creation for the generator.
-    *   Acts as an adapter for `EntityRegistry`, adding the created mesh to the scene automatically (unlike the raw Registry).
-
-3.  **`EntityRegistry` (`src/world/entities/registry.js`)**:
+2.  **`EntityRegistry` (`src/world/entities/registry.js`)**:
     *   The underlying system that instantiates the actual Entity classes.
 
 ## Logic Flow
@@ -75,7 +70,8 @@ The generator is typically used only once during initialization (`World._generat
 this._generateWorld() {
     // ...
     // Hardcoded landmark
-    this.factory.createSkyGardenTower(...);
+    const landmark = EntityRegistry.create('sky_garden_tower', ...);
+    this.addEntity(landmark);
 }
 ```
 

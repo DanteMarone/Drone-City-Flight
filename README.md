@@ -13,6 +13,7 @@ A 3D drone flight simulation game built with Three.js.
 ### Specialized Gameplay Systems
 *   **[Bird AI System](./docs/bird_system.md)**: Behavior trees for bird NPCs.
 *   **[NPC System](./docs/npc_system.md)**: Logic for active agents like angry residents.
+*   **[Vehicle System](./docs/vehicle_system.md)**: Cars, buses, and waypoint-based traffic logic.
 *   **[Infrastructure](./docs/infrastructure.md)**: Procedural roads and rivers.
 *   **[Time Cycle](./docs/time_cycle.md)**: Day/Night cycle implementation.
 

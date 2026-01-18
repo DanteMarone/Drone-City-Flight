@@ -204,9 +204,12 @@ export class CourierDroneEntity extends BaseEntity {
         );
 
         const rotorSpin = this.rotorSpeed * dt * Math.PI * 2;
-        this.rotorGroups.forEach((rotor, index) => {
-            rotor.rotation.y += rotorSpin * (index % 2 === 0 ? 1 : -1);
-        });
+        // OPTIMIZATION: Use for loop to avoid closure allocation
+        const len = this.rotorGroups.length;
+        for (let i = 0; i < len; i++) {
+            const rotor = this.rotorGroups[i];
+            rotor.rotation.y += rotorSpin * (i % 2 === 0 ? 1 : -1);
+        }
     }
 }
 

@@ -181,13 +181,17 @@ export class GuideDroneEntity extends BaseEntity {
             this._ring.rotation.z += dt * 1.1;
         }
 
-        if (this._pulseMaterials.length) {
+        // OPTIMIZATION: Use for loop to avoid closure allocation in forEach
+        const len = this._pulseMaterials.length;
+        if (len > 0) {
             const pulse = 0.6 + Math.sin(this._time * 3.2) * 0.3;
-            this._pulseMaterials.forEach((material) => {
+            const intensity = THREE.MathUtils.clamp(pulse, 0.4, 1.6);
+            for (let i = 0; i < len; i++) {
+                const material = this._pulseMaterials[i];
                 if (material.emissiveIntensity !== undefined) {
-                    material.emissiveIntensity = THREE.MathUtils.clamp(pulse, 0.4, 1.6);
+                    material.emissiveIntensity = intensity;
                 }
-            });
+            }
         }
     }
 }

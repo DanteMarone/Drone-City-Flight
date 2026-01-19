@@ -13,3 +13,7 @@
 ## 2025-02-14 - Matrix World Updates in Tests
 **Discovery:** Three.js objects do not update their `matrixWorld` automatically when added to a scene in a headless (no-renderer) test environment. Physics logic relying on `matrixWorld` (like `applyMatrix4(mesh.matrixWorld)`) will use the Identity matrix, potentially causing false positives if test objects default to (0,0,0).
 **Action:** Explicitly call `obj.updateMatrixWorld(true)` in test helpers or after modifying transforms in tests.
+
+## 2025-02-14 - Headless Renderer Mocking
+**Discovery:** Testing systems that depend on `THREE.WebGLRenderer` (like `EnvironmentSystem`) in a headless Node.js environment fails due to missing WebGL context.
+**Action:** Create a mock renderer object that exposes the minimal required interface (e.g., `scene`, `add()`) and pass it to the system under test, allowing logic verification without instantiating the real WebGL renderer.

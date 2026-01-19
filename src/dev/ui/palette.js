@@ -28,8 +28,24 @@ export class Palette {
 
         const tabsDiv = document.createElement('div');
         tabsDiv.className = 'dev-palette-tabs';
+        tabsDiv.setAttribute('role', 'tablist');
         this.tabsDiv = tabsDiv;
         header.appendChild(tabsDiv);
+
+        const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
+        categories.forEach(cat => {
+            const tab = document.createElement('button');
+            tab.className = 'dev-palette-tab';
+            tab.textContent = cat;
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-controls', 'dev-palette-content');
+
+            tab.onclick = () => {
+                this.selectedCategory = cat;
+                this.refresh();
+            };
+            this.tabsDiv.appendChild(tab);
+        });
 
         // Search Input
         const searchInput = document.createElement('input');
@@ -51,6 +67,7 @@ export class Palette {
 
         this.content = document.createElement('div');
         this.content.className = 'dev-palette-grid';
+        this.content.id = 'dev-palette-content';
         container.appendChild(this.content);
 
         this.parentContainer.appendChild(container); // Append panel to root
@@ -59,20 +76,15 @@ export class Palette {
 
     refresh() {
         if (!this.content) return;
-        this.tabsDiv.innerHTML = '';
-        this.content.innerHTML = '';
 
-        const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
-        categories.forEach(cat => {
-            const tab = document.createElement('div');
-            tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
-            tab.textContent = cat;
-            tab.onclick = () => {
-                this.selectedCategory = cat;
-                this.refresh();
-            };
-            this.tabsDiv.appendChild(tab);
+        // Update Tabs State
+        Array.from(this.tabsDiv.children).forEach(tab => {
+            const isSelected = this.selectedCategory === tab.textContent;
+            tab.className = `dev-palette-tab ${isSelected ? 'active' : ''}`;
+            tab.setAttribute('aria-selected', isSelected);
         });
+
+        this.content.innerHTML = '';
 
         // Populate Grid
         EntityRegistry.registry.forEach((Cls, type) => {

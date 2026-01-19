@@ -153,9 +153,10 @@ export class SolarPanelEntity extends BaseEntity {
 
         // Access global sun position
         const app = window.app;
-        if (!app || !app.world || !app.world.timeCycle) return;
+        const timeCycle = app?.environment?.timeCycle || app?.world?.timeCycle;
+        if (!timeCycle) return;
 
-        const sunPosWorld = app.world.timeCycle.sunPosition; // Vector3 relative to origin (0,0,0)
+        const sunPosWorld = timeCycle.sunPosition; // Vector3 relative to origin (0,0,0)
 
         // Find the pivot group
         const pivotGroup = this.mesh.getObjectByName('pivotGroup');

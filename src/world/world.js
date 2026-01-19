@@ -6,7 +6,6 @@ import { LightSystem } from './lightSystem.js';
 import { InstancedEntitySystem } from './instancing.js';
 import { EntityRegistry } from './entities/index.js';
 import { BaseEntity } from './entities/base.js';
-import { TimeCycle } from './timeCycle.js';
 
 export class World {
     constructor(scene) {
@@ -14,7 +13,6 @@ export class World {
         this.birdSystem = new BirdSystem(scene);
         this.lightSystem = new LightSystem(scene);
         this.instancer = new InstancedEntitySystem(scene);
-        this.timeCycle = new TimeCycle();
 
         // this.colliders now holds BaseEntity instances (which match {mesh, box} interface)
         this.colliders = [];
@@ -63,9 +61,9 @@ export class World {
         }
     }
 
-    update(dt, camera) {
+    update(dt, camera, environment) {
         if (this.birdSystem) this.birdSystem.update(dt);
-        if (this.lightSystem) this.lightSystem.update(dt, camera, this.timeCycle);
+        if (this.lightSystem) this.lightSystem.update(dt, camera, environment?.timeCycle);
 
         // Update entities that actually have logic
         const len = this.updatables.length;
@@ -145,7 +143,7 @@ export class World {
         if (this.instancer) this.instancer.clear();
     }
 
-    loadMap(mapData) {
+    loadMap(mapData, environment) {
         this.clear();
 
         if (mapData.wind) {
@@ -160,15 +158,17 @@ export class World {
             this.batteryDrain = CONFIG.BATTERY.DRAIN_RATE;
         }
 
-        if (mapData.environment) {
-            if (mapData.environment.startTime !== undefined) this.timeCycle.time = mapData.environment.startTime;
-            if (mapData.environment.daySpeed !== undefined) this.timeCycle.speed = mapData.environment.daySpeed;
-            if (mapData.environment.timeLocked !== undefined) this.timeCycle.isLocked = mapData.environment.timeLocked;
-        } else {
-            // Defaults
-            this.timeCycle.time = 12.0;
-            this.timeCycle.speed = 0.0;
-            this.timeCycle.isLocked = false;
+        if (environment && environment.timeCycle) {
+            if (mapData.environment) {
+                if (mapData.environment.startTime !== undefined) environment.timeCycle.time = mapData.environment.startTime;
+                if (mapData.environment.daySpeed !== undefined) environment.timeCycle.speed = mapData.environment.daySpeed;
+                if (mapData.environment.timeLocked !== undefined) environment.timeCycle.isLocked = mapData.environment.timeLocked;
+            } else {
+                // Defaults
+                environment.timeCycle.time = 12.0;
+                environment.timeCycle.speed = 0.0;
+                environment.timeCycle.isLocked = false;
+            }
         }
 
         // We don't strictly need factory here if we use Registry,
@@ -237,7 +237,7 @@ export class World {
         }
     }
 
-    exportMap() {
+    exportMap(environment) {
         const objects = [];
         this.colliders.forEach(entity => {
             if (entity.serialize) {
@@ -249,15 +249,24 @@ export class World {
                 console.warn("Non-entity found in colliders during export", entity);
             }
         });
+
+        const envData = {
+            startTime: 12.0,
+            daySpeed: 0.0,
+            timeLocked: false
+        };
+
+        if (environment && environment.timeCycle) {
+            envData.startTime = environment.timeCycle.time;
+            envData.daySpeed = environment.timeCycle.speed;
+            envData.timeLocked = environment.timeCycle.isLocked;
+        }
+
         return {
             version: 1,
             wind: { ...this.wind },
             batteryDrain: this.batteryDrain,
-            environment: {
-                startTime: this.timeCycle.time,
-                daySpeed: this.timeCycle.speed,
-                timeLocked: this.timeCycle.isLocked
-            },
+            environment: envData,
             objects
         };
     }

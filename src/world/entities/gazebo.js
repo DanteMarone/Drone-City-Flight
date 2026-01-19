@@ -155,8 +155,11 @@ export class GazeboEntity extends BaseEntity {
 
     update(dt) {
         // Toggle light based on day/night cycle
-        if (window.app && window.app.world && window.app.world.timeCycle) {
-            const isNight = window.app.world.timeCycle.isNight;
+        const app = window.app;
+        const timeCycle = app?.environment?.timeCycle || app?.world?.timeCycle;
+
+        if (timeCycle) {
+            const isNight = timeCycle.isNight;
 
             if (this._glowMaterial) {
                 // Smooth transition could be better, but simple toggle works

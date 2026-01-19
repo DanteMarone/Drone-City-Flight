@@ -85,10 +85,10 @@ The `TimeCycle` exposes properties that can be manipulated via the Dev Mode UI o
 *   **`isLocked`**: Boolean to pause the cycle.
 
 ### Integration
-The `World` class initializes `TimeCycle` and ensures it is updated every frame.
+The `EnvironmentSystem` class initializes `TimeCycle` and ensures it is updated every frame.
 
 ```javascript
-// src/world/world.js
+// src/world/environmentSystem.js
 this.timeCycle = new TimeCycle();
 
 update(dt) {

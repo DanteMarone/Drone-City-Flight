@@ -9,7 +9,7 @@ The Environment System manages the atmospheric and celestial visuals of the game
 3.  **Skybox** (`src/world/skybox.js`): Renders the infinite background and celestial bodies (Sun).
 4.  **CloudSystem** (`src/world/clouds.js`): Renders a procedural, infinite cloud layer using custom shaders.
 
-The `EnvironmentSystem` is instantiated by `App` and receives `TimeCycle` state every frame to update global lighting and sky visuals.
+The `EnvironmentSystem` is instantiated by `App` and owns the `TimeCycle` state. It updates the simulation and applies it to global lighting and sky visuals.
 
 ## Architecture
 
@@ -17,10 +17,9 @@ Data flows from the `TimeCycle` (Logic) to the Visual Systems (`Skybox`, `Clouds
 
 ```mermaid
 graph TD
-    TC[TimeCycle Logic] -->|dt| TC
+    Env[EnvironmentSystem] -->|Owns/Updates| TC[TimeCycle Logic]
     TC -->|Outputs| State[State: SunPos, Colors, Intensity]
 
-    State -->|Update| Env[EnvironmentSystem]
     Env -->|Apply| GL[Global Lights]
     Env -->|Apply| Fog[Scene Fog]
 
@@ -80,13 +79,11 @@ The system is instantiated in `App.init()` and updated in the main loop.
 this.environment = new EnvironmentSystem(this.renderer);
 
 // App.js Update Loop
-this.environment.updateCycleAndLighting(dt, this.world.timeCycle);
-this.environment.updateVisuals(
+this.environment.update(
     dt,
     this.renderer.camera,
     this.drone,
-    this.world.wind,
-    this.world.timeCycle
+    this.world.wind
 );
 ```
 

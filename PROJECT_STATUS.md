@@ -8,8 +8,8 @@
 
 ### 1. Organic Curve Support (Next Up)
 *   **Goal:** Implement Bezier curve roads for non-grid layouts.
-*   **Status:** 🏗️ In Design (Spec Created)
-*   **Action Item:** Prototype `CurveRoadEntity` based on `docs/specs/005-organic-roads.md`.
+*   **Status:** 🚧 In Progress
+*   **Action Item:** Implement `CurveRoadEntity` based on `docs/specs/005-organic-roads.md`.
 *   **Dependencies:** `RoadEntity` refactor, `InteractionManager` spline logic.
 
 ### 2. Traffic System (Backlog)

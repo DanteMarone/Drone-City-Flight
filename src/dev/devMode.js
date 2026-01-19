@@ -318,9 +318,11 @@ export class DevMode {
     }
 
     saveMap() {
+        const worldData = this.app.world.exportMap(this.app.environment);
+
         const mapData = {
             version: 1,
-            objects: this.app.world.exportMap().objects,
+            ...worldData,
             rings: this.app.rings.exportRings(),
             history: this.history.toJSON()
         };

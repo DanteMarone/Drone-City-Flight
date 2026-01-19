@@ -96,33 +96,23 @@ export class App {
             return;
         }
 
-        // Update environment first (Time Cycle)
+        // Update environment first
         if (this.environment) {
-            this.environment.updateCycleAndLighting(dt, this.world?.timeCycle);
+            this.environment.update(
+                dt,
+                this.renderer.camera,
+                this.drone,
+                this.world.wind
+            );
         }
 
         // Dev Mode Handling
         if (this.devMode && this.devMode.enabled) {
             this.devMode.update(dt);
-            // Even in Dev Mode, we want to update environment visuals
-            if (this.environment) {
-                this.environment.updateVisuals(
-                    dt,
-                    this.renderer.camera,
-                    this.drone,
-                    this.world.wind,
-                    this.world.timeCycle
-                );
-            }
+
             // Update light system even in Dev Mode for accurate visuals
-            if (this.world) {
-                // We use world.update's signature, but in Dev Mode main world update is skipped.
-                // We should manually update lightSystem if needed, or allow it to update.
-                // However, world.update(dt) updates all entities which we might want paused.
-                // So we explicitly call lightSystem update here.
-                if (this.world.lightSystem) {
-                    this.world.lightSystem.update(dt, this.renderer.camera, this.world.timeCycle);
-                }
+            if (this.world && this.world.lightSystem) {
+                this.world.lightSystem.update(dt, this.renderer.camera, this.environment?.timeCycle);
             }
 
             // Allow basic input processing if needed, but skip game logic
@@ -156,7 +146,7 @@ export class App {
         }
 
         if (this.mode === 'person') {
-            this.world.update(dt, this.renderer.camera);
+            this.world.update(dt, this.renderer.camera, this.environment);
             this.particles.update(dt);
             this.rings.update(dt);
 
@@ -188,7 +178,7 @@ export class App {
                 move.y = -1; move.x = 0; move.z = 0;
             }
 
-            this.world.update(dt, this.renderer.camera); // Birds & Vehicles & Lights
+            this.world.update(dt, this.renderer.camera, this.environment); // Birds & Vehicles & Lights
             this.particles.update(dt);
 
             this.drone.update(dt, move);
@@ -291,15 +281,6 @@ export class App {
         }
 
         // Environment update is now handled at start of frame
-        if (this.environment) {
-            this.environment.updateVisuals(
-                dt,
-                this.renderer.camera,
-                this.drone,
-                this.world.wind,
-                this.world.timeCycle
-            );
-        }
 
         this.input.resetFrame();
     }
@@ -415,7 +396,7 @@ export class App {
         // Load World (Base/Legacy Objects)
         // We temporarily modify data.objects to pass to world.loadMap
         const filteredData = { ...data, objects: objectsToLoad };
-        this.world.loadMap(filteredData);
+        this.world.loadMap(filteredData, this.environment);
 
         // Load Rings
         if (data.rings) {

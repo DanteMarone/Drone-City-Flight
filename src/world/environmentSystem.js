@@ -2,11 +2,14 @@
 import * as THREE from 'three';
 import { Skybox } from './skybox.js';
 import { CloudSystem } from './clouds.js';
+import { TimeCycle } from './timeCycle.js';
 
 export class EnvironmentSystem {
     constructor(renderer) {
         this.renderer = renderer;
         this.scene = renderer.scene;
+
+        this.timeCycle = new TimeCycle();
 
         this._setupLights();
         this.skybox = new Skybox(this.scene);
@@ -34,24 +37,31 @@ export class EnvironmentSystem {
         this.renderer.add(this.sunLight);
     }
 
-    updateCycleAndLighting(dt, timeCycle) {
-        if (!timeCycle) return;
+    update(dt, camera, drone, wind) {
+        // 1. Update Time Cycle
+        if (this.timeCycle) {
+            this.timeCycle.update(dt);
+        }
 
-        // Update cycle logic
-        timeCycle.update(dt);
+        // 2. Apply Global Lighting
+        this._updateLighting();
+
+        // 3. Update Visuals
+        if (this.skybox) {
+            this.skybox.update(camera.position, this.timeCycle);
+        }
+
+        if (this.cloudSystem) {
+            this.cloudSystem.update(dt, drone.position, camera, wind, this.timeCycle);
+        }
+    }
+
+    _updateLighting() {
+        const timeCycle = this.timeCycle;
+        if (!timeCycle) return;
 
         // Apply Sun Position
         if (this.sunLight) {
-            // Keep sun relative to drone/center to maximize shadow resolution near player
-            // But the cycle calculates global orbit.
-            // If we want shadows to work everywhere, sun needs to be far away or follow player.
-            // DirectionalLight position matters for shadow camera box.
-            // Let's keep sun "at infinity" direction-wise, but move position to follow drone x/z
-            // to keep shadow map centered?
-            // For now, let's just use the computed position from TimeCycle (relative to 0,0,0)
-            // and maybe offset by drone pos if needed.
-            // TimeCycle gives position on a sphere of radius 100.
-
             this.sunLight.position.copy(timeCycle.sunPosition);
 
             // Update Color & Intensity
@@ -66,20 +76,9 @@ export class EnvironmentSystem {
             this.ambientLight.intensity = timeCycle.ambientIntensity;
         }
 
-        // Fog (if enabled in scene, though config says density 0)
+        // Fog
         if (this.scene.fog) {
             this.scene.fog.color.copy(timeCycle.fogColor);
-        }
-    }
-
-    updateVisuals(dt, camera, drone, wind, timeCycle) {
-        if (this.skybox) {
-            // Skybox needs to know time/sun info
-            this.skybox.update(camera.position, timeCycle);
-        }
-
-        if (this.cloudSystem) {
-            this.cloudSystem.update(dt, drone.position, camera, wind, timeCycle);
         }
     }
 }

@@ -221,8 +221,8 @@ export class Inspector {
         envGroup.innerHTML = '<div class="dev-prop-title">Environment</div>';
 
         // Time of Day
-        if (this.devMode.app.world.timeCycle) {
-            const tc = this.devMode.app.world.timeCycle;
+        if (this.devMode.app.environment && this.devMode.app.environment.timeCycle) {
+            const tc = this.devMode.app.environment.timeCycle;
 
             // Slider
             const sliderRow = document.createElement('div');

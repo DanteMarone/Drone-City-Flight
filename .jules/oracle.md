@@ -19,3 +19,7 @@ Action: [Separation of Concerns] Split selection and clipboard responsibilities 
 ## 2026-05-21 - [Refactor] Person Procedural Generation
 **Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
 **Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".
+
+## 2026-10-25 - [Refactor] Environment System Ownership
+**Discovery:** `World` owned `TimeCycle` (the data for time), while `EnvironmentSystem` owned the visuals (Sun, Sky, Clouds). This forced `App` to act as a manual bridge, passing data between them every frame. This violated the principle that "Environment" should encapsulate both the simulation and visualization of the world's atmosphere.
+**Action:** Moved `TimeCycle` ownership to `EnvironmentSystem`. Updated `World` to accept `EnvironmentSystem` as a dependency for lighting updates, removing the manual data shuffling in `App`. This establishes `EnvironmentSystem` as the single source of truth for atmospheric state.

@@ -13,3 +13,7 @@
 ## 2025-02-14 - Matrix World Updates in Tests
 **Discovery:** Three.js objects do not update their `matrixWorld` automatically when added to a scene in a headless (no-renderer) test environment. Physics logic relying on `matrixWorld` (like `applyMatrix4(mesh.matrixWorld)`) will use the Identity matrix, potentially causing false positives if test objects default to (0,0,0).
 **Action:** Explicitly call `obj.updateMatrixWorld(true)` in test helpers or after modifying transforms in tests.
+
+## 2025-02-14 - Mocking TextureGenerator in Node.js
+**Discovery:** Many entities rely on `TextureGenerator` which calls `document.createElement('canvas')`. In a Node.js test environment (node:test), `document` is undefined.
+**Action:** Use a `before` hook to mock `global.document` and a minimal `canvas` implementation (with `getContext`) to allow entity instantiation without crashing. See `src/world/world.test.js` for the mock implementation.

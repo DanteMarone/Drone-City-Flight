@@ -1,5 +1,11 @@
 # Planner Journal
 
+## 2025-05-19 - Organic Curve Support - Phase 1 Complete
+**Decision:** Entity Implementation verified. Proceed to Interaction Tools.
+**Rationale:** `CurveRoadEntity` has been successfully implemented and verified with unit tests. It supports procedural geometry generation and correct UV scaling. The next step is to build the UI tool to allow users to place these curves (Click-Drag-Release interaction).
+**Status:** In Progress.
+**Action:** Update `src/dev/interaction.js` to support Spline/Bezier placement mode.
+
 ## 2025-05-19 - Organic Curve Support Initiation
 **Decision:** Prioritize "Organic Curve Support" as the next major feature.
 **Rationale:** The grid-based road system is functional but limits creative map design. Users (and internal "Gardener" agent) need the ability to create curved roads to break the rigid grid structure. This is a high-impact visual and functional upgrade.
@@ -9,7 +15,6 @@
 ## 2025-05-19 - Traffic System De-prioritization
 **Decision:** Keep "Traffic System" in the backlog.
 **Rationale:** While vehicle pathing exists, a full traffic manager (spawn/despawn logic, collision avoidance between autonomous cars) is complex. Focus on map creation tools (Curves) first to enable the environment where traffic will eventually flow.
-# Planner's Journal
 
 ## 2025-05-15 - Initial Assessment
 **Decision:** Standardize Infrastructure and Plan Organic Curves.

@@ -22,6 +22,7 @@ import { DevMode } from '../dev/devMode.js';
 import { PhotoMode } from '../ui/photoMode.js';
 import { NotificationSystem } from '../ui/notifications.js';
 import { HelpSystem } from '../ui/help.js';
+import { Minimap } from '../ui/minimap.js';
 import { EnvironmentSystem } from '../world/environmentSystem.js';
 
 export class App {
@@ -67,6 +68,8 @@ export class App {
 
         this.tutorial = new TutorialManager(this);
         this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
+        this.minimap = new Minimap(this.world, this.drone, this.person);
+        this.minimap.setRings(this.rings);
 
         this.environment = new EnvironmentSystem(this.renderer);
 
@@ -289,6 +292,8 @@ export class App {
         } else if (this.cameraController) {
             this.cameraController.update(dt, move);
         }
+
+        if (this.minimap) this.minimap.update();
 
         // Environment update is now handled at start of frame
         if (this.environment) {

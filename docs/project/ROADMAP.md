@@ -3,8 +3,10 @@
 ## 🚀 Next Up
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
-    *   *Status:* Ready for Design/Dev
-    *   *Spec:* `docs/specs/005-organic-roads.md` (To be created)
+    *   *Status:* In Progress (Entity Ready)
+    *   *Spec:* `docs/specs/005-organic-roads.md`
+    *   *Completed:* `CurveRoadEntity` prototype.
+    *   *Remaining:* Interaction Tool for placement.
 
 ## 📋 Backlog
 *   [ ] **Traffic System**
@@ -14,6 +16,9 @@
     *   Move from grid-based districts to organic/spline-based zoning.
 
 ## ✅ Completed
+*   **Curve Road Entity**
+    *   Implemented `CurveRoadEntity` with custom ribbon geometry and UV scaling.
+    *   Added to `EntityRegistry` and `src/world/entities/curveRoad.js`.
 *   **Smart River Tool**
     *   Implemented "Anchor & Stretch" placement for `river` type.
     *   Updated `RiverEntity` to support scaling.

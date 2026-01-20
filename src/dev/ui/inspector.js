@@ -167,7 +167,31 @@ export class Inspector {
         delBtn.className = 'dev-btn dev-btn-danger';
         delBtn.textContent = 'Delete Selected';
         delBtn.style.marginTop = '10px';
-        delBtn.onclick = () => this.devMode.deleteSelected();
+
+        // Confirmation State Logic
+        let confirmTimer = null;
+        delBtn.onclick = () => {
+            if (confirmTimer) {
+                // Confirmed
+                clearTimeout(confirmTimer);
+                confirmTimer = null;
+                this.devMode.deleteSelected();
+                // Button will be removed or reset by refresh(), so no need to reset manually if selection clears
+            } else {
+                // Request Confirmation
+                delBtn.textContent = 'Confirm Delete?';
+                delBtn.className = 'dev-btn dev-btn-danger dev-btn-confirm';
+                delBtn.setAttribute('aria-live', 'assertive');
+
+                confirmTimer = setTimeout(() => {
+                    delBtn.textContent = 'Delete Selected';
+                    delBtn.className = 'dev-btn dev-btn-danger';
+                    delBtn.removeAttribute('aria-live');
+                    confirmTimer = null;
+                }, 3000);
+            }
+        };
+
         this.content.appendChild(delBtn);
     }
 

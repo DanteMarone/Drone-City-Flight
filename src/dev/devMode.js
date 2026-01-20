@@ -6,7 +6,8 @@ import { GridSystem } from './grid.js';
 import { GizmoManager } from './gizmo.js';
 import { DevClipboardManager } from './devClipboardManager.js';
 import { DevSelectionManager } from './devSelectionManager.js';
-import { CommandManager, TransformCommand, cloneTransform } from './history.js';
+import { DevTransformManager } from './devTransformManager.js';
+import { CommandManager, TransformCommand } from './history.js';
 import { WaypointManager } from './waypointManager.js';
 
 export class DevMode {
@@ -30,6 +31,7 @@ export class DevMode {
         this.waypoints = new WaypointManager(this);
         this.selectionManager = new DevSelectionManager(this);
         this.clipboardManager = new DevClipboardManager(this);
+        this.transformManager = new DevTransformManager(this);
 
         // One-time setup for drag-drop
         setupDragDrop(this.interaction, this.app.container);
@@ -166,67 +168,6 @@ export class DevMode {
         this.waypoints.update(dt);
     }
 
-    captureTransforms(targets = this.selectedObjects) {
-        if (!targets) return [];
-        return targets.map(obj => cloneTransform(obj));
-    }
-
-    _transformsChanged(before, after) {
-        if (!before || !after || before.length !== after.length) return true;
-        for (let i = 0; i < before.length; i++) {
-            const b = before[i];
-            const a = after[i];
-            if (!b.object || !a.object) return true;
-            if (!b.position.equals(a.position)) return true;
-            if (!b.rotation.equals(a.rotation)) return true;
-            if (!b.scale.equals(a.scale)) return true;
-        }
-        return false;
-    }
-
-    applyTransformSnapshot(states) {
-        if (!states || states.length === 0) return;
-        const toUpdate = new Set();
-
-        states.forEach(state => {
-            const obj = state.object;
-            if (!obj) return;
-
-            obj.position.copy(state.position);
-            obj.rotation.copy(state.rotation);
-            obj.scale.copy(state.scale);
-            obj.updateMatrixWorld();
-
-            if (obj.userData?.type === 'waypoint') {
-                const vehicle = obj.userData.vehicle;
-                const idx = obj.userData.index;
-                if (vehicle && idx !== undefined && vehicle.userData?.waypoints?.[idx]) {
-                    vehicle.userData.waypoints[idx].copy(obj.position);
-                    this.waypoints.updateLine(vehicle);
-                    toUpdate.add(vehicle);
-                }
-            } else if (obj.userData?.isVehicle) {
-                this.waypoints.updateLine(obj);
-                toUpdate.add(obj);
-            } else {
-                toUpdate.add(obj);
-            }
-        });
-
-        if (this.app.colliderSystem) {
-            toUpdate.forEach(obj => this.app.colliderSystem.updateBody(obj));
-        }
-
-        if (this.selectedObjects.length > 0) {
-            this.gizmo.attach(this.selectedObjects);
-        }
-
-        if (this.selectedObjects.length === 1) {
-            this.ui.updateProperties(this.selectedObjects[0]);
-        } else if (this.selectedObjects.length > 1) {
-            this.ui.updateProperties(this.gizmo.proxy);
-        }
-    }
 
     selectObject(object, shiftKey = false) {
         this.selectionManager.selectObject(object, shiftKey);

@@ -547,7 +547,7 @@ export class Inspector {
         const selection = this.devMode.selectedObjects;
 
         // Capture start state
-        const before = this.devMode.captureTransforms(selection);
+        const before = this.devMode.transformManager.captureTransforms(selection);
 
         // Update Proxy
         if (prop === 'position') proxy.position.copy(val);
@@ -572,7 +572,7 @@ export class Inspector {
         }
 
         // Capture end state
-        const after = this.devMode.captureTransforms(selection);
+        const after = this.devMode.transformManager.captureTransforms(selection);
 
         // Push History
         if (this.devMode.history) {

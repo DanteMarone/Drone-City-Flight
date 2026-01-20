@@ -44,7 +44,7 @@ export class GizmoManager {
             if (event.value) {
                 // Drag Started
                 this.captureOffsets();
-                this.dragStartStates = this.devMode?.captureTransforms(this.selectedObjects) || null;
+                this.dragStartStates = this.devMode?.transformManager.captureTransforms(this.selectedObjects) || null;
                 this.lastProxyPosition.copy(this.proxy.position);
             } else {
                 // Drag Ended
@@ -59,8 +59,8 @@ export class GizmoManager {
                     });
                 }
 
-                const endStates = this.devMode?.captureTransforms(this.selectedObjects) || null;
-                if (this.dragStartStates && endStates && this.devMode?._transformsChanged(this.dragStartStates, endStates)) {
+                const endStates = this.devMode?.transformManager.captureTransforms(this.selectedObjects) || null;
+                if (this.dragStartStates && endStates && this.devMode?.transformManager.transformsChanged(this.dragStartStates, endStates)) {
                     this.devMode.history.push(new TransformCommand(this.devMode, this.dragStartStates, endStates, 'Transform objects'));
                 }
                 this.dragStartStates = null;

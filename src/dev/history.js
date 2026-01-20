@@ -93,7 +93,7 @@ export class TransformCommand extends BaseCommand {
         // Resolve objects lazily at execution time
         const resolved = this._resolveStates(this.beforeStates);
         if (resolved.length > 0) {
-            this.devMode.applyTransformSnapshot(resolved);
+            this.devMode.transformManager.applyTransformSnapshot(resolved);
         }
     }
 
@@ -101,7 +101,7 @@ export class TransformCommand extends BaseCommand {
         // Resolve objects lazily at execution time
         const resolved = this._resolveStates(this.afterStates);
         if (resolved.length > 0) {
-            this.devMode.applyTransformSnapshot(resolved);
+            this.devMode.transformManager.applyTransformSnapshot(resolved);
         }
     }
 
@@ -334,15 +334,6 @@ export class WaypointCommand extends BaseCommand {
         const after = json.statesAfter.map(deserializeWaypointStateData);
         return new WaypointCommand(devMode, before, after, json.description);
     }
-}
-
-export function cloneTransform(object) {
-    return {
-        object,
-        position: object.position.clone(),
-        rotation: object.rotation.clone(),
-        scale: object.scale.clone(),
-    };
 }
 
 export function cloneWaypointState(car) {

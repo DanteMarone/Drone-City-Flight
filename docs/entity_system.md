@@ -171,6 +171,7 @@ Some entities require logic that goes beyond simple self-updates or need to inte
 *   **[Ring System](./ring_system.md)**: Manages the Ring Collection minigame, including spawning, collision checks, and scoring.
 *   **[Time Cycle](./time_cycle.md)**: Manages the `Sun` and global lighting, though not strictly an "entity" in the registry sense.
 *   **[World Generation](./world_generation.md)**: Uses the `ObjectFactory` adapter to procedurally generate the initial city layout using `EntityRegistry` types.
+*   **[Vehicle System](./vehicle_system.md)**: Manages autonomous traffic (Cars, Trucks, Bicycles) including waypoint navigation and behavior logic.
 
 ## Performance Optimization
 

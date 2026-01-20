@@ -127,7 +127,12 @@ export class TrafficLightEntity extends BaseEntity {
         const activeIndex = PHASES[this._phaseIndex].activeIndex;
         this._lightMaterials.forEach((material, index) => {
             const target = index === activeIndex ? 2.2 : 0.25;
-            material.emissiveIntensity = THREE.MathUtils.lerp(material.emissiveIntensity, target, dt * 6);
+            // Bolt: Lazy Update - only update if not already at target
+            if (Math.abs(material.emissiveIntensity - target) > 0.01) {
+                material.emissiveIntensity = THREE.MathUtils.lerp(material.emissiveIntensity, target, dt * 6);
+            } else if (material.emissiveIntensity !== target) {
+                material.emissiveIntensity = target; // Snap to exact value once
+            }
         });
     }
 }

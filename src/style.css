@@ -851,3 +851,16 @@ canvas {
     opacity: 0.5;
     margin-left: 4px;
 }
+.dev-btn-confirm {
+    background: #e65100; /* Darker Orange */
+    border-color: #ff9800;
+    color: white;
+    font-weight: bold;
+    animation: pulse-danger 2s infinite;
+}
+
+@keyframes pulse-danger {
+    0% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0.4); }
+    70% { box-shadow: 0 0 0 10px rgba(255, 152, 0, 0); }
+    100% { box-shadow: 0 0 0 0 rgba(255, 152, 0, 0); }
+}

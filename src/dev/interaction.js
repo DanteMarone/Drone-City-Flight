@@ -133,7 +133,7 @@ export class InteractionManager {
 
         if (this.devMode.selectedObjects.length > 0) {
             this.isDragging = true;
-            this.dragStartStates = this.devMode.captureTransforms(this.devMode.selectedObjects);
+            this.dragStartStates = this.devMode.transformManager.captureTransforms(this.devMode.selectedObjects);
 
             if (hit) {
                 this.dragTarget = this.devMode.gizmo.proxy;
@@ -308,8 +308,8 @@ export class InteractionManager {
                 });
             }
 
-            const endStates = this.devMode.captureTransforms(this.devMode.selectedObjects);
-            if (this.dragStartStates && this.devMode._transformsChanged(this.dragStartStates, endStates)) {
+            const endStates = this.devMode.transformManager.captureTransforms(this.devMode.selectedObjects);
+            if (this.dragStartStates && this.devMode.transformManager.transformsChanged(this.dragStartStates, endStates)) {
                 this.devMode.history.push(new TransformCommand(this.devMode, this.dragStartStates, endStates, 'Move objects'));
             }
             this.dragStartStates = null;

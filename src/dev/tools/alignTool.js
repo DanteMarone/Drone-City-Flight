@@ -57,7 +57,7 @@ export class AlignTool {
         if (!objects || objects.length < 2) return;
 
         // 1. Capture State Before
-        const beforeStates = this.devMode.captureTransforms(objects);
+        const beforeStates = this.devMode.transformManager.captureTransforms(objects);
 
         // 2. Calculate Bounds
         let min = Infinity;
@@ -80,10 +80,10 @@ export class AlignTool {
         });
 
         // 4. Capture State After
-        const afterStates = this.devMode.captureTransforms(objects);
+        const afterStates = this.devMode.transformManager.captureTransforms(objects);
 
         // 5. Update Physics/Gizmo
-        this.devMode.applyTransformSnapshot(afterStates);
+        this.devMode.transformManager.applyTransformSnapshot(afterStates);
 
         // 6. Push to History
         this.devMode.history.push(

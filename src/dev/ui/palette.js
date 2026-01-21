@@ -1,4 +1,3 @@
-// src/dev/ui/palette.js
 import { EntityRegistry } from '../../world/entities/registry.js';
 import { createPanel, getCategory } from './domUtils.js';
 
@@ -28,6 +27,8 @@ export class Palette {
 
         const tabsDiv = document.createElement('div');
         tabsDiv.className = 'dev-palette-tabs';
+        tabsDiv.role = 'tablist';
+        tabsDiv.ariaLabel = 'Asset Categories';
         this.tabsDiv = tabsDiv;
         header.appendChild(tabsDiv);
 
@@ -51,6 +52,8 @@ export class Palette {
 
         this.content = document.createElement('div');
         this.content.className = 'dev-palette-grid';
+        this.content.id = 'dev-palette-grid';
+        this.content.role = 'tabpanel';
         container.appendChild(this.content);
 
         this.parentContainer.appendChild(container); // Append panel to root
@@ -59,22 +62,54 @@ export class Palette {
 
     refresh() {
         if (!this.content) return;
-        this.tabsDiv.innerHTML = '';
-        this.content.innerHTML = '';
+        // Don't rebuild tabs completely to preserve focus if possible,
+        // but simple rebuild is easier for now.
+        // Improvement: Only update class/aria if tabs exist.
 
         const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
-        categories.forEach(cat => {
-            const tab = document.createElement('div');
-            tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
-            tab.textContent = cat;
-            tab.onclick = () => {
-                this.selectedCategory = cat;
-                this.refresh();
-            };
-            this.tabsDiv.appendChild(tab);
+
+        if (this.tabsDiv.children.length !== categories.length) {
+            this.tabsDiv.innerHTML = '';
+            categories.forEach(cat => {
+                const tab = document.createElement('button');
+                // Use button for semantics, but ensure styling matches div.dev-palette-tab
+                // The CSS .dev-palette-tab handles padding/colors.
+                // We need to reset button defaults (border, bg) to avoid clashes
+                tab.style.background = 'transparent';
+                tab.style.border = 'none';
+                tab.style.font = 'inherit';
+                tab.style.borderRadius = '0';
+
+                tab.className = 'dev-palette-tab';
+                tab.textContent = cat;
+                tab.role = 'tab';
+                tab.id = `tab-${cat}`;
+                tab.setAttribute('aria-controls', 'dev-palette-grid');
+
+                tab.onclick = () => {
+                    this.selectedCategory = cat;
+                    this.refresh();
+                };
+
+                this.tabsDiv.appendChild(tab);
+            });
+        }
+
+        // Update Tab States
+        Array.from(this.tabsDiv.children).forEach(tab => {
+            const cat = tab.textContent;
+            const isActive = this.selectedCategory === cat;
+            tab.className = `dev-palette-tab ${isActive ? 'active' : ''}`;
+            tab.setAttribute('aria-selected', isActive);
+            // Allow tabbing to all items for simple toolbar navigation
+            // (Roving tabindex requires arrow key logic which is out of scope for <50 lines)
+            tab.tabIndex = 0;
         });
 
         // Populate Grid
+        this.content.innerHTML = '';
+        this.content.setAttribute('aria-labelledby', `tab-${this.selectedCategory}`);
+
         EntityRegistry.registry.forEach((Cls, type) => {
             // Category Filter
             const cat = getCategory(type);

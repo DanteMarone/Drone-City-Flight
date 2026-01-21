@@ -3,6 +3,8 @@ import * as THREE from 'three';
 import { createPanel } from './domUtils.js';
 import { TransformCommand, PropertyChangeCommand } from '../history.js';
 import { ColorPickerWidget } from './widgets/colorPicker.js';
+import { InputWidgets } from './widgets/inputWidgets.js';
+import { WorldPanel } from './panels/worldPanel.js';
 
 export class Inspector {
     constructor(devMode, container, alignTool) {
@@ -12,7 +14,10 @@ export class Inspector {
         this.inspectorTab = 'Properties'; // 'Properties' | 'World'
         this.lockScale = false;
         this.content = null;
-        this.idCounter = 0; // For unique IDs
+
+        // Panels
+        this.worldPanel = new WorldPanel(devMode);
+
         this.init();
     }
 
@@ -60,7 +65,7 @@ export class Inspector {
         if (this.inspectorTab === 'Properties') {
             this._renderProperties();
         } else {
-            this._renderWorldControls();
+            this.worldPanel.render(this.content);
         }
     }
 
@@ -93,8 +98,8 @@ export class Inspector {
         // Transform
         if (selection.length === 1) {
             this._addPropGroup('Transform', [
-                this._createVectorInput('Position', obj.position, (v) => this._applyTransform(obj, 'position', v)),
-                this._createVectorInput('Rotation', obj.rotation, (v) => this._applyTransform(obj, 'rotation', v), true),
+                InputWidgets.createVectorInput('Position', obj.position, (v) => this._applyTransform(obj, 'position', v)),
+                InputWidgets.createVectorInput('Rotation', obj.rotation, (v) => this._applyTransform(obj, 'rotation', v), true),
                 this._createScaleInput(obj)
             ]);
         } else {
@@ -102,8 +107,8 @@ export class Inspector {
             const proxy = this.devMode.gizmo ? this.devMode.gizmo.proxy : null;
             if (proxy) {
                 this._addPropGroup('Transform (Group)', [
-                    this._createVectorInput('Position', proxy.position, (v) => this._applyProxyTransform('position', v)),
-                    this._createVectorInput('Rotation', proxy.rotation, (v) => this._applyProxyTransform('rotation', v), true),
+                    InputWidgets.createVectorInput('Position', proxy.position, (v) => this._applyProxyTransform('position', v)),
+                    InputWidgets.createVectorInput('Rotation', proxy.rotation, (v) => this._applyProxyTransform('rotation', v), true),
                     this._createScaleInput(proxy, true) // Pass true for isProxy
                 ]);
             } else {
@@ -138,15 +143,15 @@ export class Inspector {
                         });
                         fields.push(widget.element);
                     } else if (typeof val === 'number') {
-                        fields.push(this._createNumberInput(key, val, (n) => {
+                        fields.push(InputWidgets.createNumberInput(key, val, (n) => {
                             this._applyParam(obj, key, n);
                         }));
                     } else if (typeof val === 'string') {
-                        fields.push(this._createTextInput(key, val, (s) => {
+                        fields.push(InputWidgets.createTextInput(key, val, (s) => {
                             this._applyParam(obj, key, s);
                         }));
                     } else if (typeof val === 'boolean') {
-                        fields.push(this._createCheckbox(key, val, (b) => {
+                        fields.push(InputWidgets.createCheckbox(key, val, (b) => {
                             this._applyParam(obj, key, b);
                         }));
                     }
@@ -202,7 +207,7 @@ export class Inspector {
 
         // Wait Time Control
         if (obj.userData.waitTime !== undefined) {
-             const waitRow = this._createNumberInput('Wait Time (s)', obj.userData.waitTime, (val) => {
+             const waitRow = InputWidgets.createNumberInput('Wait Time (s)', obj.userData.waitTime, (val) => {
                  obj.userData.waitTime = val;
                  if (obj.userData.params) obj.userData.params.waitTime = val;
              });
@@ -210,83 +215,6 @@ export class Inspector {
         }
 
         this.content.appendChild(group);
-    }
-
-    _renderWorldControls() {
-        const container = document.createElement('div');
-        container.className = 'dev-system-section';
-
-        // Environment
-        const envGroup = document.createElement('div');
-        envGroup.innerHTML = '<div class="dev-prop-title">Environment</div>';
-
-        // Time of Day
-        if (this.devMode.app.world.timeCycle) {
-            const tc = this.devMode.app.world.timeCycle;
-
-            // Slider
-            const sliderRow = document.createElement('div');
-            sliderRow.className = 'dev-prop-row';
-
-            const sliderId = `insp-time-${this.idCounter++}`;
-            const label = document.createElement('label');
-            label.className = 'dev-prop-label';
-            label.textContent = 'Time';
-            label.htmlFor = sliderId;
-            sliderRow.appendChild(label);
-
-            const slider = document.createElement('input');
-            slider.id = sliderId;
-            slider.type = 'range';
-            slider.min = '0';
-            slider.max = '24';
-            slider.step = '0.1';
-            slider.style.flex = '1';
-            slider.value = tc.time;
-            slider.setAttribute('aria-label', 'Time of Day');
-            slider.oninput = (e) => {
-                tc.time = parseFloat(e.target.value);
-            };
-            sliderRow.appendChild(slider);
-            envGroup.appendChild(sliderRow);
-
-            // Time Speed
-            const speedRow = this._createNumberInput('Speed', tc.speed, (v) => tc.speed = v);
-            envGroup.appendChild(speedRow);
-
-            // Time Locked
-            const lockedRow = this._createCheckbox('Time Locked', tc.isLocked, (b) => {
-                tc.isLocked = b;
-            });
-            envGroup.appendChild(lockedRow);
-        }
-
-        // Wind
-        if (this.devMode.app.world.wind) {
-            envGroup.appendChild(document.createElement('br'));
-            envGroup.innerHTML += '<div class="dev-prop-title">Wind</div>';
-
-            const wind = this.devMode.app.world.wind;
-            envGroup.appendChild(this._createNumberInput('Speed', wind.speed, (v) => wind.speed = v));
-            envGroup.appendChild(this._createNumberInput('Direction', wind.direction, (v) => wind.direction = v));
-        }
-
-        // Gameplay
-        envGroup.appendChild(document.createElement('br'));
-
-        const gameplayTitle = document.createElement('div');
-        gameplayTitle.className = 'dev-prop-title';
-        gameplayTitle.textContent = 'Gameplay';
-        envGroup.appendChild(gameplayTitle);
-
-        if (this.devMode.app.world.batteryDrain !== undefined) {
-             envGroup.appendChild(this._createNumberInput('Battery Drain', this.devMode.app.world.batteryDrain, (v) => {
-                 this.devMode.app.world.batteryDrain = v;
-             }));
-        }
-
-        container.appendChild(envGroup);
-        this.content.appendChild(container);
     }
 
     _syncInspector() {
@@ -320,102 +248,17 @@ export class Inspector {
         this.content.appendChild(group);
     }
 
-    _createVectorInput(label, vec, callback, isEuler=false) {
-        const row = document.createElement('div');
-        row.className = 'dev-prop-row';
-        const l = document.createElement('div');
-        l.className = 'dev-prop-label';
-        l.textContent = label;
-        row.appendChild(l);
-
-        const div = document.createElement('div');
-        div.className = 'dev-prop-vector';
-
-        ['x', 'y', 'z'].forEach(axis => {
-            const inp = document.createElement('input');
-            inp.type = 'number';
-            inp.step = isEuler ? '1' : '0.1';
-            inp.className = 'dev-prop-input';
-            inp.id = `insp-${label}-${axis}`;
-            inp.setAttribute('aria-label', `${label} ${axis.toUpperCase()}`);
-
-            let val = vec[axis];
-            if (isEuler) val = THREE.MathUtils.radToDeg(val);
-            inp.value = val.toFixed(2);
-
-            inp.onchange = (e) => {
-                const n = parseFloat(e.target.value);
-                const current = isEuler ? THREE.MathUtils.radToDeg(vec[axis]) : vec[axis];
-                if (Math.abs(n - current) < 0.001) return;
-
-                const newVec = vec.clone();
-                if (isEuler) {
-                    const eClone = vec.clone();
-                    if (axis === 'x') eClone.x = THREE.MathUtils.degToRad(n);
-                    if (axis === 'y') eClone.y = THREE.MathUtils.degToRad(n);
-                    if (axis === 'z') eClone.z = THREE.MathUtils.degToRad(n);
-                    callback(eClone);
-                } else {
-                    newVec[axis] = n;
-                    callback(newVec);
-                }
-            };
-            div.appendChild(inp);
-        });
-        row.appendChild(div);
-        return row;
-    }
-
     _createScaleInput(obj, isProxy=false) {
-        const label = 'Scale';
-        const vec = obj.scale;
+        // We use InputWidgets.createScaleInput but we need to handle the callback logic
+        // because Inspector manages `this.lockScale` and history logic is specific here.
 
-        const row = document.createElement('div');
-        row.className = 'dev-prop-row';
-
-        // Label + Lock Checkbox
-        const labelDiv = document.createElement('div');
-        labelDiv.className = 'dev-prop-label';
-        labelDiv.style.display = 'flex';
-        labelDiv.style.flexDirection = 'column';
-
-        const txt = document.createElement('span');
-        txt.textContent = label;
-        labelDiv.appendChild(txt);
-
-        const lockLabel = document.createElement('label');
-        lockLabel.className = 'dev-prop-checkbox-label';
-
-        const check = document.createElement('input');
-        check.type = 'checkbox';
-        check.checked = this.lockScale;
-        check.style.width = '10px';
-        check.style.height = '10px';
-        check.setAttribute('aria-label', 'Lock Aspect Ratio');
-        check.onchange = (e) => this.lockScale = e.target.checked;
-        lockLabel.appendChild(check);
-        lockLabel.appendChild(document.createTextNode('Lock'));
-        labelDiv.appendChild(lockLabel);
-
-        row.appendChild(labelDiv);
-
-        const div = document.createElement('div');
-        div.className = 'dev-prop-vector';
-
-        ['x', 'y', 'z'].forEach(axis => {
-            const inp = document.createElement('input');
-            inp.type = 'number';
-            inp.step = '0.1';
-            inp.className = 'dev-prop-input';
-            inp.id = `insp-${label}-${axis}`;
-            inp.setAttribute('aria-label', `${label} ${axis.toUpperCase()}`);
-            inp.value = vec[axis].toFixed(2);
-
-            inp.onchange = (e) => {
-                const n = parseFloat(e.target.value);
-                if (Math.abs(n - vec[axis]) < 0.001) return;
-
-                if (this.lockScale) {
+        return InputWidgets.createScaleInput(
+            obj,
+            this.lockScale,
+            (locked) => this.lockScale = locked,
+            (axis, n) => {
+                 const vec = obj.scale;
+                 if (this.lockScale) {
                     const newVec = new THREE.Vector3(n, n, n);
                     if (isProxy) {
                         this._applyProxyTransform('scale', newVec);
@@ -431,11 +274,8 @@ export class Inspector {
                         this._applyTransform(obj, 'scale', newVec);
                     }
                 }
-            };
-            div.appendChild(inp);
-        });
-        row.appendChild(div);
-        return row;
+            }
+        );
     }
 
     _syncVectorInput(label, vec, isEuler=false) {
@@ -447,68 +287,6 @@ export class Inspector {
                 inp.value = val.toFixed(2);
             }
         });
-    }
-
-    _createNumberInput(key, val, cb) {
-        const id = `prop-num-${this.idCounter++}`;
-        const row = document.createElement('div');
-        row.className = 'dev-prop-row';
-
-        const l = document.createElement('label');
-        l.className = 'dev-prop-label';
-        l.textContent = key;
-        l.htmlFor = id;
-        row.appendChild(l);
-
-        const inp = document.createElement('input');
-        inp.id = id;
-        inp.type = 'number';
-        inp.className = 'dev-prop-input';
-        inp.value = val;
-        inp.onchange = (e) => cb(parseFloat(e.target.value));
-        row.appendChild(inp);
-        return row;
-    }
-
-    _createTextInput(key, val, cb) {
-        const id = `prop-text-${this.idCounter++}`;
-        const row = document.createElement('div');
-        row.className = 'dev-prop-row';
-
-        const l = document.createElement('label');
-        l.className = 'dev-prop-label';
-        l.textContent = key;
-        l.htmlFor = id;
-        row.appendChild(l);
-
-        const inp = document.createElement('input');
-        inp.id = id;
-        inp.type = 'text';
-        inp.className = 'dev-prop-input';
-        inp.value = val;
-        inp.onchange = (e) => cb(e.target.value);
-        row.appendChild(inp);
-        return row;
-    }
-
-    _createCheckbox(key, val, cb) {
-        const id = `prop-bool-${this.idCounter++}`;
-        const row = document.createElement('div');
-        row.className = 'dev-prop-row';
-
-        const l = document.createElement('label');
-        l.className = 'dev-prop-label';
-        l.textContent = key;
-        l.htmlFor = id;
-        row.appendChild(l);
-
-        const inp = document.createElement('input');
-        inp.id = id;
-        inp.type = 'checkbox';
-        inp.checked = val;
-        inp.onchange = (e) => cb(e.target.checked);
-        row.appendChild(inp);
-        return row;
     }
 
     _applyTransform(obj, prop, val) {

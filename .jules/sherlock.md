@@ -13,3 +13,7 @@
 ## 2025-02-14 - Matrix World Updates in Tests
 **Discovery:** Three.js objects do not update their `matrixWorld` automatically when added to a scene in a headless (no-renderer) test environment. Physics logic relying on `matrixWorld` (like `applyMatrix4(mesh.matrixWorld)`) will use the Identity matrix, potentially causing false positives if test objects default to (0,0,0).
 **Action:** Explicitly call `obj.updateMatrixWorld(true)` in test helpers or after modifying transforms in tests.
+
+## 2025-02-14 - Bitwise Spatial Hashing Limits
+**Discovery:** Bit-packing coordinates into a single integer (e.g., `(x << 16) | (z & 0xFFFF)`) introduces deterministic aliasing. Negative numbers map to high positive indices (`-1 -> 65535`), and shifts cause overflow/wrapping (every 65,536 units).
+**Action:** Explicitly test and document the wrapping interval (World Size) as a "Known Limitation" in the test strategy. Do not assume infinite grids when using bitwise keys.

@@ -7,3 +7,4 @@ import './world/colliders.test.js';
 import './dev/history.test.js';
 
 console.log('\n✨ All tests completed successfully.');
+import './world/entities/trafficLight.test.js';

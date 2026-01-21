@@ -13,3 +13,7 @@
 ## 2025-02-14 - Matrix World Updates in Tests
 **Discovery:** Three.js objects do not update their `matrixWorld` automatically when added to a scene in a headless (no-renderer) test environment. Physics logic relying on `matrixWorld` (like `applyMatrix4(mesh.matrixWorld)`) will use the Identity matrix, potentially causing false positives if test objects default to (0,0,0).
 **Action:** Explicitly call `obj.updateMatrixWorld(true)` in test helpers or after modifying transforms in tests.
+
+## 2025-02-14 - Memory vs Code Discrepancy
+**Discovery:** Memory recordings may reference optimizations (e.g., "Lazy Update") that do not exist in the codebase.
+**Action:** Always verify "known" optimizations by reading the source code. If discrepancies exist, test the *actual* behavior, not the imagined one, but note the potential for improvement.

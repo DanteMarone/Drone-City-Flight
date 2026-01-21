@@ -19,3 +19,10 @@ Action: [Separation of Concerns] Split selection and clipboard responsibilities 
 ## 2026-05-21 - [Refactor] Person Procedural Generation
 **Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
 **Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".
+
+## 2026-06-15 - [Refactor] Inspector Responsibility Split
+**Discovery:** `src/dev/ui/inspector.js` was violating the Single Responsibility Principle by handling both Entity Inspection (Transform, Params) and Global World Controls (Time, Wind, Env). This made the class bloated and coupled it to unrelated systems. Additionally, UI generation logic (Vector Inputs, etc.) was private to Inspector, preventing reuse by other tools.
+**Action:**
+1.  **Extracted World Controls:** Moved all environment-related UI logic to `src/dev/ui/panels/worldPanel.js`.
+2.  **Centralized UI Widgets:** Extracted generic input generators to `src/dev/ui/widgets/inputWidgets.js`, enabling reuse and simplifying the Inspector class.
+3.  **Decoupled:** The Inspector now strictly acts as a container that delegates to specific panels (`PropertiesPanel` logic remaining in Inspector for now, and `WorldPanel`).

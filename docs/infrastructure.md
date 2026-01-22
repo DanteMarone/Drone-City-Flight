@@ -35,6 +35,34 @@ The infrastructure system provides the foundational static network of the world,
         *   **Sides/Bottom:** `TextureGenerator.createConcrete()`.
     *   Grooves are offset by half a segment to align visually when the 5-unit long object is centered on the grid.
 
+### IntersectionEntity
+*   **Type:** `intersection`
+*   **Variants:** `road_intersection_4way`, `road_intersection_3way`, `road_intersection_turn`
+*   **Source:** `src/world/entities/intersections.js`
+*   **Description:** A square connector (10x10) designed to fill the gaps between `RoadEntity` segments.
+*   **Geometry:** `THREE.PlaneGeometry` (10x10).
+*   **Visuals:**
+    *   Uses `TextureGenerator.createAsphaltBlank()`.
+    *   Matches the color/roughness of the standard Road but lacks the dashed center line to allow for omnidirectional traffic flow.
+*   **Logic:**
+    *   Registers multiple keys in the `EntityRegistry` to the same class. The specific type is stored in `this.variant` but currently, all variants render identically (blank asphalt).
+
+### TrafficLightEntity
+*   **Type:** `trafficLight`
+*   **Source:** `src/world/entities/trafficLight.js`
+*   **Description:** An animated traffic control signal featuring a pole, arm, and 3-light housing.
+*   **Visuals:**
+    *   Constructed entirely of procedural primitives (`CylinderGeometry`, `BoxGeometry`) in a single `THREE.Group`.
+    *   **Housing:** Contains three lenses (Red, Yellow, Green) with hoods.
+    *   **Materials:** Uses `emissiveIntensity` to simulate light activation.
+*   **Logic:**
+    *   **Phase System:** Cycles through a predefined sequence:
+        1.  Green (4.2s)
+        2.  Yellow (1.2s)
+        3.  Red (4.2s)
+    *   **Update Loop:** In `update(dt)`, it linearly interpolates the `emissiveIntensity` of the lenses. The active phase lens targets 2.2 intensity, while inactive lenses fade to 0.25.
+    *   **Randomization:** Each instance starts with a random time offset (`Math.random() * 2`) to prevent all lights in the city from being perfectly synchronized.
+
 ---
 
 ## 2. Smart Infrastructure Tools (Road & River)

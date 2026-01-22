@@ -16,6 +16,7 @@ export { LilyPondEntity } from './lilyPond.js';
 export { BurgerJointEntity, OfficeParkEntity, ModernTowerEntity } from './commercial.js';
 export { HouseModernEntity, HouseCottageEntity, HousePorchEntity, ApartmentBlockEntity } from './residential.js';
 export { SidewalkEntity, SidewalkCornerEntity } from './infrastructure.js';
+export { CurveRoadEntity } from './curveRoad.js';
 export { HouseGardenEntity } from './houseGarden.js';
 export { HouseVerandaEntity } from './houseVeranda.js';
 export { IntersectionEntity } from './intersections.js';

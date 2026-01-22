@@ -1,10 +1,14 @@
 # Project Roadmap
 
-## 🚀 Next Up
+## 🚀 In Progress
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
-    *   *Status:* Ready for Design/Dev
-    *   *Spec:* `docs/specs/005-organic-roads.md` (To be created)
+    *   *Status:* In Development (Entity Implementation)
+    *   *Spec:* `docs/specs/005-organic-roads.md`
+
+## 🚀 Next Up
+*   [ ] **Interaction Tool Update**
+    *   Update `InteractionManager` to support curve placement.
 
 ## 📋 Backlog
 *   [ ] **Traffic System**

@@ -9,3 +9,7 @@
 ## 2024-12-14 - [Per-Frame Material Updates]
 **Learning:** `new THREE.Color()` in an `update()` loop is just as bad as `new THREE.Vector3()`. Visual effects (pulsing lights, changing hues) often sneak these allocations in.
 **Action:** Use module-level `_tempColor` scratch objects for any color animation logic.
+
+## 2024-12-14 - [Unshared Procedural Textures]
+**Learning:** Procedural textures (like `CanvasTexture`) created inside entity constructors or `createMesh` are not automatically shared. This creates a new DOM Canvas element and GPU texture for *every instance*, causing massive memory spikes.
+**Action:** Always implement module-level static caching (or use `TextureGenerator` cache) for procedural textures. Return clones (`texture.clone()`) to share the heavy `image` source while allowing unique texture properties.

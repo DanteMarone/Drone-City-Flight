@@ -28,6 +28,8 @@ export class Palette {
 
         const tabsDiv = document.createElement('div');
         tabsDiv.className = 'dev-palette-tabs';
+        tabsDiv.setAttribute('role', 'tablist');
+        tabsDiv.setAttribute('aria-label', 'Asset Categories');
         this.tabsDiv = tabsDiv;
         header.appendChild(tabsDiv);
 
@@ -57,7 +59,7 @@ export class Palette {
         this.refresh();
     }
 
-    refresh() {
+    refresh(shouldFocus = false) {
         if (!this.content) return;
         this.tabsDiv.innerHTML = '';
         this.content.innerHTML = '';
@@ -65,13 +67,29 @@ export class Palette {
         const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
         categories.forEach(cat => {
             const tab = document.createElement('div');
-            tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
+            const isActive = this.selectedCategory === cat;
+            tab.className = `dev-palette-tab ${isActive ? 'active' : ''}`;
             tab.textContent = cat;
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('tabindex', '0');
+            tab.setAttribute('aria-selected', isActive);
+
             tab.onclick = () => {
                 this.selectedCategory = cat;
-                this.refresh();
+                this.refresh(true);
+            };
+
+            tab.onkeydown = (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    tab.click();
+                }
             };
             this.tabsDiv.appendChild(tab);
+
+            if (shouldFocus && isActive) {
+                setTimeout(() => tab.focus(), 0);
+            }
         });
 
         // Populate Grid

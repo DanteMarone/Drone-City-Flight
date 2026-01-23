@@ -1,5 +1,10 @@
 # Planner Journal
 
+## 2025-05-20 - Activate Organic Curves
+**Decision:** Move "Organic Curve Support" from Design to Development.
+**Rationale:** The specification `docs/specs/005-organic-roads.md` is complete. The team is ready to start prototyping the `CurveRoadEntity`.
+**Status:** Active.
+
 ## 2025-05-19 - Organic Curve Support Initiation
 **Decision:** Prioritize "Organic Curve Support" as the next major feature.
 **Rationale:** The grid-based road system is functional but limits creative map design. Users (and internal "Gardener" agent) need the ability to create curved roads to break the rigid grid structure. This is a high-impact visual and functional upgrade.

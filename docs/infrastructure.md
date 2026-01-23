@@ -35,6 +35,33 @@ The infrastructure system provides the foundational static network of the world,
         *   **Sides/Bottom:** `TextureGenerator.createConcrete()`.
     *   Grooves are offset by half a segment to align visually when the 5-unit long object is centered on the grid.
 
+### SidewalkCornerEntity
+*   **Type:** `sidewalk_corner`
+*   **Source:** `src/world/entities/infrastructure.js`
+*   **Description:** A 1x1 unit square corner piece used to connect sidewalks at 90-degree angles seamlessly.
+*   **Geometry:** `THREE.BoxGeometry` (1x0.2x1).
+*   **Visuals:**
+    *   **Top:** `TextureGenerator.createSidewalkBlank()` (no groove lines).
+    *   **Sides:** `TextureGenerator.createConcrete()`.
+    *   This blank top texture allows the corner to connect to a `SidewalkEntity` from any cardinal direction without creating conflicting groove patterns.
+
+### TrafficLightEntity
+*   **Type:** `trafficLight`
+*   **Source:** `src/world/entities/trafficLight.js`
+*   **Description:** An animated traffic signal consisting of a vertical pole, horizontal arm, and a 3-light housing.
+*   **Geometry:** Procedural composition of Cylinder and Box primitives.
+*   **Visuals:**
+    *   **Structure:** Dark metal material (`#2f2f3a`).
+    *   **Lights:** Standard materials with `emissive` properties controlled by the update loop.
+*   **Behavior:**
+    *   Cycles through phases defined in `PHASES`:
+        *   **Green:** 4.2s
+        *   **Yellow:** 1.2s
+        *   **Red:** 4.2s
+    *   `update(dt)` modulates the `emissiveIntensity` of the active light to simulate switching.
+*   **Key Parameters:**
+    *   `height`: Optional override for the pole height (default ~3.4m + random variation).
+
 ---
 
 ## 2. Smart Infrastructure Tools (Road & River)

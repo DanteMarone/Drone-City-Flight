@@ -66,16 +66,8 @@ export class DevClipboardManager {
         if (!objects) return;
         objects.forEach(obj => {
             if (!obj || obj.userData?.type === 'waypoint') return;
-
-            if (obj.userData.waypointGroup) {
-                this.devMode.app.renderer.scene.remove(obj.userData.waypointGroup);
-            }
-            this.devMode.app.renderer.scene.remove(obj);
-            if (this.devMode.app.colliderSystem) {
-                this.devMode.app.colliderSystem.remove(obj);
-            }
             if (this.devMode.app.world) {
-                this.devMode.app.world.removeEntity(obj);
+                this.devMode.app.world.despawnEntity(obj);
             }
         });
     }
@@ -131,19 +123,7 @@ export class DevClipboardManager {
             }
         }
 
-        this.devMode.app.renderer.scene.add(entity.mesh);
-        this.devMode.app.world.addEntity(entity);
-        if (this.devMode.app.colliderSystem) {
-            this.devMode.app.colliderSystem.addStatic([entity]);
-        }
-
-        if (entity.mesh.userData?.waypointGroup && this.devMode.enabled) {
-            const wg = entity.mesh.userData.waypointGroup;
-            wg.visible = true;
-            if (wg.parent !== this.devMode.app.renderer.scene) {
-                this.devMode.app.renderer.scene.add(wg);
-            }
-        }
+        this.devMode.app.world.spawnEntity(entity);
 
         return entity.mesh;
     }

@@ -4,6 +4,7 @@ import { CONFIG } from '../config.js';
 import { BirdSystem } from './birdSystem.js';
 import { LightSystem } from './lightSystem.js';
 import { InstancedEntitySystem } from './instancing.js';
+import { ColliderSystem } from './colliders.js';
 import { EntityRegistry } from './entities/index.js';
 import { BaseEntity } from './entities/base.js';
 import { TimeCycle } from './timeCycle.js';
@@ -14,6 +15,7 @@ export class World {
         this.birdSystem = new BirdSystem(scene);
         this.lightSystem = new LightSystem(scene);
         this.instancer = new InstancedEntitySystem(scene);
+        this.colliderSystem = new ColliderSystem();
         this.timeCycle = new TimeCycle();
 
         // this.colliders now holds BaseEntity instances (which match {mesh, box} interface)
@@ -79,9 +81,47 @@ export class World {
         return this.colliders;
     }
 
+    /**
+     * Spawns an entity into the game world, adding it to the scene, logic loop, and physics system.
+     * Use this instead of manually adding to scene and calling addEntity.
+     * @param {BaseEntity} entity
+     */
+    spawnEntity(entity) {
+        if (!entity || !entity.mesh) return;
+
+        this.scene.add(entity.mesh);
+        if (entity.mesh.userData.waypointGroup) {
+            this.scene.add(entity.mesh.userData.waypointGroup);
+        }
+
+        this.addEntity(entity);
+    }
+
+    /**
+     * Removes an entity from the game world, removing it from the scene, logic loop, and physics system.
+     * @param {BaseEntity|THREE.Object3D} meshOrEntity
+     */
+    despawnEntity(meshOrEntity) {
+        if (!meshOrEntity) return;
+        let mesh = meshOrEntity;
+        if (meshOrEntity.mesh) mesh = meshOrEntity.mesh;
+
+        // Remove from scene
+        this.scene.remove(mesh);
+        if (mesh.userData.waypointGroup) {
+            this.scene.remove(mesh.userData.waypointGroup);
+        }
+
+        // Remove from logic/physics
+        this.removeEntity(meshOrEntity);
+    }
+
     addEntity(entity) {
         if (!entity) return;
         this.colliders.push(entity);
+
+        // Update Physics
+        this.colliderSystem.addStatic([entity]);
 
         // Optimization: Only add to update list if it overrides the base update method
         // BaseEntity.prototype.update is empty.
@@ -104,6 +144,9 @@ export class World {
         // Handle both mesh and entity input
         let mesh = meshOrEntity;
         if (meshOrEntity.mesh) mesh = meshOrEntity.mesh;
+
+        // Update Physics
+        this.colliderSystem.remove(mesh);
 
         const index = this.colliders.findIndex(c => c.mesh === mesh);
         if (index !== -1) {
@@ -140,6 +183,7 @@ export class World {
         this.colliders = [];
         this.updatables = [];
         this.landingPads = [];
+        this.colliderSystem.clear();
         if (this.birdSystem) this.birdSystem.clear();
         if (this.lightSystem) this.lightSystem.clear();
         if (this.instancer) this.instancer.clear();

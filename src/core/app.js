@@ -6,7 +6,6 @@ import { CameraController } from '../drone/camera.js';
 import { Person } from '../person/person.js';
 import { PersonCameraController } from '../person/camera.js';
 import { World } from '../world/world.js';
-import { ColliderSystem } from '../world/colliders.js';
 import { PhysicsEngine } from '../drone/physics.js';
 import { HUD } from '../ui/hud.js';
 import { MenuSystem } from '../ui/menu.js';
@@ -47,9 +46,7 @@ export class App {
         this.world = new World(this.renderer.scene);
         this.particles = new ParticleSystem(this.renderer.scene);
 
-        this.colliderSystem = new ColliderSystem();
-        this.colliderSystem.addStatic(this.world.getStaticColliders());
-        this.physics = new PhysicsEngine(this.colliderSystem);
+        this.physics = new PhysicsEngine(this.world.colliderSystem);
 
         this.drone = new Drone(this.renderer.scene);
         this.battery = new BatteryManager();
@@ -63,7 +60,7 @@ export class App {
         // Also attach battery for drain
         this.drone.battery = this.battery;
 
-        this.rings = new RingManager(this.renderer.scene, this.drone, this.colliderSystem);
+        this.rings = new RingManager(this.renderer.scene, this.drone, this.world.colliderSystem);
 
         this.tutorial = new TutorialManager(this);
         this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
@@ -166,7 +163,7 @@ export class App {
                 box: null
             }));
 
-            this.person.update(dt, move, this.colliderSystem, ringColliders);
+            this.person.update(dt, move, this.world.colliderSystem, ringColliders);
 
             const speed = this.person.velocity.length();
             const alt = this.person.position.y;
@@ -422,10 +419,6 @@ export class App {
             this.rings.loadRings(data.rings);
         }
 
-        // Re-inject static colliders into physics system (for base objects)
-        this.colliderSystem.clear();
-        this.colliderSystem.addStatic(this.world.getStaticColliders());
-
         // Step 2: Replay History
         if (this.devMode && historyCommands.length > 0) {
             console.log(`Replaying ${historyCommands.length} history commands...`);
@@ -454,9 +447,6 @@ export class App {
                 });
             }
 
-            // After replay, update physics again for new objects
-            this.colliderSystem.clear(); // Rebuild fully to be safe
-            this.colliderSystem.addStatic(this.world.getStaticColliders());
         }
 
         // Refresh DevMode if active (to show new visuals)

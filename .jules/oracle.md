@@ -19,3 +19,6 @@ Action: [Separation of Concerns] Split selection and clipboard responsibilities 
 ## 2026-05-21 - [Refactor] Person Procedural Generation
 **Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
 **Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".
+## 2026-05-22 - [Refactor] World Physics Ownership
+**Discovery:** `src/core/app.js` was manually managing the `ColliderSystem`, while `src/world/world.js` managed entities. This led to "Shotgun Surgery" where adding an entity required updating the Scene, the World, and the ColliderSystem separately in `App`, `InteractionManager`, and `DevClipboardManager`.
+**Action:** [Encapsulation] Moved ownership of `ColliderSystem` to `World`. Introduced `World.spawnEntity()` and `World.despawnEntity()` to encapsulate the lifecycle of adding/removing entities from Scene, Logic, and Physics.

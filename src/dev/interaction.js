@@ -296,14 +296,14 @@ export class InteractionManager {
                 this.devMode.cameraController.setRotationLock(false);
             }
 
-             if (this.devMode.selectedObjects.length > 0 && this.app.colliderSystem) {
+             if (this.devMode.selectedObjects.length > 0 && this.app.world.colliderSystem) {
                 this.devMode.selectedObjects.forEach(obj => {
                     let target = obj;
                     if (target.userData.type === 'waypoint' && target.parent?.parent?.userData?.isVehicle) {
                         target = target.parent.parent;
                     }
-                    if (this.app.colliderSystem.updateBody) {
-                        this.app.colliderSystem.updateBody(target);
+                    if (this.app.world.colliderSystem.updateBody) {
+                        this.app.world.colliderSystem.updateBody(target);
                     }
                 });
             }
@@ -348,11 +348,7 @@ export class InteractionManager {
             // Re-create collider with new scale/geometry
             entity.box = entity.createCollider();
 
-            this.app.renderer.scene.add(entity.mesh);
-            this.app.world.addEntity(entity);
-            if (this.app.colliderSystem) {
-                this.app.colliderSystem.addStatic([entity]);
-            }
+            this.app.world.spawnEntity(entity);
 
             this.devMode._recordCreation([entity.mesh], `Place ${type}`);
 
@@ -476,25 +472,10 @@ export function setupDragDrop(interaction, container) {
                 const entity = EntityRegistry.create(type, { x: point.x, z: point.z });
 
                 if (entity && entity.mesh) {
-                    interaction.app.renderer.scene.add(entity.mesh);
-                    interaction.app.world.addEntity(entity);
-
-                    if (interaction.app.colliderSystem) {
-                        interaction.app.colliderSystem.addStatic([entity]);
-                    }
+                    interaction.app.world.spawnEntity(entity);
 
                     interaction.devMode.selectObject(entity.mesh);
                     interaction.devMode._recordCreation([entity.mesh], 'Create object');
-
-                    if (entity.mesh.userData.isVehicle && interaction.devMode.enabled) {
-                        const wg = entity.mesh.userData.waypointGroup;
-                        if (wg) {
-                            wg.visible = true;
-                            if (wg.parent !== interaction.app.renderer.scene) {
-                                interaction.app.renderer.scene.add(wg);
-                            }
-                        }
-                    }
                 }
             }
         }

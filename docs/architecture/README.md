@@ -72,3 +72,8 @@ classDiagram
     Person --> Procedural : delegates mesh build
     Person --> FBXCharacter : delegates animation
 ```
+
+## World and Physics
+
+The `World` class owns the physical environment simulation, including the collision system.
+For details, see [World and Physics Architecture](./world_physics.md).

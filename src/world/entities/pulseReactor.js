@@ -3,6 +3,9 @@ import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 import { TextureGenerator } from '../../utils/textures.js';
 
+let _cachedEnergyTexture = null;
+let _cachedBeamTexture = null;
+
 export class PulseReactorEntity extends BaseEntity {
     constructor(params = {}) {
         super(params);
@@ -171,6 +174,10 @@ export class PulseReactorEntity extends BaseEntity {
     }
 
     createEnergyTexture() {
+        if (_cachedEnergyTexture) {
+            return _cachedEnergyTexture.clone();
+        }
+
         const canvas = document.createElement('canvas');
         canvas.width = 256;
         canvas.height = 256;
@@ -208,10 +215,16 @@ export class PulseReactorEntity extends BaseEntity {
         texture.wrapS = THREE.RepeatWrapping;
         texture.wrapT = THREE.RepeatWrapping;
         texture.repeat.set(1, 1);
-        return texture;
+
+        _cachedEnergyTexture = texture;
+        return texture.clone();
     }
 
     createBeamTexture() {
+        if (_cachedBeamTexture) {
+            return _cachedBeamTexture.clone();
+        }
+
         const canvas = document.createElement('canvas');
         canvas.width = 64;
         canvas.height = 256;
@@ -239,7 +252,9 @@ export class PulseReactorEntity extends BaseEntity {
         texture.colorSpace = THREE.SRGBColorSpace;
         texture.wrapS = THREE.ClampToEdgeWrapping;
         texture.wrapT = THREE.ClampToEdgeWrapping;
-        return texture;
+
+        _cachedBeamTexture = texture;
+        return texture.clone();
     }
 
     update(dt) {

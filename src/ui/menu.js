@@ -5,6 +5,9 @@ export class MenuSystem {
     constructor(app) {
         this.app = app;
         this.visible = false;
+        this.resetConfirming = false;
+        this.resetTimeout = null;
+        this.originalResetContent = null;
 
         this._createDOM();
         this._bindEvents();
@@ -90,8 +93,17 @@ export class MenuSystem {
     _bindEvents() {
         this.dom.resume.onclick = () => this.hide();
         this.dom.reset.onclick = () => {
-            this.app._resetGame();
-            this.hide();
+            if (this.resetConfirming) {
+                this.app._resetGame();
+                this.hide();
+                this._cancelResetConfirm();
+            } else {
+                this._startResetConfirm();
+            }
+        };
+
+        this.dom.reset.onblur = () => {
+            setTimeout(() => this._cancelResetConfirm(), 200);
         };
 
         this.dom.photo.onclick = () => {
@@ -217,6 +229,7 @@ export class MenuSystem {
     }
 
     hide() {
+        this._cancelResetConfirm();
         this.visible = false;
         this.dom.menu.classList.remove('visible');
         this.app.paused = false;
@@ -230,6 +243,37 @@ export class MenuSystem {
             if (document.activeElement !== document.body) {
                 document.activeElement.blur();
             }
+        }
+    }
+
+    _startResetConfirm() {
+        if (this.resetConfirming) return;
+        this.resetConfirming = true;
+
+        if (!this.originalResetContent) {
+            this.originalResetContent = this.dom.reset.innerHTML;
+        }
+
+        this.dom.reset.innerHTML = `<span class="menu-btn-content">⚠️ REALLY RESET?</span>`;
+        this.dom.reset.classList.add('btn-confirm-danger');
+        this.dom.reset.setAttribute('aria-label', 'Confirm Reset Game');
+
+        this.resetTimeout = setTimeout(() => this._cancelResetConfirm(), 3000);
+    }
+
+    _cancelResetConfirm() {
+        if (!this.resetConfirming) return;
+        this.resetConfirming = false;
+
+        if (this.originalResetContent) {
+            this.dom.reset.innerHTML = this.originalResetContent;
+        }
+        this.dom.reset.classList.remove('btn-confirm-danger');
+        this.dom.reset.removeAttribute('aria-label');
+
+        if (this.resetTimeout) {
+            clearTimeout(this.resetTimeout);
+            this.resetTimeout = null;
         }
     }
 }

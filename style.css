@@ -948,3 +948,14 @@ body {
 .dev-resizer-h:hover, .dev-resizer-h.active {
     background: rgba(59, 130, 246, 0.5);
 }
+
+/* Reset Confirmation */
+.btn-confirm-danger {
+    background-color: #880000 !important;
+    animation: pulse-danger 0.5s infinite alternate;
+}
+
+@keyframes pulse-danger {
+    from { background-color: #880000; }
+    to { background-color: #aa0000; }
+}

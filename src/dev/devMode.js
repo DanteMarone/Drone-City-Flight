@@ -1,13 +1,13 @@
-// src/dev/devMode.js
 import { DevCameraController } from './devCamera.js';
 import { BuildUI } from './buildUI.js';
-import { InteractionManager, setupDragDrop } from './interaction.js';
+import { InteractionManager } from './interaction.js';
 import { GridSystem } from './grid.js';
 import { GizmoManager } from './gizmo.js';
 import { DevClipboardManager } from './devClipboardManager.js';
 import { DevSelectionManager } from './devSelectionManager.js';
 import { CommandManager, TransformCommand, cloneTransform } from './history.js';
 import { WaypointManager } from './waypointManager.js';
+import { PlacementManager, setupDragDrop } from './placementManager.js';
 
 export class DevMode {
     constructor(app) {
@@ -23,6 +23,7 @@ export class DevMode {
         this.cameraController = new DevCameraController(app.renderer.camera, app.container);
         this.ui = new BuildUI(this);
         this.interaction = new InteractionManager(this.app, this);
+        this.placementManager = new PlacementManager(this.app, this);
 
         // New Systems
         this.grid = new GridSystem(app.renderer.scene);
@@ -32,7 +33,7 @@ export class DevMode {
         this.clipboardManager = new DevClipboardManager(this);
 
         // One-time setup for drag-drop
-        setupDragDrop(this.interaction, this.app.container);
+        setupDragDrop(this.placementManager, this.app.container);
 
         // Init UI
         this.ui.init(this);
@@ -132,8 +133,8 @@ export class DevMode {
             // InteractionManager handles the rest
         } else {
             // Cancelled
-            if (this.interaction.activePlacement) {
-                this.interaction.cancelPlacement();
+            if (this.placementManager) {
+                this.placementManager.cancelPlacement();
             }
         }
     }

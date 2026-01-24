@@ -948,3 +948,22 @@ body {
 .dev-resizer-h:hover, .dev-resizer-h.active {
     background: rgba(59, 130, 246, 0.5);
 }
+
+/* Minimap */
+.minimap-container {
+    position: absolute;
+    bottom: 20px;
+    right: 20px;
+    width: 200px;
+    height: 200px;
+    pointer-events: none;
+    z-index: 50; /* Above HUD */
+    border-radius: 50%;
+    box-shadow: 0 0 10px rgba(0,0,0,0.5);
+    background: rgba(0,0,0,0.5);
+}
+
+.minimap-container canvas {
+    border-radius: 50%;
+    display: block;
+}

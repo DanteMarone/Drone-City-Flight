@@ -9,3 +9,7 @@
 ## 2024-12-14 - [Per-Frame Material Updates]
 **Learning:** `new THREE.Color()` in an `update()` loop is just as bad as `new THREE.Vector3()`. Visual effects (pulsing lights, changing hues) often sneak these allocations in.
 **Action:** Use module-level `_tempColor` scratch objects for any color animation logic.
+
+## 2024-05-20 - [Texture.clone() for Procedural Assets]
+**Learning:** When using procedural CanvasTextures, calling `texture.clone()` creates a lightweight copy that shares the underlying HTMLCanvasElement (source image). This is critical for instanced entities.
+**Action:** Use module-level cache variables for procedural textures and return clones to consumers.

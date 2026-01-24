@@ -2,6 +2,7 @@
 import * as THREE from 'three';
 import { TransformCommand } from './history.js';
 import { EntityRegistry } from '../world/entities/index.js';
+import { BezierTool } from './tools/bezierTool.js';
 
 export class InteractionManager {
     constructor(app, devMode) {
@@ -9,6 +10,8 @@ export class InteractionManager {
         this.devMode = devMode;
         this.raycaster = new THREE.Raycaster();
         this.mouse = new THREE.Vector2();
+
+        this.bezierTool = new BezierTool(app, devMode);
 
         this.draggedType = null;
         this.active = false;
@@ -53,6 +56,7 @@ export class InteractionManager {
         window.removeEventListener('mouseup', this._onMouseUp);
         this._destroyGhost();
         this.activePlacement = null;
+        if (this.bezierTool) this.bezierTool.cancel();
     }
 
     cancelPlacement() {
@@ -99,8 +103,17 @@ export class InteractionManager {
 
         // Priority: Smart Placement
         if (this.devMode.placementMode) {
-            this._handlePlacementMouseDown(e);
-            return;
+            if (this.devMode.placementMode === 'curve_road') {
+                const rect = this.app.container.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                this.raycaster.setFromCamera({ x, y }, this.devMode.cameraController.camera);
+
+                if (this.bezierTool.onMouseDown(e, this.raycaster)) return;
+            } else {
+                this._handlePlacementMouseDown(e);
+                return;
+            }
         }
 
         if (this.devMode.gizmo && this.devMode.gizmo.control.axis !== null) return;
@@ -181,8 +194,18 @@ export class InteractionManager {
         if (!this.active) return;
 
         if (this.devMode.placementMode) {
-            this._handlePlacementMouseMove(e);
-            return;
+            if (this.devMode.placementMode === 'curve_road') {
+                const rect = this.app.container.getBoundingClientRect();
+                const x = ((e.clientX - rect.left) / rect.width) * 2 - 1;
+                const y = -((e.clientY - rect.top) / rect.height) * 2 + 1;
+                this.raycaster.setFromCamera({ x, y }, this.devMode.cameraController.camera);
+
+                this.bezierTool.onMouseMove(e, this.raycaster);
+                return;
+            } else {
+                this._handlePlacementMouseMove(e);
+                return;
+            }
         }
 
         if (this.isDragging && this.dragTarget) {
@@ -286,8 +309,13 @@ export class InteractionManager {
 
     _onMouseUp(e) {
         if (this.devMode.placementMode) {
-            this._handlePlacementMouseUp(e);
-            return;
+            if (this.devMode.placementMode === 'curve_road') {
+                this.bezierTool.onMouseUp(e);
+                return;
+            } else {
+                this._handlePlacementMouseUp(e);
+                return;
+            }
         }
 
         if (this.isDragging) {

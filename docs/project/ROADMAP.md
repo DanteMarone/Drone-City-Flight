@@ -3,8 +3,8 @@
 ## 🚀 Next Up
 *   [ ] **Organic Curve Support**
     *   Implement Bezier curve roads for non-grid layouts.
-    *   *Status:* Ready for Design/Dev
-    *   *Spec:* `docs/specs/005-organic-roads.md` (To be created)
+    *   *Status:* Prototype Implemented (Pending Verification)
+    *   *Spec:* `docs/specs/005-organic-roads.md`
 
 ## 📋 Backlog
 *   [ ] **Traffic System**
@@ -14,6 +14,9 @@
     *   Move from grid-based districts to organic/spline-based zoning.
 
 ## ✅ Completed
+*   **Organic Curve Support (Prototype)**
+    *   Implemented `CurveRoadEntity` with UV-mapped ExtrudeGeometry.
+    *   Implemented `BezierTool` for 4-step placement (Start, Tan1, End, Tan2).
 *   **Smart River Tool**
     *   Implemented "Anchor & Stretch" placement for `river` type.
     *   Updated `RiverEntity` to support scaling.

@@ -6,11 +6,11 @@
 
 ## 🎯 Current Objectives
 
-### 1. Organic Curve Support (Next Up)
+### 1. Organic Curve Support (Active)
 *   **Goal:** Implement Bezier curve roads for non-grid layouts.
-*   **Status:** 🏗️ In Design (Spec Created)
-*   **Action Item:** Prototype `CurveRoadEntity` based on `docs/specs/005-organic-roads.md`.
-*   **Dependencies:** `RoadEntity` refactor, `InteractionManager` spline logic.
+*   **Status:** 🏗️ Prototype Implemented
+*   **Action Item:** Verify interaction and visual fidelity in live preview.
+*   **Dependencies:** `CurveRoadEntity` created, `BezierTool` integrated.
 
 ### 2. Traffic System (Backlog)
 *   **Goal:** Re-implement traffic using the new Entity/Waypoint system.
@@ -20,6 +20,7 @@
 ## ✅ Completed Features
 
 ### Infrastructure
+*   [x] **Organic Curve Support**: Prototype `CurveRoadEntity` and `BezierTool` implemented.
 *   [x] **Smart River Tool**: "Anchor & Stretch" placement logic (v1.0)
 *   [x] **Smart Road Tool**: "Anchor & Stretch" placement with grid snapping.
 *   [x] **Sidewalk Corners**: 1x1 entities with seamless textures.

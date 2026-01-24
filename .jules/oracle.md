@@ -19,3 +19,7 @@ Action: [Separation of Concerns] Split selection and clipboard responsibilities 
 ## 2026-05-21 - [Refactor] Person Procedural Generation
 **Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
 **Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".
+
+## 2026-06-15 - [Refactor] Separation of Interaction and Placement
+**Discovery:** `src/dev/interaction.js` was becoming a "God Class" (500+ lines), creating a tight coupling between "Edit Mode" (Selection/Manipulation) and "Build Mode" (Placement/Ghosting). This mixed concerns and made the input handling logic complex and conditional.
+**Action:** [Separation of Concerns] Extracted all object placement and ghost management logic into a new `PlacementManager` (`src/dev/placementManager.js`). Created `src/dev/utils.js` to share common raycasting logic (`getMouseIntersection`). `InteractionManager` now strictly handles selection and transformation of existing objects, while delegating placement events to `PlacementManager`. This enforces a clear "State Pattern" where the editor is either in Select Mode or Place Mode.

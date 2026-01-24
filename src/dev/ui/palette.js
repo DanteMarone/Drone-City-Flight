@@ -63,14 +63,51 @@ export class Palette {
         this.content.innerHTML = '';
 
         const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
-        categories.forEach(cat => {
+
+        // A11y: Role
+        this.tabsDiv.setAttribute('role', 'tablist');
+        this.tabsDiv.setAttribute('aria-label', 'Asset Categories');
+
+        categories.forEach((cat, index) => {
+            const isActive = this.selectedCategory === cat;
             const tab = document.createElement('div');
-            tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
+            tab.className = `dev-palette-tab ${isActive ? 'active' : ''}`;
             tab.textContent = cat;
-            tab.onclick = () => {
+
+            // A11y: Attributes
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-selected', isActive);
+            tab.setAttribute('tabindex', isActive ? '0' : '-1');
+
+            const selectTab = () => {
                 this.selectedCategory = cat;
                 this.refresh();
+                // Restore focus to the active tab after rebuild
+                setTimeout(() => {
+                    const newTabs = this.tabsDiv.children;
+                    if (newTabs[index]) newTabs[index].focus();
+                }, 0);
             };
+
+            tab.onclick = selectTab;
+
+            tab.onkeydown = (e) => {
+                if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    selectTab();
+                } else if (e.key === 'ArrowRight') {
+                    e.preventDefault();
+                    const nextIndex = (index + 1) % categories.length;
+                    const nextTab = this.tabsDiv.children[nextIndex];
+                    if (nextTab) nextTab.focus();
+                } else if (e.key === 'ArrowLeft') {
+                    e.preventDefault();
+                    const prevIndex = (index - 1 + categories.length) % categories.length;
+                    const prevTab = this.tabsDiv.children[prevIndex];
+                    if (prevTab) prevTab.focus();
+                }
+            };
+
             this.tabsDiv.appendChild(tab);
         });
 

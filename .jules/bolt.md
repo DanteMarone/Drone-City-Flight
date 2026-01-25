@@ -9,3 +9,7 @@
 ## 2024-12-14 - [Per-Frame Material Updates]
 **Learning:** `new THREE.Color()` in an `update()` loop is just as bad as `new THREE.Vector3()`. Visual effects (pulsing lights, changing hues) often sneak these allocations in.
 **Action:** Use module-level `_tempColor` scratch objects for any color animation logic.
+
+## 2024-12-14 - [Duplicate Texture Generation]
+**Learning:** Procedural textures generated in entity constructors (via `new THREE.CanvasTexture()`) are not automatically batched or cached. Instantiating N entities results in N duplicates of the same texture, consuming N x Video Memory.
+**Action:** Use module-level variables (Singletons) to cache generated textures and reuse them across all instances of the same entity type.

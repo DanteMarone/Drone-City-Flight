@@ -6,6 +6,7 @@ import { GridSystem } from './grid.js';
 import { GizmoManager } from './gizmo.js';
 import { DevClipboardManager } from './devClipboardManager.js';
 import { DevSelectionManager } from './devSelectionManager.js';
+import { PlacementManager } from './placementManager.js';
 import { CommandManager, TransformCommand, cloneTransform } from './history.js';
 import { WaypointManager } from './waypointManager.js';
 
@@ -30,6 +31,7 @@ export class DevMode {
         this.waypoints = new WaypointManager(this);
         this.selectionManager = new DevSelectionManager(this);
         this.clipboardManager = new DevClipboardManager(this);
+        this.placementManager = new PlacementManager(app, this);
 
         // One-time setup for drag-drop
         setupDragDrop(this.interaction, this.app.container);
@@ -129,12 +131,10 @@ export class DevMode {
         if (type) {
             console.log(`Entered Placement Mode: ${type}`);
             this.selectObject(null); // Deselect current
-            // InteractionManager handles the rest
+            // InteractionManager handles the rest (delegated to PlacementManager)
         } else {
             // Cancelled
-            if (this.interaction.activePlacement) {
-                this.interaction.cancelPlacement();
-            }
+            this.placementManager.cancel();
         }
     }
 

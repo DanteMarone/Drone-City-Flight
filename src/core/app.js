@@ -20,6 +20,7 @@ import { PostProcessing } from '../fx/post.js';
 import { CONFIG } from '../config.js';
 import { DevMode } from '../dev/devMode.js';
 import { PhotoMode } from '../ui/photoMode.js';
+import { Minimap } from '../ui/minimap.js';
 import { NotificationSystem } from '../ui/notifications.js';
 import { HelpSystem } from '../ui/help.js';
 import { EnvironmentSystem } from '../world/environmentSystem.js';
@@ -80,6 +81,7 @@ export class App {
 
         this.devMode = new DevMode(this);
         this.photoMode = new PhotoMode(this);
+        this.minimap = new Minimap(this);
 
         this.notifications.show("System Initialized", "info", 2000);
 
@@ -467,6 +469,9 @@ export class App {
         // Reset Game State AFTER loading objects, so PlayerStart can be found
         this._resetGame();
 
+        // Refresh Minimap
+        if (this.minimap) this.minimap.refresh();
+
         this.notifications.show("Map Loaded Successfully", "success");
     }
 
@@ -476,6 +481,7 @@ export class App {
         this.lastTime = timestamp;
 
         this.update(dt);
+        if (this.minimap) this.minimap.update(dt);
         this.post.render(dt);
 
         requestAnimationFrame(this.animate);

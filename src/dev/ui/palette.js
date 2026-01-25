@@ -28,6 +28,7 @@ export class Palette {
 
         const tabsDiv = document.createElement('div');
         tabsDiv.className = 'dev-palette-tabs';
+        tabsDiv.setAttribute('role', 'tablist');
         this.tabsDiv = tabsDiv;
         header.appendChild(tabsDiv);
 
@@ -64,9 +65,12 @@ export class Palette {
 
         const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
         categories.forEach(cat => {
-            const tab = document.createElement('div');
-            tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
+            const isActive = this.selectedCategory === cat;
+            const tab = document.createElement('button');
+            tab.className = `dev-palette-tab ${isActive ? 'active' : ''}`;
             tab.textContent = cat;
+            tab.setAttribute('role', 'tab');
+            tab.setAttribute('aria-selected', isActive ? 'true' : 'false');
             tab.onclick = () => {
                 this.selectedCategory = cat;
                 this.refresh();

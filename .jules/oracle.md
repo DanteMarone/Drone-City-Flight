@@ -19,3 +19,7 @@ Action: [Separation of Concerns] Split selection and clipboard responsibilities 
 ## 2026-05-21 - [Refactor] Person Procedural Generation
 **Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
 **Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".
+
+## 2026-01-25 - [Refactor] InteractionManager Decoupling
+**Discovery:** `src/dev/interaction.js` was becoming a "God Class" (500+ lines), mixing low-level input routing (raycasting, selection) with high-level object construction logic (placement, ghost previews).
+**Action:** [Separation of Concerns] Extracted all placement and ghost management logic into `src/dev/placementManager.js`. `InteractionManager` now acts strictly as an input router, delegating placement events to the new manager. This reduces `InteractionManager` complexity and prepares the system for more advanced placement tools.

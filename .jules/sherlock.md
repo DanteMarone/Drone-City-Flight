@@ -13,3 +13,7 @@
 ## 2025-02-14 - Matrix World Updates in Tests
 **Discovery:** Three.js objects do not update their `matrixWorld` automatically when added to a scene in a headless (no-renderer) test environment. Physics logic relying on `matrixWorld` (like `applyMatrix4(mesh.matrixWorld)`) will use the Identity matrix, potentially causing false positives if test objects default to (0,0,0).
 **Action:** Explicitly call `obj.updateMatrixWorld(true)` in test helpers or after modifying transforms in tests.
+
+## 2026-01-25 - SpatialHash Bitwise Collision
+**Discovery:** The optimized `SpatialHash` key generation `(xi << 16) | (zi & 0xFFFF)` causes a deterministic collision between `z = -1` and `z = 65535` because `-1` (0xFFFF) masks identically to `65535`.
+**Action:** Accept this limitation for standard world sizes (< 655km), but document it explicitly in tests ("Code is Truth") and documentation to prevent future debugging of "ghost objects" from distant coordinates.

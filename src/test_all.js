@@ -1,4 +1,5 @@
 
+import './core/input.test.js';
 import './drone/battery.test.js';
 import './verification/test_physics.js';
 import './gameplay/rings.test.js';

@@ -22,6 +22,7 @@ import { DevMode } from '../dev/devMode.js';
 import { PhotoMode } from '../ui/photoMode.js';
 import { NotificationSystem } from '../ui/notifications.js';
 import { HelpSystem } from '../ui/help.js';
+import { Minimap } from '../ui/minimap.js';
 import { EnvironmentSystem } from '../world/environmentSystem.js';
 
 export class App {
@@ -39,6 +40,7 @@ export class App {
         this.input = new InputManager();
         this.notifications = new NotificationSystem(); // Init Notification System
         this.hud = new HUD();
+        this.minimap = new Minimap(this);
         this.help = new HelpSystem(this);
         this.menu = new MenuSystem(this);
         this.hud.onPause = () => this.menu.toggle();
@@ -464,6 +466,9 @@ export class App {
             this.devMode.refreshVisibility();
         }
 
+        // Refresh Minimap
+        if (this.minimap) this.minimap.refresh();
+
         // Reset Game State AFTER loading objects, so PlayerStart can be found
         this._resetGame();
 
@@ -476,6 +481,7 @@ export class App {
         this.lastTime = timestamp;
 
         this.update(dt);
+        if (this.minimap) this.minimap.update(dt);
         this.post.render(dt);
 
         requestAnimationFrame(this.animate);

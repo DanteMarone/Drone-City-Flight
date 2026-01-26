@@ -30,7 +30,10 @@ export class PhysicsEngine {
                 // Friction
                 const tangent = velocity.clone().sub(hit.normal.clone().multiplyScalar(velocity.dot(hit.normal)));
                 tangent.multiplyScalar(0.9); // Friction
-                // Reconstruct velocity ?? Simple way: multiply perp component
+
+                // Reconstruct velocity
+                const normalComponent = hit.normal.clone().multiplyScalar(velocity.dot(hit.normal));
+                velocity.copy(normalComponent.add(tangent));
             }
         });
 

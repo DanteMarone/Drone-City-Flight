@@ -14,6 +14,7 @@ A 3D drone flight simulation game built with Three.js.
 *   **[Bird AI System](./docs/bird_system.md)**: Behavior trees for bird NPCs.
 *   **[NPC System](./docs/npc_system.md)**: Logic for active agents like angry residents.
 *   **[Infrastructure](./docs/infrastructure.md)**: Procedural roads and rivers.
+*   **[Industrial System](./docs/industrial_system.md)**: Heavy machinery and factory entities.
 *   **[Time Cycle](./docs/time_cycle.md)**: Day/Night cycle implementation.
 
 ### Adding New Object Types

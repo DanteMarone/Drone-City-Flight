@@ -1,69 +1,53 @@
-# Spec 005: Organic Road Support
-
-**Feature:** Bezier/Spline-based Roads
-**Status:** Draft
-**Owner:** Planner
+# Specification: Organic Curve Roads
 
 ## 1. Overview
-Currently, `RoadEntity` and `RiverEntity` are limited to straight segments defined by a single position, rotation, and length. To enable more natural city layouts, we need to support organic curves. This feature introduces `CurveRoadEntity` (and potentially updates `RiverEntity`) to use spline-based geometry.
+This feature introduces `CurveRoadEntity`, allowing users to place curved roads using a quadratic Bezier curve. This breaks the rigid grid structure and allows for more organic city layouts.
 
-## 2. User Interaction (Dev Mode)
-The "Smart Road Tool" will need an upgrade or a new mode:
-*   **Mode A (Straight):** (Current) Click Anchor -> Drag Length -> Release.
-*   **Mode B (Curve):**
-    1.  **Click (Start):** Sets the starting anchor point (Point A).
-    2.  **Drag (Tangent A):** Defines the outgoing tangent vector for Point A.
-    3.  **Release:** Confirms Point A and its tangent.
-    4.  **Move Mouse:** Previews the curve to the cursor location.
-    5.  **Click (End):** Sets the ending anchor point (Point B).
-    6.  **Drag (Tangent B):** Defines the incoming tangent for Point B.
-    7.  **Release:** Finalizes the segment.
+## 2. User Interaction
+The placement tool will use a **3-step interaction**:
+1.  **Anchor (Click 1):** Sets the **Start Point** (P0).
+2.  **Stretch (Mouse Move):** Previews a straight line to the cursor.
+3.  **Endpoint (Click 2):** Sets the **End Point** (P2). The tool enters "Curve Mode".
+4.  **Curve (Mouse Move):** The cursor controls the **Control Point** (P1). The road bends towards the cursor.
+5.  **Finalize (Click 3):** Commits the road to the world.
 
-*Alternatively (Simpler MVP):*
-*   **3-Point Arc:** Click Start -> Click Midpoint -> Click End.
-*   **Spline Path:** Click multiple points to form a `CatmullRomCurve3`. Double-click to finish.
+*Note:* Standard `Esc` key cancels the placement at any stage.
 
-**Decision:** We will use **Cubic Bezier Curves** (Start, Control 1, Control 2, End) as they offer the best control for road curvature and are standard in vector tools.
-*   **Interaction:**
-    1. Click and drag to place Start Point + Start Handle.
-    2. Move mouse to preview.
-    3. Click and drag to place End Point + End Handle.
+## 3. Entity Architecture
+### `CurveRoadEntity`
+*   **Inherits:** `BaseEntity` (or `RoadEntity` if refactored).
+*   **Data:**
+    *   `start`: Vector3
+    *   `end`: Vector3
+    *   `control`: Vector3 (The quadratic Bezier control point)
+    *   `segments`: Integer (Resolution of the curve, e.g., 16 or 32)
+    *   `width`: Float (Road width, matching `RoadEntity`)
 
-## 3. Data Model
-`CurveRoadEntity` will extend `BaseEntity`.
-*   `params.p0`: Start Point (Local or World?) -> Local to the entity anchor?
-    *   *Approach:* The Entity Anchor is `p0`.
-    *   `params.p1`: Control Point 1 (Relative to p0)
-    *   `params.p2`: Control Point 2 (Relative to p3)
-    *   `params.p3`: End Point (Relative to p0)
-*   `userData.curveType`: 'cubic-bezier'
+### Mesh Generation
+*   Use `THREE.Shape` and `THREE.ExtrudeGeometry`? Or custom `BufferGeometry`?
+*   **Decision:** Custom `BufferGeometry` or `Ribbon` generation is best for UV mapping. We need the texture to flow *along* the curve.
+*   **Algorithm:**
+    *   Sample points along the Bezier curve $B(t) = (1-t)^2 P_0 + 2(1-t)t P_1 + t^2 P_2$.
+    *   Compute the tangent and normal at each sample.
+    *   Extrude vertices left and right of the center line.
+    *   Generate UVs where `u` repeats along the length and `v` spans the width (0 to 1).
 
-## 4. Visualization
-*   **Mesh Generation:**
-    *   Use `THREE.TubeGeometry` or a custom `ExtrudeGeometry` along the curve.
-    *   **Challenge:** UV Mapping for the asphalt texture. Standard Tube/Extrude often stretches UVs.
-    *   **Solution:** We need "Arc Length Parameterization" to ensure the dashed lines repeat uniformly regardless of curve length.
-    *   The `RoadEntity` already handles UV scaling for straight segments. For curves, we map `v` coordinate to accumulated length.
+## 4. Systems Impact
+### `InteractionManager`
+*   Needs to support a multi-stage state machine: `IDLE` -> `PLACING_ENDPOINT` -> `PLACING_CONTROL`.
+*   Current "Anchor & Stretch" logic needs to be extensible.
 
-## 5. Physics / Collision
-*   **Collision Mesh:**
-    *   A curved tube is concave. Most physics engines (and our simple `ColliderSystem`) prefer Convex shapes.
-    *   **Approach:** Segment the curve into N linear segments (e.g., every 5 meters or 10 degrees).
-    *   Create a generic OBB (Oriented Bounding Box) for each segment.
-    *   `ColliderSystem` might need to support "Composite Colliders" (which it does via children).
-    *   So `CurveRoadEntity` will generate multiple invisible `BoxGeometry` children for physics.
+### `TextureGenerator`
+*   Can reuse the existing `asphalt_v2` texture.
+*   The geometry generation must ensure the texture doesn't stretch weirdly. We calculate the curve length to determine how many times the texture repeats.
 
-## 6. Implementation Plan
-1.  **Prototype `CurveRoadEntity`:**
-    *   Hardcoded Bezier curve.
-    *   Generate visual mesh with `TubeGeometry` + Asphalt Texture.
-    *   Verify UV repeat logic.
-2.  **Physics Integration:**
-    *   Generate child collider boxes along the curve.
-    *   Verify `VehicleEntity` can drive on it (this is the hard part - pathfinding).
-3.  **Interaction Tool:**
-    *   Update `src/dev/interaction.js` to support the "Click-Drag-Move-Click-Drag" workflow.
+## 5. Technical Constraints
+*   **Physics:** A simple BoxCollider won't work. We might need:
+    *   A MeshCollider (expensive).
+    *   A series of small BoxColliders along the curve (approximated).
+    *   For v1, a simplified BoxCollider covering the chord might suffice, or just no collisions for the curve segments if complex. **Decision:** Series of small BoxColliders for v1 to ensure vehicles don't fall through.
 
-## 7. Open Questions
-*   **Vehicle AI:** Existing vehicles follow `waypoints` (linear points).
-    *   *Solution:* The `CurveRoadEntity` should be able to "sample" itself to generate a dense list of linear waypoints for the vehicle graph.
+## 6. Future Scope (Not in v1)
+*   Cubic Bezier (2 control points).
+*   Banking/Elevation.
+*   Snapping to other curve endpoints.

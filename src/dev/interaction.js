@@ -165,6 +165,31 @@ export class InteractionManager {
             this.devMode.grid.snap(point);
         }
 
+        // Curve Road Logic: 3-Step Placement
+        if (this.devMode.placementMode === 'curve_road') {
+            if (!this.activePlacement) {
+                // Step 0: Start Point
+                if (!this.ghostMesh) {
+                    this._createGhost('curve_road');
+                }
+                this.activePlacement = {
+                    anchor: point.clone(),
+                    type: 'curve_road',
+                    step: 1 // Next: Set End Point
+                };
+            } else if (this.activePlacement.step === 1) {
+                // Step 1: End Point
+                this.activePlacement.endPoint = point.clone();
+                this.activePlacement.step = 2; // Next: Set Control Point
+            } else if (this.activePlacement.step === 2) {
+                // Step 2: Control Point & Finalize
+                this.activePlacement.controlPoint = point.clone();
+                this._finalizeCurveRoad();
+            }
+            return;
+        }
+
+        // Standard Logic
         if (!this.ghostMesh) {
             this._createGhost(this.devMode.placementMode);
         }
@@ -175,6 +200,35 @@ export class InteractionManager {
         };
 
         this._updatePlacementGhost(point);
+    }
+
+    _finalizeCurveRoad() {
+        if (!this.activePlacement) return;
+
+        const { anchor, endPoint, controlPoint } = this.activePlacement;
+
+        const params = {
+            x: anchor.x,
+            y: anchor.y,
+            z: anchor.z,
+            endOffset: new THREE.Vector3().subVectors(endPoint, anchor),
+            controlOffset: new THREE.Vector3().subVectors(controlPoint, anchor),
+            width: 10
+        };
+
+        const entity = EntityRegistry.create('curve_road', params);
+        if (entity && entity.mesh) {
+            this.app.renderer.scene.add(entity.mesh);
+            this.app.world.addEntity(entity);
+            if (this.app.colliderSystem) {
+                this.app.colliderSystem.addStatic([entity]);
+            }
+            this.devMode._recordCreation([entity.mesh], 'Place curve_road');
+        }
+
+        this.activePlacement = null;
+        this._destroyGhost();
+        this.devMode.setPlacementMode(null);
     }
 
     _onMouseMove(e) {
@@ -223,14 +277,60 @@ export class InteractionManager {
         }
 
         if (this.activePlacement) {
-            // Dragging to stretch
-            this._updatePlacementGhost(point);
+            if (this.activePlacement.type === 'curve_road') {
+                this._updateCurveGhost(point);
+            } else {
+                this._updatePlacementGhost(point);
+            }
         } else {
             // Hovering
             if (!this.ghostMesh) this._createGhost(this.devMode.placementMode);
+
             this.ghostMesh.position.copy(point);
-            this.ghostMesh.rotation.set(0, 0, 0);
-            this.ghostMesh.scale.set(1, 1, 1);
+            if (this.devMode.placementMode !== 'curve_road') {
+                this.ghostMesh.rotation.set(0, 0, 0);
+                this.ghostMesh.scale.set(1, 1, 1);
+            }
+        }
+    }
+
+    _updateCurveGhost(currentPoint) {
+        if (!this.ghostMesh) return;
+        const { anchor, step, endPoint } = this.activePlacement;
+
+        const params = {
+            x: anchor.x, y: anchor.y, z: anchor.z,
+            width: 10
+        };
+
+        if (step === 1) {
+            // Previewing Endpoint (Straight line approx or mid-control)
+            const endOffset = new THREE.Vector3().subVectors(currentPoint, anchor);
+            params.endOffset = endOffset;
+            params.controlOffset = endOffset.clone().multiplyScalar(0.5);
+        } else if (step === 2) {
+            // Previewing Control Point
+            const endOffset = new THREE.Vector3().subVectors(endPoint, anchor);
+            const controlOffset = new THREE.Vector3().subVectors(currentPoint, anchor);
+            params.endOffset = endOffset;
+            params.controlOffset = controlOffset;
+        }
+
+        // Generate temp entity to get geometry
+        // We use the class directly to avoid registration lookup overhead/side-effects if any
+        // But we need the class. EntityRegistry.get('curve_road')
+        const CurveClass = EntityRegistry.get('curve_road');
+        if (CurveClass) {
+            const tempEntity = new CurveClass(params);
+            const newMesh = tempEntity.createMesh(params);
+
+            if (newMesh) {
+                this.ghostMesh.geometry.dispose();
+                this.ghostMesh.geometry = newMesh.geometry;
+                this.ghostMesh.position.copy(anchor);
+                // newMesh might have rotation? No, createMesh returns local space geo.
+                this.ghostMesh.rotation.set(0, 0, 0);
+            }
         }
     }
 
@@ -319,6 +419,9 @@ export class InteractionManager {
 
     _handlePlacementMouseUp(e) {
         if (!this.activePlacement) return;
+
+        // Curve Road: Do not finalize on MouseUp (wait for clicks)
+        if (this.activePlacement.type === 'curve_road') return;
 
         const type = this.activePlacement.type;
         const ghost = this.ghostMesh;

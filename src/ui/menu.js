@@ -89,9 +89,35 @@ export class MenuSystem {
 
     _bindEvents() {
         this.dom.resume.onclick = () => this.hide();
+
+        // Two-step reset confirmation
+        const originalResetContent = this.dom.reset.innerHTML;
+        this.resetConfirm = false;
+
         this.dom.reset.onclick = () => {
-            this.app._resetGame();
-            this.hide();
+            if (!this.resetConfirm) {
+                this.resetConfirm = true;
+                this.dom.reset.classList.add('btn-danger-confirm');
+                this.dom.reset.innerHTML = `<span class="menu-btn-content">⚠️ CONFIRM RESET?</span>`;
+                this.dom.reset.setAttribute('aria-pressed', 'true');
+            } else {
+                this.app._resetGame();
+                this.hide();
+                // Reset state
+                this.resetConfirm = false;
+                this.dom.reset.classList.remove('btn-danger-confirm');
+                this.dom.reset.innerHTML = originalResetContent;
+                this.dom.reset.setAttribute('aria-pressed', 'false');
+            }
+        };
+
+        this.dom.reset.onmouseleave = () => {
+            if (this.resetConfirm) {
+                this.resetConfirm = false;
+                this.dom.reset.classList.remove('btn-danger-confirm');
+                this.dom.reset.innerHTML = originalResetContent;
+                this.dom.reset.setAttribute('aria-pressed', 'false');
+            }
         };
 
         this.dom.photo.onclick = () => {

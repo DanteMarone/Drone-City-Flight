@@ -123,9 +123,47 @@ export { ShockBuzzDroneEntity } from './shockBuzzDrone.js';
 export { GuideDroneEntity } from './guideDrone.js';
 export { GuideBotEntity } from './guideBot.js';
 export { HelpfulNpcEntity } from './helpfulNpc.js';
-
-
-// Eagerly load all entity modules to trigger their registrations.
-// Vite will execute each module once, ensuring EntityRegistry is populated
-// without manual imports.
-import.meta.glob('./*.js', { eager: true });
+export { AerialGateEntity } from './aerialGate.js';
+export { AngryPersonEntity } from './angryPerson.js';
+export { BillboardEntity } from './billboard.js';
+export { SkyscraperEntity } from './buildings.js';
+export { ShopEntity } from './buildings.js';
+export { HouseEntity } from './buildings.js';
+export { BusEntity } from './bus.js';
+export { CityBusEntity } from './bus.js';
+export { SchoolBusEntity } from './bus.js';
+export { CherryBlossomTreeEntity } from './cherryBlossomTree.js';
+export { ConstructionWorkerEntity } from './constructionWorker.js';
+export { CraneEntity } from './crane.js';
+export { BirdEntity } from './creatures.js';
+export { DroneBeaconEntity } from './droneBeacon.js';
+export { EmergencyBeaconEntity } from './emergencyBeacon.js';
+export { EmergencySirenTowerEntity } from './emergencySirenTower.js';
+export { FactoryEntity } from './factory.js';
+export { FireflyLanternEntity } from './fireflyLantern.js';
+export { HotDogStandEntity } from './hotDogStand.js';
+export { LifeguardTowerEntity } from './lifeguardTower.js';
+export { MailboxEntity } from './mailbox.js';
+export { BushEntity } from './nature.js';
+export { OrangeTreeEntity } from './nature.js';
+export { OakTreeEntity } from './oakTree.js';
+export { OwlPerchLightEntity } from './owlPerchLight.js';
+export { PalmTreeEntity } from './palmTree.js';
+export { ParkBenchEntity } from './parkBench.js';
+export { ParkingMeterEntity } from './parkingMeter.js';
+export { ParkNatureSmall } from './parks.js';
+export { ParkPlaysetSmall } from './parks.js';
+export { ParkSkateLarge } from './parks.js';
+export { ParkWaterLarge } from './parks.js';
+export { PineTreeEntity } from './pineTree.js';
+export { PowerPoleEntity } from './powerPole.js';
+export { PowerTransformerEntity } from './powerTransformer.js';
+export { RooftopCellTowerEntity } from './rooftopCellTower.js';
+export { SmartTrashBinEntity } from './smartTrashBin.js';
+export { StreetLightEntity } from './streetLight.js';
+export { VehicleEntity } from './vehicles.js';
+export { CarEntity } from './vehicles.js';
+export { PickupTruckEntity } from './vehicles.js';
+export { BicycleEntity } from './vehicles.js';
+export { WaterTowerEntity } from './waterTower.js';
+export { WillowTreeEntity } from './willowTree.js';

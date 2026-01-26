@@ -3,7 +3,7 @@ import { BaseEntity } from './base.js';
 import { EntityRegistry } from './registry.js';
 import { TextureGenerator } from '../../utils/textures.js';
 
-class OwlPerchLightEntity extends BaseEntity {
+export class OwlPerchLightEntity extends BaseEntity {
     constructor(params) {
         super(params);
         this.type = 'owlPerchLight';

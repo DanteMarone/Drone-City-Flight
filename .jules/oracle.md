@@ -19,3 +19,7 @@ Action: [Separation of Concerns] Split selection and clipboard responsibilities 
 ## 2026-05-21 - [Refactor] Person Procedural Generation
 **Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
 **Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".
+
+## 2026-06-15 - [Refactor] Decoupling Domain from Build Tool
+**Discovery:** The core domain logic for Entity Registration (`src/world/entities/index.js`) relied on `import.meta.glob` (a Vite-specific feature) to side-effect load modules. This created a hard dependency on the build tool, preventing the domain logic from being tested or run in a standard Node.js environment (breaking `node:test`).
+**Action:** [Portability] Replaced implicit glob imports with explicit ES Module exports for all entities. This decouples the domain layer from the build system, enabling standard Node.js execution and testing, and makes the module dependency graph explicit.

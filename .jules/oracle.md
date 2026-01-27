@@ -19,3 +19,7 @@ Action: [Separation of Concerns] Split selection and clipboard responsibilities 
 ## 2026-05-21 - [Refactor] Person Procedural Generation
 **Discovery:** `src/person/person.js` was identifying as a "God Class" (600+ lines), mixing entity logic (physics, state, animation) with extensive, static procedural mesh generation code. This made the entity logic hard to read and the generation code hard to reuse or test independently.
 **Action:** [Separation of Concerns] Extracted all procedural mesh generation logic and appearance constants into `src/person/procedural.js`. `Person.js` now delegates visual construction to this module, reducing its size by ~75% and strictly separating "Entity Behavior" from "Entity Appearance".
+
+## 2026-10-25 - [Refactor] Inspector Modularization
+**Discovery:** `src/dev/ui/inspector.js` was identified as a "God Class" (~600 lines), mixing UI layout, event handling, and specific logic for both Object Properties and World Environment settings. This coupling made the class difficult to maintain and extend.
+**Action:** [Separation of Concerns] Split the `Inspector` into modular components: `InspectorPropertiesTab` for object editing, `InspectorWorldTab` for environment settings, and extracted reusable UI input helpers to `src/dev/ui/inspector/utils.js`. The `Inspector` class now serves as a lightweight coordinator, delegating rendering and synchronization to the active tab.

@@ -44,6 +44,34 @@ classDiagram
 **Rule:** dev UI components should continue to call `DevMode` methods instead of
 reaching into selection/clipboard internals, keeping dependency flow one-way.
 
+## Inspector UI Structure
+
+The `Inspector` component (`src/dev/ui/inspector.js`) has been refactored from a monolithic class into a modular coordinator.
+
+**Dependency direction**
+- `Inspector` coordinates tab switching and lifecycle.
+- `InspectorPropertiesTab` manages object-specific properties (transform, params).
+- `InspectorWorldTab` manages global environment settings.
+- `utils` provides shared UI input generators.
+
+```mermaid
+classDiagram
+    class Inspector {
+        +refresh()
+        +sync()
+    }
+    class InspectorPropertiesTab {
+        +render()
+        +sync()
+    }
+    class InspectorWorldTab {
+        +render()
+    }
+
+    Inspector --> InspectorPropertiesTab : delegates properties
+    Inspector --> InspectorWorldTab : delegates world settings
+```
+
 ## Person Entity Structure
 
 The `Person` entity separates behavior from visual construction to maintain a clean entity class.

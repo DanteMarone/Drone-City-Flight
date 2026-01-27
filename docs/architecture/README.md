@@ -1,5 +1,9 @@
 # Architecture Overview
 
+## Core System
+
+*   **[App Core Architecture](./app_core.md)**: The central controller (`src/core/app.js`) handling initialization, game loop, and state management.
+
 ## Dev Tools Structure
 
 The dev tooling layer is centered on `DevMode` (`src/dev/devMode.js`), which coordinates

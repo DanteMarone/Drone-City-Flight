@@ -9,3 +9,7 @@
 ## 2024-12-14 - [Per-Frame Material Updates]
 **Learning:** `new THREE.Color()` in an `update()` loop is just as bad as `new THREE.Vector3()`. Visual effects (pulsing lights, changing hues) often sneak these allocations in.
 **Action:** Use module-level `_tempColor` scratch objects for any color animation logic.
+
+## 2025-05-20 - [Instantiation Explosion]
+**Learning:** Procedural entities that create new Geometries/Materials in their constructor/init cause massive memory and CPU overhead when mass-instantiated (e.g., 1000 street lights = 6000 geometries).
+**Action:** Use module-level caching for Geometries and Materials. Use `mesh.scale` to adapt "Unit Geometries" to specific dimensions instead of generating unique geometry. Synchronize dynamic material effects (like pulsing) to enable material sharing.

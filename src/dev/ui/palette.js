@@ -9,6 +9,7 @@ export class Palette {
         this.thumbnailRenderer = thumbnailRenderer;
         this.content = null;
         this.tabsDiv = null;
+        this.tabElements = new Map();
         this.selectedCategory = 'All';
         this.searchQuery = '';
         this.thumbnails = new Map();
@@ -28,7 +29,10 @@ export class Palette {
 
         const tabsDiv = document.createElement('div');
         tabsDiv.className = 'dev-palette-tabs';
+        tabsDiv.setAttribute('role', 'tablist');
+        tabsDiv.setAttribute('aria-label', 'Asset Categories');
         this.tabsDiv = tabsDiv;
+        this.createTabs();
         header.appendChild(tabsDiv);
 
         // Search Input
@@ -57,22 +61,41 @@ export class Palette {
         this.refresh();
     }
 
-    refresh() {
-        if (!this.content) return;
-        this.tabsDiv.innerHTML = '';
-        this.content.innerHTML = '';
-
+    createTabs() {
         const categories = ['All', 'Residential', 'Infrastructure', 'Vehicles', 'Nature', 'Props'];
         categories.forEach(cat => {
-            const tab = document.createElement('div');
-            tab.className = `dev-palette-tab ${this.selectedCategory === cat ? 'active' : ''}`;
+            const tab = document.createElement('button');
+            tab.className = 'dev-palette-tab';
             tab.textContent = cat;
+
+            // A11y
+            tab.setAttribute('role', 'tab');
             tab.onclick = () => {
                 this.selectedCategory = cat;
                 this.refresh();
             };
+
+            this.tabElements.set(cat, tab);
             this.tabsDiv.appendChild(tab);
         });
+    }
+
+    refresh() {
+        if (!this.content) return;
+
+        // Update Tabs State
+        this.tabElements.forEach((tab, cat) => {
+             const isActive = (cat === this.selectedCategory);
+             if (isActive) {
+                 tab.classList.add('active');
+                 tab.setAttribute('aria-selected', 'true');
+             } else {
+                 tab.classList.remove('active');
+                 tab.setAttribute('aria-selected', 'false');
+             }
+        });
+
+        this.content.innerHTML = '';
 
         // Populate Grid
         EntityRegistry.registry.forEach((Cls, type) => {

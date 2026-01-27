@@ -23,6 +23,7 @@ import { PhotoMode } from '../ui/photoMode.js';
 import { NotificationSystem } from '../ui/notifications.js';
 import { HelpSystem } from '../ui/help.js';
 import { EnvironmentSystem } from '../world/environmentSystem.js';
+import { Minimap } from '../ui/minimap.js';
 
 export class App {
     constructor() {
@@ -67,6 +68,7 @@ export class App {
 
         this.tutorial = new TutorialManager(this);
         this.compass = new RingCompass(this.renderer.scene, this.drone, this.rings); // New
+        this.minimap = new Minimap(this);
 
         this.environment = new EnvironmentSystem(this.renderer);
 
@@ -476,6 +478,7 @@ export class App {
         this.lastTime = timestamp;
 
         this.update(dt);
+        if (this.minimap) this.minimap.update(dt);
         this.post.render(dt);
 
         requestAnimationFrame(this.animate);

@@ -6,7 +6,7 @@ This document tracks the current versions of key dependencies in the project.
 | Package | Version | Description |
 | :--- | :--- | :--- |
 | `three` | `^0.181.2` | 3D rendering engine. |
-| `postprocessing` | `^6.38.0` | Post-processing effects for Three.js. |
+| `postprocessing` | `^6.38.2` | Post-processing effects for Three.js. |
 
 ## Development Dependencies
 | Package | Version | Description |
@@ -15,4 +15,5 @@ This document tracks the current versions of key dependencies in the project.
 | `playwright` | `^1.57.0` | End-to-end testing framework. |
 
 ## Update Log
+- **2026-01-27:** Updated `postprocessing` from `6.38.0` to `6.38.2`.
 - **2024-05-22:** Updated `vite` from `7.2.7` to `7.3.0`.

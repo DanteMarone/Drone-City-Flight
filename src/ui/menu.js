@@ -89,9 +89,39 @@ export class MenuSystem {
 
     _bindEvents() {
         this.dom.resume.onclick = () => this.hide();
-        this.dom.reset.onclick = () => {
-            this.app._resetGame();
-            this.hide();
+        let resetTimeout;
+        const resetBtn = this.dom.reset;
+        const originalContent = resetBtn.innerHTML;
+
+        resetBtn.onclick = () => {
+            if (resetBtn.dataset.confirm === "true") {
+                this.app._resetGame();
+                this.hide();
+                // Reset state for next time
+                resetBtn.dataset.confirm = "false";
+                resetBtn.classList.remove('btn-danger-confirm');
+                resetBtn.innerHTML = originalContent;
+                if (resetTimeout) clearTimeout(resetTimeout);
+            } else {
+                resetBtn.dataset.confirm = "true";
+                resetBtn.classList.add('btn-danger-confirm');
+                resetBtn.innerHTML = `<span class="menu-btn-content">⚠️ CONFIRM RESET?</span>`;
+
+                resetTimeout = setTimeout(() => {
+                    resetBtn.dataset.confirm = "false";
+                    resetBtn.classList.remove('btn-danger-confirm');
+                    resetBtn.innerHTML = originalContent;
+                }, 3000);
+            }
+        };
+
+        resetBtn.onblur = () => {
+            if (resetBtn.dataset.confirm === "true") {
+                resetBtn.dataset.confirm = "false";
+                resetBtn.classList.remove('btn-danger-confirm');
+                resetBtn.innerHTML = originalContent;
+                if (resetTimeout) clearTimeout(resetTimeout);
+            }
         };
 
         this.dom.photo.onclick = () => {

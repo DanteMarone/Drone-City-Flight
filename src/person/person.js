@@ -7,8 +7,9 @@ import { FBXCharacter } from './fbx-character.js';
 import { createRandomAppearance, buildPersonMesh } from './procedural.js';
 
 export class Person {
-    constructor(scene, useFBX = true) {
+    constructor(scene, useFBX = true, CharacterClass = FBXCharacter) {
         this.scene = scene;
+        this.CharacterClass = CharacterClass;
         this.position = new THREE.Vector3(0, 1, 0);
         this.velocity = new THREE.Vector3(0, 0, 0);
         this.yaw = 0;
@@ -33,7 +34,7 @@ export class Person {
     }
 
     async _loadFBXCharacter() {
-        this.fbxCharacter = new FBXCharacter();
+        this.fbxCharacter = new this.CharacterClass();
 
         try {
             console.log('Starting FBX character load...');
@@ -90,7 +91,8 @@ export class Person {
         // Determine character state
         const moveInput = new THREE.Vector3(input.x || 0, 0, input.z || 0);
         const isMoving = moveInput.lengthSq() > 0.01;
-        const justJumped = input.jump && this.grounded;
+        // Use wasGrounded because physics update might have set grounded to false (if we jumped)
+        const justJumped = input.jump && this.wasGrounded;
         const justLanded = !this.wasGrounded && this.grounded;
 
         // Handle animation transitions

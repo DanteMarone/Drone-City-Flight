@@ -1,5 +1,5 @@
 // src/dev/ui/outliner.js
-import { createPanel, getCategory } from './domUtils.js';
+import { createPanel, getCategory, makeAccessible } from './domUtils.js';
 
 export class Outliner {
     constructor(devMode, container) {
@@ -65,12 +65,13 @@ export class Outliner {
             const header = document.createElement('div');
             header.className = 'dev-outliner-group-header';
             header.textContent = `${cat} (${groups[cat].length})`;
-            header.onclick = () => {
+
+            makeAccessible(header, () => {
                 if (this.filter) return; // Disable collapsing during search
                 if (this.expandedGroups.has(cat)) this.expandedGroups.delete(cat);
                 else this.expandedGroups.add(cat);
                 this.refresh();
-            };
+            });
             groupDiv.appendChild(header);
 
             if (isExpanded) {
@@ -80,12 +81,12 @@ export class Outliner {
                     item.className = `dev-outliner-item ${isSelected ? 'selected' : ''}`;
 
                     // Allow clicking anywhere on row to select
-                    item.onclick = (e) => {
+                    makeAccessible(item, (e) => {
                         // Don't trigger if clicked on visibility toggle
-                        if (e.target.closest('.dev-outliner-visibility')) return;
+                        if (e.target && e.target.closest('.dev-outliner-visibility')) return;
                         // Multi-select with shift
                         this.devMode.selectObject(entity.mesh, e.shiftKey);
-                    };
+                    });
 
                     const name = document.createElement('span');
                     const displayName = entity.constructor.displayName || entity.type || 'Object';
